@@ -1,0 +1,607 @@
+{
+  "contract": "classroom-suite",
+  "version": 1,
+  "notes": [
+    "Every record in every tool carries the envelope. Only the owner tool writes a type; readers never write it.",
+    "Merge: per record by id. Newer updatedAt wins; on an exact tie the larger device string wins. A deletion is deletedAt set, and merges like any other change.",
+    "A file whose version is higher than the app's is refused. A lower version is upgraded once, by one upgrade step per version.",
+    "Real student names never appear in this file, the code, the tests or the docs. Fixtures use invented names.",
+    "v95 import: every type below names the v95 storage it comes from in 'fromV95'. ORF dates are converted from v95's UTC timestamps to the Oregon calendar date.",
+    "Walk to WIN lists name every second grader, so they stay inside Small groups' private data and never enter this contract; only today's list reaches display.json."
+  ],
+  "file": {
+    "fields": {
+      "contract": {
+        "type": "const",
+        "required": true,
+        "value": "classroom-suite"
+      },
+      "version": {
+        "type": "int",
+        "required": true
+      },
+      "exportedAt": {
+        "type": "datetime",
+        "required": true
+      },
+      "device": {
+        "type": "string",
+        "required": true,
+        "max": 32
+      },
+      "records": {
+        "type": "array",
+        "required": true
+      }
+    }
+  },
+  "envelope": {
+    "id": {
+      "type": "string",
+      "required": true,
+      "pattern": "^[a-z]+_[A-Za-z0-9_-]{4,100}$"
+    },
+    "type": {
+      "type": "string",
+      "required": true
+    },
+    "updatedAt": {
+      "type": "datetime",
+      "required": true
+    },
+    "device": {
+      "type": "string",
+      "required": true,
+      "max": 32
+    },
+    "deletedAt": {
+      "type": "datetime",
+      "nullable": true
+    }
+  },
+  "types": {
+    "student": {
+      "owner": "gradebook",
+      "readers": [
+        "planner",
+        "subplans",
+        "orf",
+        "smallgroups"
+      ],
+      "idPrefix": "stu",
+      "idRule": "random",
+      "fields": {
+        "firstName": {
+          "type": "string",
+          "required": true,
+          "max": 40
+        },
+        "lastName": {
+          "type": "string",
+          "max": 40
+        },
+        "displayName": {
+          "type": "string",
+          "max": 40,
+          "note": "What projected screens show, e.g. 'Ava R.' when two first names match. Defaults to firstName."
+        },
+        "aka": {
+          "type": "array",
+          "of": {
+            "type": "string",
+            "max": 40
+          },
+          "max": 6,
+          "note": "Other names the child goes by, so typed names match (v95 'Also called')."
+        },
+        "eld": {
+          "type": "bool",
+          "required": true
+        },
+        "districtId": {
+          "type": "string",
+          "max": 20,
+          "note": "Synergy student id (v95 sid). Gradebook only shows it; never on any display."
+        },
+        "active": {
+          "type": "bool",
+          "required": true
+        },
+        "joined": {
+          "type": "date",
+          "nullable": true
+        },
+        "left": {
+          "type": "date",
+          "nullable": true
+        }
+      },
+      "fromV95": "gb2_standards_v1.students {id, first, last, sid, eld, aka}"
+    },
+    "schoolDay": {
+      "owner": "planner",
+      "readers": [
+        "gradebook",
+        "subplans",
+        "orf"
+      ],
+      "idPrefix": "sday",
+      "idRule": "sday_<date>",
+      "note": "Only days that differ from an ordinary school day need a record. A date with no record is a school day if it falls inside the school year and on a weekday.",
+      "fields": {
+        "date": {
+          "type": "date",
+          "required": true
+        },
+        "kind": {
+          "type": "enum",
+          "required": true,
+          "values": [
+            "school",
+            "noSchool",
+            "earlyRelease"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "max": 60,
+          "note": "e.g. 'Veterans Day', 'Conferences'"
+        }
+      },
+      "fromV95": "lp:days:v2 noSchool days, suite:district:v1"
+    },
+    "schoolYear": {
+      "owner": "planner",
+      "readers": [
+        "gradebook",
+        "subplans",
+        "orf"
+      ],
+      "idPrefix": "year",
+      "idRule": "year_<firstDay year>",
+      "fields": {
+        "firstDay": {
+          "type": "date",
+          "required": true
+        },
+        "lastDay": {
+          "type": "date",
+          "required": true
+        },
+        "earlyReleaseWeekday": {
+          "type": "enum",
+          "values": [
+            "mon",
+            "tue",
+            "wed",
+            "thu",
+            "fri"
+          ],
+          "nullable": true
+        }
+      },
+      "fromV95": "gb2_standards_v1.settings.yearStart/yearEnd, suite:district:v1"
+    },
+    "gradingPeriod": {
+      "owner": "planner",
+      "readers": [
+        "gradebook",
+        "orf"
+      ],
+      "idPrefix": "gp",
+      "idRule": "random",
+      "fields": {
+        "name": {
+          "type": "string",
+          "required": true,
+          "max": 30
+        },
+        "start": {
+          "type": "date",
+          "required": true
+        },
+        "end": {
+          "type": "date",
+          "required": true
+        }
+      },
+      "fromV95": "gb2_standards_v1.terms (four quarters)"
+    },
+    "orfCheck": {
+      "owner": "orf",
+      "readers": [
+        "gradebook",
+        "smallgroups"
+      ],
+      "idPrefix": "orf",
+      "idRule": "random",
+      "note": "One record per timed read. Several passes (laps) of one passage within the time are one check, as in v95.",
+      "fields": {
+        "studentId": {
+          "type": "ref",
+          "required": true,
+          "to": "student"
+        },
+        "date": {
+          "type": "date",
+          "required": true,
+          "note": "Oregon calendar date the read was taken"
+        },
+        "takenAt": {
+          "type": "datetime",
+          "note": "The exact moment, kept from v95"
+        },
+        "passageTitle": {
+          "type": "string",
+          "required": true,
+          "max": 80
+        },
+        "passageWords": {
+          "type": "int",
+          "min": 0,
+          "max": 2000
+        },
+        "seconds": {
+          "type": "number",
+          "required": true,
+          "min": 1,
+          "max": 600
+        },
+        "passes": {
+          "type": "int",
+          "required": true,
+          "min": 1,
+          "max": 10
+        },
+        "wordsRead": {
+          "type": "int",
+          "required": true,
+          "min": 0,
+          "max": 5000
+        },
+        "errors": {
+          "type": "int",
+          "required": true,
+          "min": 0,
+          "max": 5000
+        },
+        "selfCorrections": {
+          "type": "int",
+          "required": true,
+          "min": 0,
+          "max": 5000
+        },
+        "wcpm": {
+          "type": "number",
+          "required": true,
+          "derived": "round(max(0, wordsRead - errors) / (seconds / 60)), exactly as v95"
+        },
+        "pausedSeconds": {
+          "type": "number",
+          "min": 0,
+          "max": 3600
+        },
+        "marked": {
+          "type": "array",
+          "of": {
+            "type": "object",
+            "fields": {
+              "kind": {
+                "type": "enum",
+                "required": true,
+                "values": [
+                  "error",
+                  "selfCorrection"
+                ]
+              },
+              "word": {
+                "type": "string",
+                "required": true,
+                "max": 40
+              },
+              "said": {
+                "type": "string",
+                "max": 40
+              },
+              "teacherTold": {
+                "type": "bool",
+                "required": true
+              }
+            }
+          }
+        },
+        "comprehension": {
+          "type": "object",
+          "nullable": true,
+          "note": "v95 records 0-3 of 3; null is Not asked",
+          "fields": {
+            "asked": {
+              "type": "int",
+              "required": true,
+              "min": 0,
+              "max": 20
+            },
+            "correct": {
+              "type": "int",
+              "required": true,
+              "min": 0,
+              "max": 20
+            }
+          }
+        }
+      },
+      "fromV95": "running-records-v1.records + suite:orfcomp:v1 + suite:orfnotes:v1; student via gb2_standards_v1.orfLink"
+    },
+    "orfGoal": {
+      "owner": "orf",
+      "readers": [
+        "gradebook",
+        "smallgroups"
+      ],
+      "idPrefix": "ogoal",
+      "idRule": "ogoal_<studentId>",
+      "fromV95": "suite:orfgoals:v1.goals (typed goals only; suggested goals stay computed)",
+      "fields": {
+        "studentId": {
+          "type": "ref",
+          "required": true,
+          "to": "student"
+        },
+        "winter": {
+          "type": "int",
+          "nullable": true,
+          "min": 0,
+          "max": 300
+        },
+        "spring": {
+          "type": "int",
+          "nullable": true,
+          "min": 0,
+          "max": 300
+        }
+      }
+    },
+    "unit": {
+      "owner": "smallgroups",
+      "readers": [
+        "subplans",
+        "display"
+      ],
+      "idPrefix": "unit",
+      "idRule": "random",
+      "fromV95": "suite:readgroups:v1.units u1-u10",
+      "note": "A three-week reading volunteer unit. Reading placements belong to a unit.",
+      "fields": {
+        "name": {
+          "type": "string",
+          "max": 40
+        },
+        "start": {
+          "type": "date",
+          "nullable": true
+        },
+        "order": {
+          "type": "int",
+          "required": true,
+          "min": 0,
+          "max": 50
+        }
+      }
+    },
+    "group": {
+      "owner": "smallgroups",
+      "readers": [
+        "subplans",
+        "gradebook",
+        "display"
+      ],
+      "idPrefix": "grp",
+      "idRule": "random",
+      "fields": {
+        "kind": {
+          "type": "enum",
+          "required": true,
+          "values": [
+            "math",
+            "reading",
+            "walkToWin",
+            "volunteer"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "required": true,
+          "max": 30
+        },
+        "look": {
+          "type": "string",
+          "max": 30,
+          "note": "Colour or animal token, e.g. 'orange', 'fox'"
+        },
+        "order": {
+          "type": "int",
+          "required": true,
+          "min": 0,
+          "max": 50
+        },
+        "station": {
+          "type": "ref",
+          "to": "station",
+          "nullable": true,
+          "note": "Math: the station this group starts at"
+        },
+        "pages": {
+          "type": "map",
+          "of": {
+            "type": "string",
+            "max": 40
+          },
+          "note": "Math: page to do at each station, keyed by station id"
+        }
+      },
+      "fromV95": "suite:groups:v1.math.groups, suite:readgroups:v1 group ids (orange, green, yellow, pink)"
+    },
+    "placement": {
+      "owner": "smallgroups",
+      "readers": [
+        "subplans",
+        "gradebook",
+        "display"
+      ],
+      "idPrefix": "plc",
+      "idRule": "plc_<groupKind>_<unitId>_<studentId> for reading, plc_<groupKind>_<studentId> otherwise",
+      "note": "One placement per student per kind of group, so moving a child is one small record and two devices moving different children never collide.",
+      "fields": {
+        "groupKind": {
+          "type": "enum",
+          "required": true,
+          "values": [
+            "math",
+            "reading",
+            "walkToWin",
+            "volunteer"
+          ]
+        },
+        "studentId": {
+          "type": "ref",
+          "required": true,
+          "to": [
+            "student",
+            "visitor"
+          ]
+        },
+        "groupId": {
+          "type": "ref",
+          "required": true,
+          "to": "group",
+          "nullable": true
+        },
+        "unitId": {
+          "type": "ref",
+          "to": "unit",
+          "note": "Reading placements only"
+        }
+      },
+      "fromV95": "suite:groups:v1.math.place, suite:readgroups:v1.units[*].place"
+    },
+    "visitor": {
+      "owner": "smallgroups",
+      "readers": [
+        "subplans",
+        "display"
+      ],
+      "idPrefix": "vis",
+      "idRule": "random",
+      "note": "A Walk to WIN student from another class. Not in the gradebook; first name only.",
+      "fields": {
+        "firstName": {
+          "type": "string",
+          "required": true,
+          "max": 40
+        },
+        "active": {
+          "type": "bool",
+          "required": true
+        }
+      },
+      "fromV95": "guests on the math board and reading units"
+    },
+    "station": {
+      "owner": "smallgroups",
+      "readers": [
+        "subplans",
+        "display"
+      ],
+      "idPrefix": "stn",
+      "idRule": "random",
+      "fields": {
+        "kind": {
+          "type": "enum",
+          "required": true,
+          "values": [
+            "math"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "required": true,
+          "max": 40
+        },
+        "order": {
+          "type": "int",
+          "required": true,
+          "min": 0,
+          "max": 20
+        },
+        "hasPages": {
+          "type": "bool",
+          "required": true
+        }
+      },
+      "fromV95": "suite:groups:v1.math.stations, pageStations"
+    }
+  },
+  "display": {
+    "note": "display.json, the only file the Windows PC receives. Any field not listed here is refused, so marks, notes and scores cannot leak onto the projector.",
+    "fields": {
+      "contract": {
+        "type": "const",
+        "required": true,
+        "value": "classroom-suite-display"
+      },
+      "version": {
+        "type": "const",
+        "required": true,
+        "value": 1
+      },
+      "date": {
+        "type": "date",
+        "required": true
+      },
+      "groups": {
+        "type": "array",
+        "required": true,
+        "of": {
+          "type": "object",
+          "fields": {
+            "kind": {
+              "type": "enum",
+              "required": true,
+              "values": [
+                "math",
+                "reading",
+                "walkToWin",
+                "volunteer"
+              ]
+            },
+            "name": {
+              "type": "string",
+              "required": true,
+              "max": 30
+            },
+            "look": {
+              "type": "string",
+              "max": 30
+            },
+            "station": {
+              "type": "string",
+              "max": 40
+            },
+            "page": {
+              "type": "string",
+              "max": 40
+            },
+            "members": {
+              "type": "array",
+              "required": true,
+              "of": {
+                "type": "string",
+                "max": 40
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

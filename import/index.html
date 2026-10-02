@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bring in your v95 data</title>
+<link rel="stylesheet" href="../core/look.css">
+</head>
+<body>
+<main>
+  <h1>Bring in your v95 data</h1>
+  <p class="lead">Load a v95 sync file once, and everything in it comes across. v95 keeps working exactly as it does now.</p>
+
+  <section class="panel" id="now">
+    <h2>On this device</h2>
+    <div id="nowBody"><p class="small">Opening…</p></div>
+  </section>
+
+  <section class="panel" id="pick">
+    <h2>Choose the file</h2>
+    <p class="small">In v95, use Save a sync file, then choose it here. A file sent as .txt works too.</p>
+    <input type="file" id="file" accept=".json,.txt,application/json,text/plain" hidden>
+    <button id="choose">Choose a v95 sync file</button>
+  </section>
+
+  <section class="panel warn" id="problem" hidden role="alert">
+    <h2 id="problemTitle">Nothing was loaded</h2>
+    <p id="problemText"></p>
+    <ul id="problemList" class="small"></ul>
+  </section>
+
+  <section class="panel" id="preview" hidden>
+    <h2>What this file holds</h2>
+    <p class="small" id="savedAt"></p>
+    <table id="coming"></table>
+    <div id="keptBox" hidden>
+      <h2 style="margin-top:20px">Kept as v95 wrote it, for later steps</h2>
+      <table id="kept"></table>
+    </div>
+    <div id="notesBox" hidden>
+      <h2 style="margin-top:20px">Worth knowing</h2>
+      <ul id="notes"></ul>
+    </div>
+    <div id="heldBox" hidden>
+      <h2 style="margin-top:20px">Not brought in</h2>
+      <p class="small">These stay in the kept v95 data, so nothing is lost.</p>
+      <ul id="held"></ul>
+    </div>
+    <div style="margin-top:20px">
+      <button id="load">Load these records</button>
+      <button id="cancel" class="quiet">Cancel</button>
+    </div>
+  </section>
+
+  <section class="panel" id="result" hidden role="status">
+    <h2>Loaded</h2>
+    <p id="resultText"></p>
+  </section>
+
+  <section class="panel" id="undoBox" hidden>
+    <h2>Undo</h2>
+    <p class="small" id="undoText"></p>
+    <button id="undo" class="quiet">Undo the last load</button>
+  </section>
+</main>
+
+<script src="../contract/validate.js"></script>
+<script src="../core/merge.js"></script>
+<script src="../core/store.js"></script>
+<script src="../core/import-v95.js"></script>
+<script>
+(async function () {
+  const NAMES = {
+    student: 'Students', schoolYear: 'School year', schoolDay: 'Days off', gradingPeriod: 'Grading periods',
+    orfCheck: 'ORF checks', orfGoal: 'ORF goals', unit: 'Reading units', group: 'Groups',
+    placement: 'Group placements', visitor: 'Visitors', station: 'Math stations'
+  };
+  const KEPT = {
+    'lp:settings:v2': 'Planner subjects and schedule', 'suite:subplan:v1': 'Sub plan notes', 'suite:win:v1': 'Walk to WIN lists'
+  };
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const when = iso => new Date(iso).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const ORDER = Object.keys(NAMES);
+  const rank = k => ORDER.includes(k) ? ORDER.indexOf(k) : 99;
+  const rows = obj => Object.entries(obj).sort((a, b) => rank(a[0]) - rank(b[0])).map(([k, n]) => `<tr><td>${esc(NAMES[k] || KEPT[k] || k)}</td><td class="n">${n === 1 && KEPT[k] ? '✓' : n}</td></tr>`).join('');
+
+  function problem(title, text, list) {
+    $('problemTitle').textContent = title;
+    $('problemText').textContent = text;
+    $('problemList').innerHTML = (list || []).slice(0, 8).map(x => `<li>${esc(x)}</li>`).join('');
+    $('problem').classList.add('warn');
+    $('problem').hidden = false;
+  }
+
+  let store, contract, pending = null;
+  try {
+    contract = await (await fetch('../contract/contract.json')).json();
+    store = await SuiteStore.open({ contract });
+  } catch (e) {
+    $('nowBody').innerHTML = '';
+    problem('This page could not open', e.message);
+    $('choose').disabled = true;
+    return;
+  }
+
+  async function showNow() {
+    const c = await store.counts();
+    const last = await store.meta.get('lastV95At');
+    $('nowBody').innerHTML = Object.keys(c).length
+      ? `<table>${rows(c)}</table>` + (last ? `<p class="small" style="margin-top:8px">Last v95 file loaded was saved ${esc(when(last))}.</p>` : '')
+      : '<p class="small">Nothing yet. Choose a v95 sync file to start.</p>';
+    const u = await store.meta.get('undo');
+    $('undoBox').hidden = !u;
+    if (u) $('undoText').textContent = `Puts this device back the way it was before loading ${u.source} at ${when(u.at)}.`;
+  }
+
+  $('choose').onclick = () => $('file').click();
+  $('cancel').onclick = () => { pending = null; $('preview').hidden = true; $('file').value = ''; };
+
+  $('file').onchange = async () => {
+    const f = $('file').files[0];
+    $('problem').hidden = true; $('result').hidden = true; $('preview').hidden = true;
+    if (!f) return;
+    let parsed;
+    try { parsed = JSON.parse(await f.text()); }
+    catch (e) { return problem('Nothing was loaded', `${f.name} is not a sync file. In v95, use Save a sync file and choose that.`); }
+    let out;
+    try { out = SuiteImportV95.convert(parsed); }
+    catch (e) { return problem('Nothing was loaded', e.message); }
+
+    const last = await store.meta.get('lastV95At');
+    if (last && Date.parse(out.savedAt) < Date.parse(last)) {
+      return problem('Nothing was loaded', `This file was saved ${when(out.savedAt)}, before the v95 file already loaded here (saved ${when(last)}). Save a new sync file in v95 and choose that.`);
+    }
+
+    pending = { out, name: f.name };
+    $('savedAt').textContent = `Saved by v95 ${when(out.savedAt)}${out.from ? ' on ' + out.from : ''}.`;
+    $('coming').innerHTML = rows(out.counts);
+    $('kept').innerHTML = rows(out.kept); $('keptBox').hidden = !Object.keys(out.kept).length;
+    $('notes').innerHTML = out.notes.map(n => `<li>${esc(n)}</li>`).join(''); $('notesBox').hidden = !out.notes.length;
+    $('held').innerHTML = out.heldBack.map(h => `<li>${esc(h.what)}: ${esc(h.why)}</li>`).join(''); $('heldBox').hidden = !out.heldBack.length;
+    $('preview').hidden = false;
+    $('load').focus();
+  };
+
+  $('load').onclick = async () => {
+    if (!pending) return;
+    $('load').disabled = true;
+    try {
+      const { out, name } = pending;
+      const r = await store.load(out.records, { source: name }, { v95: out.archive, meta: { lastV95At: out.savedAt } });
+      const c = r.counts;
+      $('resultText').textContent = r.changed
+        ? `${c.added} new, ${c.updated} changed, ${c.unchanged} already here.`
+        : `Everything in this file was already here, so nothing changed.`;
+      $('result').hidden = false; $('preview').hidden = true; pending = null; $('file').value = '';
+    } catch (e) {
+      problem('Nothing was loaded', e.message, e.details);
+    }
+    $('load').disabled = false;
+    await showNow();
+  };
+
+  $('undo').onclick = async () => {
+    try {
+      const u = await store.undo();
+      $('result').hidden = true;
+      $('resultText').textContent = '';
+      problem('Load undone', `This device is back the way it was before loading ${u.source}.`);
+      $('problem').classList.remove('warn');
+    } catch (e) { problem('Could not undo', e.message); }
+    await showNow();
+  };
+
+  await showNow();
+  window.__ready = true;
+})();
+</script>
+</body>
+</html>
