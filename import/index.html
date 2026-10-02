@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bring in your v95 data</title>
 <link rel="stylesheet" href="../core/look.css">
+<link rel="manifest" href="../manifest.webmanifest">
+<meta name="theme-color" content="#10655C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Planbook">
+<link rel="apple-touch-icon" href="../icons/icon-180.png">
+<script src="../core/boot.js"></script>
 </head>
 <body>
 <main>
@@ -135,7 +141,7 @@
     }
 
     pending = { out, name: f.name };
-    $('savedAt').textContent = `Saved by v95 ${when(out.savedAt)}${out.from ? ' on ' + out.from : ''}.`;
+    $('savedAt').textContent = `Saved in v95 ${when(out.savedAt)}.`;
     $('coming').innerHTML = rows(out.counts);
     $('kept').innerHTML = rows(out.kept); $('keptBox').hidden = !Object.keys(out.kept).length;
     $('notes').innerHTML = out.notes.map(n => `<li>${esc(n)}</li>`).join(''); $('notesBox').hidden = !out.notes.length;

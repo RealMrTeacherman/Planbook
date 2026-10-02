@@ -1,5 +1,31 @@
 # Changelog
 
+## Step 2 — MacBook and iPhone sync
+
+**What it does.** `sync/` keeps the MacBook and iPhone in step through one folder in the district Google Drive, with no Google sign-in.
+- **MacBook (Chrome):** choose the folder once. The MacBook keeps its full copy there as `classroom-suite.json`, rewritten a moment after every change. It checks the folder every 8 seconds while open, merges any file sent from the iPhone, and then removes it (Drive keeps it in its trash for 30 days).
+- **iPhone:** **Send** opens the share sheet (Save to Files → Google Drive → the folder). **Load** picks `classroom-suite.json` from Google Drive. The page shows when it last sent and loaded, and flags changes not sent yet.
+- **Home-screen app and offline:** `Planbook` installs to the iPhone home screen and opens with no signal. The home screen also matters because Safari clears a website's saved data after 7 days unvisited, and home-screen apps are exempt.
+- **Try it:** rename math groups on each device to check sync for yourself.
+- `index.html` is a small home page linking to Sync and to the v95 import.
+
+**Files.** `core/transport.js` (the only code that moves files), `sync/index.html`, `index.html`, `sw.js`, `manifest.webmanifest`, `core/boot.js`, `icons/`.
+
+**Changes to step 1's files.**
+- `core/store.js` tells the page when data changes, and can ask the browser to keep its data.
+- **Undo is for loads only.** An edit no longer replaces the last load's undo, and undoing a load keeps anything changed since then. Before this, renaming a group after a load made Undo undo the rename while saying it undid a load.
+- The import page no longer shows v95's file name as if it were a device ("on classroom.mac-6717bf.json").
+
+**Mistakes in this step, found and fixed before release.**
+- A refused file in the folder was reported for 8 seconds, then the next check wiped the warning. It now stays until the file is gone.
+- The MacBook's background check redrew the Try it list every 8 seconds, wiping a name typed but not yet saved. The list now redraws only when the groups change.
+- The Save buttons used the class name `small`, which is also the grey small-text style, so their text was grey on teal. They now use `compact`.
+- The gate test was flaky (2 failures in 5 runs) because it read the screen before the page had redrawn. It now waits for the page to settle, as a person would; 12 runs of 12 then passed.
+
+**Tests.** 100 Node and real-browser tests. The browser gate test runs a MacBook and an iPhone as two separate Chrome profiles, served under `/Planbook/` as GitHub Pages serves it, with a real folder standing in for Drive. It covers both editing offline, swapping files in either order, the same group renamed on both, Drive's "(1)" names, refused files, older-version files, undo, and opening with no signal. `npm run test:breaks` makes 39 deliberate breaks; all 39 are caught.
+
+**Not tested here.** A real iPhone's share sheet, the Files picker, and Google Drive for Desktop itself. Those are this step's gate on your devices.
+
 ## Step 1 — data store and v95 importer
 
 **What it does.** `import/` loads a v95 sync file. It shows what the file holds before anything is written, then loads it in one go, and the last load can be undone. Everything v95 stored comes across: contract records are converted, and every v95 key is also kept exactly as v95 wrote it, for the steps that convert marks, planner days, sub notes and Walk to WIN.

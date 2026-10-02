@@ -12,6 +12,9 @@ The rebuild of the v95 suite as two tools on one written data contract: Gradeboo
 | `core/store.js` | IndexedDB store: contract check before every write, one transaction per load, exact undo, schema upgrades. |
 | `core/look.css` | The one look (v92's). |
 | `import/` | The import page. |
+| `core/transport.js` | The only code that moves files: the MacBook's watched folder, the iPhone's Send and Load. |
+| `sync/` | The sync page. |
+| `index.html`, `sw.js`, `manifest.webmanifest`, `core/boot.js`, `icons/` | Home page, offline copy, home-screen app. |
 | `tests/` | Node tests, a real-browser test, deliberate breaks (`mutations.js`), the names guard. |
 
 ## Rules carried over from v95
@@ -26,6 +29,14 @@ The rebuild of the v95 suite as two tools on one written data contract: Gradeboo
 - One copy of everything; one owner per record type (see the contract).
 - Defaults are data, never text baked into code.
 - Phone first for marking and day planning.
+
+## Sync, and what is easy to break
+- `classroom-suite.json` in the watched folder is the MacBook's full copy. Files named `suite-from-<device>-<id>.json` (also with Drive's " (1)" and as .txt) are sent from other devices.
+- The MacBook rewrites its copy **before** removing a sent file, so a crash in between loses nothing.
+- A file the MacBook refuses is remembered by name and time and not retried until it changes; the warning stays while it is in the folder.
+- **Send must not wait for anything before `navigator.share`.** Safari needs the tap. The send-ready file is kept current in memory after every change for this reason.
+- Undo is for loads. Edits do not replace it, and undoing a load keeps records changed since.
+- `sw.js` caches files one by one and fetches pages network-first (both from v95 failures). Its `VERSION` must match `package.json`; a test checks.
 
 ## Running the tests
 `npm install` once, then `npm test` and `npm run test:breaks`. The browser test finds Chrome on its own on a Mac; elsewhere set `CHROME` to a Chrome binary.

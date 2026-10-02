@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sync · Planbook</title>
+<link rel="stylesheet" href="../core/look.css">
+<link rel="manifest" href="../manifest.webmanifest">
+<meta name="theme-color" content="#10655C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Planbook">
+<link rel="apple-touch-icon" href="../icons/icon-180.png">
+<script src="../core/boot.js"></script>
+</head>
+<body>
+<main>
+  <p class="small"><a href="../">Planbook</a></p>
+  <h1>Sync</h1>
+  <p class="lead">The MacBook and iPhone stay in step through a folder in your district Google Drive. Both work without a signal; changes travel when you send or load.</p>
+
+  <section class="panel" id="statusBox">
+    <h2>This device</h2>
+    <dl class="status" id="status"></dl>
+    <p style="margin:12px 0 0"><button class="quiet compact" id="rename">Rename this device</button></p>
+  </section>
+
+  <section class="panel" id="folderBox" hidden>
+    <h2>Watch a Drive folder</h2>
+    <div id="folderNone">
+      <p class="small">Do this once on the MacBook. In the window that opens, choose Google Drive in the sidebar, then a folder for the suite (make one called Planbook if you like).</p>
+      <button id="chooseFolder">Choose a folder in Google Drive</button>
+    </div>
+    <div id="folderReconnect" hidden>
+      <p class="small" id="reconnectText"></p>
+      <button id="reconnect">Reconnect the folder</button>
+    </div>
+    <div id="folderWatching" hidden>
+      <p class="small" id="watchingText"></p>
+      <button class="quiet" id="chooseOther">Choose a different folder</button>
+    </div>
+  </section>
+
+  <section class="panel" id="sendBox">
+    <h2>Send to the MacBook</h2>
+    <p class="small" id="sendHelp">Tap Send, choose Save to Files, then Google Drive and the suite's folder. The MacBook picks it up within a few seconds when it is open.</p>
+    <button id="send">Send</button>
+  </section>
+
+  <section class="panel" id="loadBox">
+    <h2 id="loadTitle">Load from the MacBook</h2>
+    <p class="small" id="loadHelp">Tap Load, then choose classroom-suite.json from Google Drive. If Google Drive is not listed, open Browse in the picker, tap ⋯, Edit, and switch it on.</p>
+    <input type="file" id="file" accept=".json,.txt,application/json,text/plain" hidden>
+    <button id="load">Load</button>
+  </section>
+
+  <section class="panel warn" id="problem" hidden role="alert">
+    <h2 id="problemTitle">Nothing was loaded</h2>
+    <p id="problemText"></p>
+  </section>
+
+  <section class="panel" id="result" hidden role="status">
+    <h2 id="resultTitle">Loaded</h2>
+    <p id="resultText"></p>
+  </section>
+
+  <section class="panel" id="tryBox" hidden>
+    <h2>Try it</h2>
+    <p class="small">Rename one math group here and a different one on your other device. Then send from the iPhone and load on it again. Both devices should show both new names.</p>
+    <div id="groups"></div>
+  </section>
+
+  <section class="panel" id="undoBox" hidden>
+    <h2>Undo</h2>
+    <p class="small" id="undoText"></p>
+    <button class="quiet" id="undo">Undo the last load</button>
+  </section>
+</main>
+
+<script src="../contract/validate.js"></script>
+<script src="../core/merge.js"></script>
+<script src="../core/store.js"></script>
+<script src="../core/transport.js"></script>
+<script>
+(async function () {
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const when = iso => {
+    if (!iso) return 'never';
+    const d = new Date(iso), today = new Date().toDateString() === d.toDateString();
+    return today ? d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+      : d.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  };
+  function problem(title, text) {
+    $('result').hidden = true;
+    $('problemTitle').textContent = title; $('problemText').textContent = text; $('problem').hidden = false;
+  }
+  function result(title, text) {
+    $('problem').hidden = true;
+    $('resultTitle').textContent = title; $('resultText').textContent = text; $('result').hidden = false;
+  }
+  const summary = c => c.added + c.updated + c.deleted
+    ? `${c.added} new, ${c.updated} changed, ${c.deleted} removed. ${c.keptLocal ? c.keptLocal + ' kept as they are here, being newer. ' : ''}`
+    : 'Everything in this file was already here, so nothing changed.';
+
+  let store, t;
+  try {
+    const contract = await (await fetch('../contract/contract.json')).json();
+    store = await SuiteStore.open({ contract });
+    store.persist();
+    t = SuiteTransport.create({ store, contract });
+    await t.start();
+  } catch (e) {
+    problem('This page could not open', e.message);
+    return;
+  }
+
+  // The MacBook watches a folder; any device without that sends and loads by hand.
+  const hub = t.folderSupported;
+  $('folderBox').hidden = !hub;
+  $('sendBox').hidden = hub;
+  if (hub) {
+    $('loadTitle').textContent = 'Load a file by hand';
+    $('loadHelp').textContent = 'Only needed if a file did not arrive through the folder.';
+  }
+
+  async function render() {
+    const s = await t.status();
+    const rows = [['Name', esc(s.deviceName)]];
+    if (hub) {
+      rows.push(['Folder', s.folder.state === 'watching' ? esc(s.folder.name) : s.folder.state === 'reconnect' ? '<span class="behind">needs reconnecting</span>' : 'not chosen']);
+      rows.push(['Last checked', s.lastScan ? when(s.lastScan.at) : 'never']);
+      rows.push(['Last phone file', s.lastMerged ? when(s.lastMerged.at) : 'none yet']);
+      rows.push(['Copy saved', s.lastHubWrite ? when(s.lastHubWrite) : 'never']);
+    } else {
+      rows.push(['Last sent', s.lastSent ? when(s.lastSent.at) : 'never']);
+      rows.push(['Last loaded', s.lastLoaded ? when(s.lastLoaded.at) : 'never']);
+      if (s.unsentSince) rows.push(['Not sent yet', `<span class="behind">changes since ${when(s.unsentSince)}</span>`]);
+    }
+    $('status').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+
+    if (hub) {
+      $('folderNone').hidden = s.folder.state !== 'none';
+      $('folderReconnect').hidden = s.folder.state !== 'reconnect';
+      $('folderWatching').hidden = s.folder.state !== 'watching';
+      if (s.folder.state === 'reconnect') $('reconnectText').textContent = `Chrome asks again after a restart. Reconnect "${s.folder.name}" to keep watching it.`;
+      if (s.folder.state === 'watching') {
+        const ps = (s.lastScan && s.lastScan.problems) || [];
+        const p = ps.length ? ` ${ps.length === 1 ? 'One file there' : ps.length + ' files there'} could not be loaded and ${ps.length === 1 ? 'was' : 'were'} left alone: ${ps.map(x => `${x.name}. ${x.why}`).join(' ')}` : '';
+        $('watchingText').textContent = `Watching "${s.folder.name}". Files from the iPhone are merged and then removed; Drive keeps removed files in its trash for 30 days.${p}`;
+      }
+    }
+
+    $('undoBox').hidden = !s.undo;
+    if (s.undo) $('undoText').textContent = `Puts this device back the way it was before loading ${s.undo.source} at ${when(s.undo.at)}.`;
+
+    // Try it: the math groups, renamable.
+    const groups = (await store.all()).filter(r => r.type === 'group' && r.kind === 'math' && !r.deletedAt).sort((a, b) => a.order - b.order);
+    $('tryBox').hidden = !groups.length;
+    const box = $('groups');
+    // Rebuild only when the groups themselves changed, so a name being typed is never wiped.
+    const sig = JSON.stringify(groups.map(g => [g.id, g.name, g.order]));
+    if (sig !== box.dataset.sig && !box.contains(document.activeElement)) {
+      box.dataset.sig = sig;
+      box.innerHTML = groups.map(g => `<label class="field"><span>Group ${g.order + 1}</span><input type="text" maxlength="30" data-id="${esc(g.id)}" value="${esc(g.name)}"><button class="compact" data-save="${esc(g.id)}">Save</button></label>`).join('');
+    }
+  }
+
+  $('groups').addEventListener('click', async e => {
+    const id = e.target.dataset && e.target.dataset.save;
+    if (!id) return;
+    e.preventDefault();
+    const name = document.querySelector(`input[data-id="${id}"]`).value.trim();
+    if (!name) return problem('Not saved', 'A group needs a name.');
+    const g = (await store.all()).find(r => r.id === id);
+    try { await store.write([Object.assign({}, g, { name })], 'a group rename'); result('Saved', `Renamed to ${name}.`); }
+    catch (err) { problem('Not saved', err.message); }
+    document.activeElement.blur();
+    render();
+  });
+
+  $('send').onclick = () => {
+    t.send().then(how => {
+      if (how === 'shared') result('Sent', 'Saved for the MacBook. It merges the file within a few seconds when it is open.');
+      else if (how === 'downloaded') result('Saved as a download', 'This device has no share sheet, so the file was downloaded. Put it in the suite\'s Drive folder.');
+    }, e => problem('Not sent', e.message));
+  };
+
+  $('load').onclick = () => $('file').click();
+  $('file').onchange = async () => {
+    const f = $('file').files[0];
+    if (!f) return;
+    try {
+      const r = await t.loadText(await f.text(), f.name);
+      result('Loaded', summary(r.counts));
+    } catch (e) { problem('Nothing was loaded', e.message); }
+    $('file').value = '';
+    render();
+  };
+
+  $('chooseFolder').onclick = $('chooseOther').onclick = async () => {
+    try { await t.chooseFolder(); result('Watching the folder', 'The MacBook will keep its copy there and merge files from the iPhone.'); }
+    catch (e) { if (e.name !== 'AbortError') problem('Folder not set', e.message); }
+    render();
+  };
+  $('reconnect').onclick = async () => {
+    try { await t.reconnect(); result('Reconnected', 'Watching the folder again.'); }
+    catch (e) { problem('Not reconnected', e.message); }
+    render();
+  };
+
+  $('rename').onclick = async () => {
+    const s = await t.status();
+    const name = prompt('Name this device (it shows in file names):', s.deviceName);
+    if (name !== null) { await t.rename(name); render(); }
+  };
+
+  $('undo').onclick = async () => {
+    try {
+      const u = await store.undo();
+      result('Load undone', `This device is back the way it was before loading ${u.source}.` +
+        (u.kept ? ` ${u.kept === 1 ? 'One thing you changed' : u.kept + ' things you changed'} since then ${u.kept === 1 ? 'was' : 'were'} kept.` : ''));
+    }
+    catch (e) { problem('Could not undo', e.message); }
+    render();
+  };
+
+  t.onStatus(render);
+  await render();
+  window.__ready = true;
+  window.__t = t; window.__store = store;   // for the browser tests
+})();
+</script>
+</body>
+</html>

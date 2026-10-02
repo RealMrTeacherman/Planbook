@@ -46,6 +46,10 @@
     async function metaSet(k, v) { const tx = db.transaction('meta', 'readwrite'); tx.objectStore('meta').put(v, k); await done(tx); }
     async function all() { return req(db.transaction('records').objectStore('records').getAll()); }
 
+    // Anything that wants to know the data changed (the folder writer, the send-ready copy).
+    const listeners = new Set();
+    const changed = (why) => listeners.forEach(fn => { try { fn(why); } catch (e) { console.error(e); } });
+
     // Device id, made once.
     let device = await metaGet('device');
     if (!device) { device = makeDeviceId(); await metaSet('device', device); }
@@ -109,14 +113,16 @@
         v95Keys.forEach(k => tx.objectStore('v95').put(extra.v95[k], k));
         const meta = tx.objectStore('meta');
         Object.entries(extra.meta || {}).forEach(([k, v]) => meta.put(v, k));
-        // Undo holds exactly what this load replaced.
-        meta.put({
+        // Undo holds exactly what this load replaced. Edits made here are not loads:
+        // they leave the last load's undo in place.
+        if (info.kind !== 'edit') meta.put({
           at: new Date().toISOString(), source: info.source || 'a file',
-          records: changes.map(c => ({ id: c.id, before: c.before })),
+          records: changes.map(c => ({ id: c.id, before: c.before, afterAt: c.after.updatedAt, afterDevice: c.after.device })),
           v95: v95Keys.map(k => ({ key: k, before: v95Before[k] === undefined ? null : v95Before[k] })),
           meta: metaKeys.map(k => ({ key: k, before: metaBefore[k] === undefined ? null : metaBefore[k] }))
         }, 'undo');
         await done(tx);
+        changed({ kind: info.kind || 'load', source: info.source || 'a file' });
       }
       return { counts, changed: visible };
     }
@@ -124,20 +130,25 @@
     // Edits made in the app: stamp them and load them like anything else.
     async function write(records, source = 'an edit') {
       const now = new Date().toISOString();
-      return load(records.map(r => Object.assign({}, r, { updatedAt: now, device })), { source });
+      return load(records.map(r => Object.assign({}, r, { updatedAt: now, device })), { source, kind: 'edit' });
     }
 
     async function undo() {
       const u = await metaGet('undo');
       if (!u) throw new Error('There is no load to undo.');
+      // A record changed again since the load (an edit made here afterwards) is kept as it is now.
+      const now = new Map((await all()).map(r => [r.id, r]));
+      const stillFromLoad = x => { const c = now.get(x.id); return !x.afterAt || (c && c.updatedAt === x.afterAt && c.device === x.afterDevice); };
+      const kept = u.records.filter(x => !stillFromLoad(x)).length;
       const tx = db.transaction(['records', 'meta', 'v95'], 'readwrite');
       const rs = tx.objectStore('records'), vs = tx.objectStore('v95'), ms = tx.objectStore('meta');
-      u.records.forEach(x => x.before ? rs.put(x.before) : rs.delete(x.id));
+      u.records.filter(stillFromLoad).forEach(x => x.before ? rs.put(x.before) : rs.delete(x.id));
       u.v95.forEach(x => x.before === null ? vs.delete(x.key) : vs.put(x.before, x.key));
       (u.meta || []).forEach(x => x.before === null ? ms.delete(x.key) : ms.put(x.before, x.key));
       ms.delete('undo');
       await done(tx);
-      return { source: u.source, at: u.at };
+      changed({ kind: 'undo', source: u.source });
+      return { source: u.source, at: u.at, kept };
     }
 
     async function counts() {
@@ -152,6 +163,9 @@
       device, all, load, write, undo, counts, v95Keys,
       meta: { get: metaGet, set: metaSet },
       exportFile: async () => fileOf(await all()),
+      onChange: fn => { listeners.add(fn); return () => listeners.delete(fn); },
+      // Ask the browser not to clear this data when space runs low.
+      persist: async () => { try { return navigator.storage && navigator.storage.persist ? await navigator.storage.persist() : false; } catch (e) { return false; } },
       close: () => db.close()
     };
   }

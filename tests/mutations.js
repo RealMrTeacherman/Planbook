@@ -38,7 +38,17 @@ const M = [
   ['core/store.js', 'a no-change load still writes', 'const touched = changes.length + v95Keys.length;', 'const touched = 1;', true],
   ['core/store.js', 'undo forgets kept v95 data', 'u.v95.forEach(x => x.before === null ? vs.delete(x.key) : vs.put(x.before, x.key));', '', true],
   ['core/store.js', 'upgrade not recorded', "tx.objectStore('meta').put(schema + 1, 'schemaVersion');", '', true],
-  ['import/index.html', 'older file allowed', 'if (last && Date.parse(out.savedAt) < Date.parse(last)) {', 'if (false) {', true]
+  ['import/index.html', 'older file allowed', 'if (last && Date.parse(out.savedAt) < Date.parse(last)) {', 'if (false) {', true],
+  // sync
+  ['core/transport.js', 'phone file removed without updating the MacBook copy', 'const w = await fh.createWritable(); await w.write(JSON.stringify(f)); await w.close();', '', true],
+  ['core/transport.js', 'refused files retried every few seconds', 'if (seen && seen.lastModified === file.lastModified) {', 'if (false) {', true],
+  ['core/transport.js', '"not sent yet" never cleared', "await store.meta.set('unsentSince', null);", '', true],
+  ['core/transport.js', 'Drive\'s "(1)" names ignored', '(?: ?\\(\\d+\\))?', '', false],
+  ['core/transport.js', 'refused-file warning dropped after one check', "problems: refused });", "problems });", true],
+  ['sync/index.html', 'list rebuilt over a half-typed name', 'sig !== box.dataset.sig && ', '', true],
+  ['core/store.js', 'undo wipes edits made after the load', 'u.records.filter(stillFromLoad).forEach', 'u.records.forEach', true],
+  ['core/store.js', 'an edit replaces the last load\'s undo', "if (info.kind !== 'edit') meta.put", 'meta.put', true],
+  ['sw.js', 'offline copy missing the sync page', "'sync/', 'sync/index.html'", "'sync/'", false]
 ];
 
 const only = process.argv[2];
@@ -46,12 +56,14 @@ let missed = 0;
 for (const [file, name, from, to, browser] of M) {
   if (only && !name.includes(only)) continue;
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mut-'));
-  for (const d of ['contract', 'core', 'import', 'tests']) fs.cpSync(path.join(ROOT, d), path.join(dir, d), { recursive: true });
+  for (const d of ['contract', 'core', 'import', 'sync', 'icons', 'tests']) fs.cpSync(path.join(ROOT, d), path.join(dir, d), { recursive: true });
+  for (const f of ['index.html', 'sw.js', 'manifest.webmanifest', 'package.json']) fs.copyFileSync(path.join(ROOT, f), path.join(dir, f));
   if (fs.existsSync(path.join(ROOT, 'node_modules'))) fs.symlinkSync(path.join(ROOT, 'node_modules'), path.join(dir, 'node_modules'));
   const p = path.join(dir, file), src = fs.readFileSync(p, 'utf8');
   if (src.split(from).length !== 2) { console.log(`SETUP ERROR: "${name}" does not match exactly once`); missed++; continue; }
   fs.writeFileSync(p, src.replace(from, to));
-  const files = browser ? ['tests/browser.test.js'] : fs.readdirSync(path.join(dir, 'tests')).filter(f => f.endsWith('.test.js') && f !== 'browser.test.js').map(f => 'tests/' + f);
+  const all = fs.readdirSync(path.join(dir, 'tests')).filter(f => f.endsWith('.test.js')).map(f => 'tests/' + f);
+  const files = all.filter(f => browser ? /browser\.test\.js$/.test(f) : !/browser\.test\.js$/.test(f));
   const r = spawnSync(process.execPath, ['--test', ...files], { cwd: dir, encoding: 'utf8', timeout: 180000 });
   // Caught means a test failed. (A skipped browser test cannot fail, so a break it should catch shows as not caught.)
   const caught = r.status !== 0 && /# fail [1-9]/.test(r.stdout);
