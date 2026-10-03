@@ -1,5 +1,16 @@
 # Changelog
 
+## Step 4a, design — wider, and the day comes first
+
+From your first look at Color blocks with your real schedule.
+- **Uses more of a wide screen.** The page grows to 1680 px, the side column to 420 px, and on screens 1400 px and wider the curriculum boxes go three across.
+- **This week, beside the day** on the MacBook: each subject's lesson Monday to Friday, ✓ for taught; tap a day to open it. Free-text subjects show a mark, with the words on hover. Hidden on the iPhone, which has the Week tab.
+- **Lessons not on the day's schedule fold away.** One line at the bottom, "Not on Wed's schedule · Writing · Science / SS", opens to their tiles. They are never among the scheduled rows.
+
+**Mistakes found and fixed before release.**
+- The week grid first cut subject names to "Pho…", let long free text wrap down the column, and wrapped the ✓ under the position.
+- In my tests: a visibility check Chrome does not support for closed folds, a selector that also matched the folded list, and a new test that left the MacBook on a different day for the next two tests.
+
 ## Step 4a, design — Color blocks
 
 **The look you chose (direction B), on every page.** Each lesson is a tile in its subject's color, with a big bold position (U1 · L1) and large buttons; routines are slim white rows. The type is Figtree for reading, Bricolage Grotesque for headings and positions, and JetBrains Mono for standard codes. The date is the page heading. The day panel and the week grid match.

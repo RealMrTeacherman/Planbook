@@ -252,10 +252,36 @@
     const rows = P.dayLayout(X.blocks, X.subjects, P.weekday(date));
     if (!rows.length) { main.innerHTML = `<div class="side"><p class="small">There is no schedule for ${DAY[P.weekday(date)]}days yet. The schedule editor arrives in the next release.</p></div>`; return; }
     const sched = rows.filter(r => !r.unscheduled), un = rows.filter(r => r.unscheduled);
+    // Lessons for subjects with no block today stay out of the way until asked for.
     main.innerHTML = `<div class="rows">${sched.map(r => r.kind === 'lesson' ? lessonCard(r, date) : plainRow(r, date, r.kind === 'continued')).join('')}</div>
-      ${un.length ? `<p class="unsched-head">Not on ${DAY[P.weekday(date)]}'s schedule</p><div class="rows">${un.map(r => lessonCard(r, date)).join('')}</div>` : ''}`;
+      ${un.length ? `<details class="unsched"><summary><span class="unsched-title">Not on ${DAY[P.weekday(date)]}'s schedule</span>
+        <span class="unsched-names">${un.map(r => esc(r.subject.name)).join(' · ')}</span></summary><div class="rows">${un.map(r => lessonCard(r, date)).join('')}</div></details>` : ''}`;
+    $('daySide').insertAdjacentHTML('beforeend', miniWeek(date));
     // On the desktop every curriculum section shows; on the phone they open one at a time.
     if (matchMedia('(min-width: 900px)').matches) main.querySelectorAll('.cur details').forEach(d => { d.open = true; });
+  }
+
+  // The week at a glance, beside the day on wide screens and under it on the phone.
+  function miniWeek(date) {
+    const dates = P.weekOf(date);
+    const st = Object.fromEntries(dates.map(d => [d, P.dayStatus(d, { year: X.year, days: X.days, plan: X.dayPlan[d] })]));
+    const on = X.subjects.filter(s => s.on && X.blocks.some(b => !b.deletedAt && b.subjectId === s.id));
+    const ABBR = { Diagnostic: 'Diag', Opener: 'Open', Review: 'Rev', Benchmark: 'Bench', Summative: 'Summ' };
+    const short = (sb, pos) => P.label(sb, pos).replace(/^U\d+ · /, '').replace(/ · /g, ' ').replace(/^(\w+)/, w => ABBR[w] || w);
+    const cell = (sb, d) => {
+      if (!st[d].school) return '<td class="off" aria-label="no school"></td>';
+      const r = X.lesson[d + '|' + sb.id];
+      if (!r) return '<td class="none">·</td>';
+      const full = P.label(sb, r.pos);
+      // Free text is too long for a cell: a mark here, the words on hover and in the Day view.
+      const text = sb.schema === 'free' ? (r.taught ? '✓' : '•') : short(sb, r.pos) + (r.taught ? ' ✓' : '');
+      return `<td${r.taught ? ' class="done"' : ''}><a href="#day/${d}" title="${esc(full)}" aria-label="${esc(sb.name)}, ${esc(DAY[P.weekday(d)])}: ${esc(full)}${r.taught ? ', taught' : ''}">${esc(text)}</a></td>`;
+    };
+    return `<section class="side miniweek" aria-label="This week">
+      <div class="side-head"><h2>This week</h2><a href="#week/${date}">Open Week</a></div>
+      <table><thead><tr><th><span class="vh">Subject</span></th>${dates.map(d => `<th${d === date ? ' class="here"' : ''}><a href="#day/${d}">${DAY[P.weekday(d)]}</a></th>`).join('')}</tr></thead>
+      <tbody>${on.map(sb => `<tr style="${colorVars(sb)}"><th title="${esc(sb.name)}"><span class="dot"></span>${esc(sb.name.split(/[\s/]+/)[0])}</th>${dates.map(d => cell(sb, d)).join('')}</tr>`).join('')}</tbody></table>
+    </section>`;
   }
 
   // ---------- the week ----------

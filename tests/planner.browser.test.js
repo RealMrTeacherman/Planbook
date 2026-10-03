@@ -193,6 +193,29 @@ test('the planner: Day and Week on MacBook and iPhone', { skip, timeout: 240000 
       assert.match(await mac.$eval('[data-card="subj_v95-reading"]', e => e.innerText), /2\.RI\.2/);
     });
 
+    await t.test('lessons not on the day\'s schedule are folded away until asked for', async () => {
+      await open(mac, '#day/2026-09-16');
+      const u = await mac.$eval('details.unsched', d => ({ open: d.open, summary: d.querySelector('summary').innerText }));
+      assert.equal(u.open, false);
+      assert.match(u.summary, /Not on Wed's schedule/);
+      assert.match(u.summary, /Writing/);
+      assert.equal(await mac.$eval('[data-card="subj_v95-writing"]', e => e.checkVisibility()), false, 'hidden while folded');
+      await mac.click('details.unsched > summary');
+      assert.equal(await mac.$eval('[data-card="subj_v95-writing"]', e => e.checkVisibility()), true, 'shown once opened');
+      assert.equal(await mac.$$eval('#dayMain > .rows > [data-card="subj_v95-writing"]', e => e.length), 0, 'never among the scheduled rows');
+    });
+
+    await t.test('This week sits beside the day on the MacBook, not on the iPhone', async () => {
+      await open(mac, '#day/2026-09-16'); await open(phone, '#day/2026-09-16');
+      assert.equal(await mac.$eval('.miniweek', e => getComputedStyle(e).display), 'block');
+      assert.equal(await phone.$eval('.miniweek', e => getComputedStyle(e).display), 'none');
+      const text = await mac.$eval('.miniweek', e => e.innerText);
+      assert.match(text, /W1 D3 ✓/);
+      assert.match(text, /Diag ✓/);
+      await mac.click('.miniweek thead a[href="#day/2026-09-17"]');
+      await mac.waitForFunction(() => location.hash === '#day/2026-09-17');
+    });
+
     await t.test('every subject chip meets 4.5:1 contrast with its white text', async () => {
       const ratios = await mac.$$eval('.subj-chip', chips => chips.map(c => {
         const rgb = getComputedStyle(c).backgroundColor.match(/\d+/g).slice(0, 3).map(Number);
@@ -204,6 +227,7 @@ test('the planner: Day and Week on MacBook and iPhone', { skip, timeout: 240000 
     });
 
     await t.test('Assembly / Enrichments / Other: a quick pick becomes the header and reaches the other device', async () => {
+      await open(mac, '#day/2026-09-16'); await open(phone, '#day/2026-09-16');
       const flex = '[data-card="subj_flex"]';
       assert.equal(await mac.$eval(`${flex} [data-free]`, e => e.placeholder), 'Add today’s topic');
       await mac.click(`${flex} [data-pick="subj_flex"][data-text="Science"]`);
