@@ -18,6 +18,9 @@ The rebuild of the v95 suite as two tools on one written data contract: Gradeboo
 | `core/live.js`, `core/live-firebase.js` | Live sync for live record types, and its real Firebase backend. |
 | `core/names.js` | The name check for live text fields. |
 | `settings/firebase.js` | Firebase settings. Empty means live sync is off; the Creslane copy ships empty. |
+| `core/plan.js` | Planner logic: positions, Reveal stepping, suggestions, day status, day layout. Pure; tested against v95. |
+| `planner/` | The planner page: Day and Week, phone and desktop. |
+| `data/` | The district calendar, Reveal guide, Benchmark scope and sequence, planner defaults. Extracted from v95's code by running it. |
 | `firestore.rules`, `tools/make-rules.js` | Server security rules, generated from the contract. Re-run the tool after any contract change. |
 | `tests/` | Node tests, a real-browser test, deliberate breaks (`mutations.js`), the names guard. |
 
@@ -49,6 +52,12 @@ The rebuild of the v95 suite as two tools on one written data contract: Gradeboo
 - Live sync runs on pages that load `core/live.js`; for now only the Sync page. **Every page that edits live records must start it** (step 4's planner pages).
 - After changing the contract, run `node tools/make-rules.js`, then paste the new `firestore.rules` into the Firebase console.
 - Firebase's code comes from Google's CDN at the version in `core/live-firebase.js`. The offline copy keeps the same version; a test checks they match.
+
+## The planner, and what is easy to break
+- A lesson is one `lessonPlan` per subject per day (`les_<date>_<subjectId>`). No record means "suggested": the next position after the last day **marked taught**.
+- A day off on the calendar wins over a plan; to plan on it, remove the day off. The district calendar is applied on every planner open with an early timestamp, so any change you make wins and a removal stays removed.
+- Every save of planner text goes through `nameCheck`. The importer moves name-bearing notes to `privateNote` and **refuses to run without the name check**; every page that imports must load `core/names.js` first.
+- Desktop and phone are equal: each release is checked by screenshot at 1280 px and 390 px. The Week view is a grid from 900 px and a list below.
 
 ## Running the tests
 `npm install` once, then `npm test` and `npm run test:breaks`. The browser test finds Chrome on its own on a Mac; elsewhere set `CHROME` to a Chrome binary.

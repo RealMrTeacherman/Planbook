@@ -193,6 +193,17 @@ test('MacBook and iPhone stay in step through the Drive folder', { skip, timeout
       assert.match(await mac.$eval('#watchingText', e => e.textContent), /could not be loaded/, 'the warning stays while the file is there');
     });
 
+    await t.test('a file from the version before is upgraded and loads', async () => {
+      const hub = JSON.parse((await folderFiles(mac))['classroom-suite.json']);
+      hub.version = hub.version - 1;
+      hub.records = hub.records.filter(r => !['subject', 'block', 'dayPlan', 'lessonPlan', 'blockNote', 'privateNote'].includes(r.type));
+      const p = path.join(os.tmpdir(), 'prev-suite.json'); fs.writeFileSync(p, JSON.stringify(hub));
+      await phone.$eval('#result', e => { e.hidden = true; });
+      await (await phone.$('#file')).uploadFile(p);
+      await phone.waitForFunction("!document.getElementById('result').hidden || !document.getElementById('problem').hidden");
+      assert.equal(await phone.$eval('#problem', e => e.hidden), true, await phone.$eval('#problemText', e => e.textContent));
+    });
+
     await t.test('a file from an older version, or a v95 file, is refused on the iPhone', async () => {
       const hub = JSON.parse((await folderFiles(mac))['classroom-suite.json']);
       hub.version = 0;
@@ -256,7 +267,7 @@ test('MacBook and iPhone stay in step through the Drive folder', { skip, timeout
     await t.test('the home page links to both pages, at phone width', async () => {
       await phone.goto(`${base}/`, { waitUntil: 'domcontentloaded' });
       const links = await phone.$$eval('a.row', as => as.map(a => a.getAttribute('href')));
-      assert.deepEqual(links, ['sync/', 'import/']);
+      assert.deepEqual(links, ['planner/', 'sync/', 'import/']);
       await phone.screenshot({ path: path.join(SHOTS, '7-home-phone.png'), fullPage: true });
     });
 

@@ -73,16 +73,19 @@
 <script src="../contract/validate.js"></script>
 <script src="../core/merge.js"></script>
 <script src="../core/store.js"></script>
+<script src="../core/names.js"></script>
 <script src="../core/import-v95.js"></script>
 <script>
 (async function () {
   const NAMES = {
     student: 'Students', schoolYear: 'School year', schoolDay: 'Days off', gradingPeriod: 'Grading periods',
     orfCheck: 'ORF checks', orfGoal: 'ORF goals', unit: 'Reading units', group: 'Groups',
-    placement: 'Group placements', visitor: 'Visitors', station: 'Math stations'
+    placement: 'Group placements', visitor: 'Visitors', station: 'Math stations',
+    subject: 'Planner subjects', block: 'Schedule blocks', dayPlan: 'Planned days', lessonPlan: 'Planned lessons',
+    blockNote: 'Block notes', privateNote: 'Private notes'
   };
   const KEPT = {
-    'lp:settings:v2': 'Planner subjects and schedule', 'suite:subplan:v1': 'Sub plan notes', 'suite:win:v1': 'Walk to WIN lists'
+    'suite:subplan:v1': 'Sub plan notes', 'suite:win:v1': 'Walk to WIN lists'
   };
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));

@@ -91,10 +91,11 @@ test('the import page and the store, in a real browser', { skip, timeout: 120000
     await t.test('loading writes every record', async () => {
       await page.click('#load');
       await page.waitForFunction("!document.getElementById('result').hidden");
-      assert.match(await text('#resultText'), /38 new, 0 changed, 0 already here/);
+      assert.match(await text('#resultText'), /160 new, 0 changed, 0 already here/);
       assert.deepEqual(await counts(), {
         student: 5, schoolYear: 1, gradingPeriod: 4, schoolDay: 1, orfCheck: 4, orfGoal: 2,
-        station: 4, group: 8, placement: 6, visitor: 1, unit: 2
+        station: 4, group: 8, placement: 6, visitor: 1, unit: 2,
+        subject: 6, block: 94, dayPlan: 5, lessonPlan: 12, blockNote: 2, privateNote: 3
       });
       assert.equal(await visible('#undoBox'), true);
       await page.screenshot({ path: path.join(SHOTS, '3-loaded-phone.png'), fullPage: true });
@@ -176,9 +177,10 @@ test('the import page and the store, in a real browser', { skip, timeout: 120000
         let s = await SuiteStore.open({ contract: c1, name });
         await s.write([{ id: 'stu_up1234', type: 'student', deletedAt: null, firstName: ' Ana ', active: true, eld: false }]);
         s.close();
-        const c2 = Object.assign({}, c1, { version: 2 });
+        const next = c1.version + 1;
+        const c2 = Object.assign({}, c1, { version: next });
         let runs = 0;
-        const upgrades = { 2: recs => { runs++; return recs.map(x => x.type === 'student' ? Object.assign({}, x, { firstName: x.firstName.trim() }) : x); } };
+        const upgrades = { [next]: recs => { runs++; return recs.map(x => x.type === 'student' ? Object.assign({}, x, { firstName: x.firstName.trim() }) : x); } };
         s = await SuiteStore.open({ contract: c2, name, upgrades });
         const after = (await s.all())[0].firstName, v = await s.meta.get('schemaVersion'); s.close();
         s = await SuiteStore.open({ contract: c2, name, upgrades }); s.close();
@@ -188,16 +190,16 @@ test('the import page and the store, in a real browser', { skip, timeout: 120000
         s = await SuiteStore.open({ contract: c1, name: bad });
         await s.write([{ id: 'stu_up5678', type: 'student', deletedAt: null, firstName: 'Ana', active: true, eld: false }]); s.close();
         let badMsg = '';
-        try { await SuiteStore.open({ contract: c2, name: bad, upgrades: { 2: recs => recs.map(x => Object.assign({}, x, { surprise: 1 })) } }); } catch (e) { badMsg = e.message; }
+        try { await SuiteStore.open({ contract: c2, name: bad, upgrades: { [next]: recs => recs.map(x => Object.assign({}, x, { surprise: 1 })) } }); } catch (e) { badMsg = e.message; }
         s = await SuiteStore.open({ contract: c1, name: bad }); const stillV1 = await s.meta.get('schemaVersion'); s.close();
-        return { after, v, runs, refused, badMsg, stillV1 };
+        return { after, v, runs, refused, badMsg, stillV1, next, cur: c1.version };
       });
       assert.equal(r.after, 'Ana');
-      assert.equal(r.v, 2);
+      assert.equal(r.v, r.next);
       assert.equal(r.runs, 1);
       assert.match(r.refused, /newer version/);
       assert.match(r.badMsg, /bad data/);
-      assert.equal(r.stillV1, 1);
+      assert.equal(r.stillV1, r.cur);
     });
 
     await t.test('an edit on this device beats the older v95 copy, and is stamped with this device', async () => {

@@ -60,6 +60,19 @@ const M = [
   ['firestore.rules', 'server rules allow deleting', 'allow create, update:', 'allow create, update, delete:', false],
   ['tools/make-rules.js', 'server rules stop checking the type', "request.resource.data.type == ${q(name)} && ", '', false],
   ['core/live-firebase.js', 'records written outside your own folder', "sdk.fs.doc(db, 'users', mustUser().uid, 'records', rec.id)", "sdk.fs.doc(db, 'records', rec.id)", false],
+  // planner
+  ['core/import-v95.js', 'importer runs without the name check', "if (!N || typeof N.nameHits !== 'function') throw", 'if (false) throw', false],
+  ['core/import-v95.js', 'imported day notes that name a child stay live', "if (r.type === 'dayPlan' && named(r.notes)) {", 'if (false) {', false],
+  ['import/index.html', 'import page without the name check', '<script src="../core/names.js"></script>\n', '', true],
+  ['core/plan.js', 'Reveal skips a day', 'if (s) return posOf(FLAT[s.i + 1] || s);', 'if (s) return posOf(FLAT[s.i + 2] || s);', false],
+  ['core/plan.js', 'afternoon times sort before the morning', 'if (hh < 7) hh += 12;', '', false],
+  ['core/plan.js', 'an untaught day counts as taught', "!l.taught || ", '', false],
+  ['core/plan.js', 'days off ignored', "if (sd && sd.kind === 'noSchool') return", 'if (false) return', false],
+  ['core/store.js', 'no upgrade from version 1', '2: records => records', '', true],
+  ['planner/planner.js', 'Keep it private saves the note live', "if (choice === 'private') {\n      const writes", "if (false) {\n      const writes", true],
+  ['planner/planner.js', 'notes saved without the name check', "if (!hits.length) return Promise.resolve('live');", "return Promise.resolve('live');", true],
+  ['planner/planner.js', 'the district calendar not applied', "await applyCalendar(cal);", '', true],
+  ['sw.js', 'offline copy missing the planner', "'planner/', 'planner/index.html', ", '', false],
   ['sw.js', 'offline copy missing the sync page', "'sync/', 'sync/index.html'", "'sync/'", false]
 ];
 
@@ -68,7 +81,7 @@ let missed = 0;
 for (const [file, name, from, to, browser] of M) {
   if (only && !name.includes(only)) continue;
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mut-'));
-  for (const d of ['contract', 'core', 'import', 'sync', 'icons', 'settings', 'tools', 'tests']) fs.cpSync(path.join(ROOT, d), path.join(dir, d), { recursive: true });
+  for (const d of ['contract', 'core', 'import', 'sync', 'planner', 'data', 'icons', 'settings', 'tools', 'tests']) fs.cpSync(path.join(ROOT, d), path.join(dir, d), { recursive: true });
   for (const f of ['index.html', 'sw.js', 'manifest.webmanifest', 'package.json', 'firestore.rules']) fs.copyFileSync(path.join(ROOT, f), path.join(dir, f));
   if (fs.existsSync(path.join(ROOT, 'node_modules'))) fs.symlinkSync(path.join(ROOT, 'node_modules'), path.join(dir, 'node_modules'));
   const p = path.join(dir, file), src = fs.readFileSync(p, 'utf8');

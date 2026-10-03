@@ -14,7 +14,7 @@ const env = (id, type, extra = {}) => ({ id, type, updatedAt: T, device: 'mac', 
 function sample() {
   return {
     contract: 'classroom-suite',
-    version: 1,
+    version: contract.version,
     exportedAt: T,
     device: 'mac',
     records: [
@@ -45,7 +45,16 @@ function sample() {
       env('plc_walkToWin_vis_odette1', 'placement', { groupKind: 'walkToWin', studentId: 'vis_odette1', groupId: 'grp_orange1' }),
       env('stn_teacher1', 'station', { kind: 'math', name: 'Teacher Table', order: 0, hasPages: false }),
       env('stn_desk01', 'station', { kind: 'math', name: 'Desk Work', order: 2, hasPages: true }),
-      { id: 'stu_deleted01', type: 'student', updatedAt: T, device: 'phone', deletedAt: '2026-10-01T16:00:00Z' }
+      { id: 'stu_deleted01', type: 'student', updatedAt: T, device: 'phone', deletedAt: '2026-10-01T16:00:00Z' },
+      env('subj_v95-math', 'subject', { name: 'Math', curriculum: 'Reveal', schema: 'ul', color: '#D89A1C', on: true, order: 3, start: { unit: 1, lesson: 1 }, lessonsPerUnit: 10, pacing: true }),
+      env('subj_v95-science', 'subject', { name: 'Science / SS', schema: 'free', on: true, order: 4, start: { text: '' } }),
+      env('blk_d1-1015', 'block', { weekday: 1, start: '10:15', name: 'Math core lesson', subjectId: 'subj_v95-math', note: 'Reveal Teacher Guide' }),
+      env('blk_d1-0930', 'block', { weekday: 1, start: '9:30', name: 'Recess', subjectId: null }),
+      env('dayp_2026-09-21', 'dayPlan', { date: '2026-09-21', notes: 'Fire drill at 10', flags: ['Fire drill'], saved: true }),
+      env('les_2026-09-21_subj_v95-math', 'lessonPlan', { date: '2026-09-21', subjectId: 'subj_v95-math', pos: { unit: 2, lesson: 4, k: 'probe' }, taught: true }),
+      env('les_2026-09-21_subj_v95-science', 'lessonPlan', { date: '2026-09-21', subjectId: 'subj_v95-science', pos: { text: 'Plants, lesson 3' }, taught: false }),
+      env('bnote_2026-09-21_blk_d1-1015', 'blockNote', { date: '2026-09-21', blockId: 'blk_d1-1015', text: 'Use the big ten frames' }),
+      env('pnote_a1b2c3d4', 'privateNote', { about: 'standing', weekday: 1, blockId: 'blk_d1-0930', text: 'Mila to speech' })
     ]
   };
 }
@@ -68,10 +77,10 @@ test('every record type in the contract appears in the sample', () => {
 });
 
 test('a file from a newer version is refused, an older one asks for an upgrade', () => {
-  const newer = sample(); newer.version = 2;
+  const newer = sample(); newer.version = contract.version + 1;
   const r1 = validateFile(newer, contract);
   assert.equal(r1.ok, false); assert.match(r1.errors[0], /newer version/);
-  const older = sample(); older.version = 0;
+  const older = sample(); older.version = contract.version - 1;
   const r2 = validateFile(older, contract);
   assert.equal(r2.ok, false); assert.equal(r2.needsUpgrade, true);
 });
@@ -217,12 +226,36 @@ test('the contract file itself names no owner outside the known tools', () => {
   }
 });
 
+test('planner ids follow their rules: one day plan per date, one lesson per subject per day, one note per block per day', () => {
+  const f1 = sample(); find(f1, 'dayp_2026-09-21').id = 'dayp_other';
+  expectFail(f1, 'must be dayp_2026-09-21');
+  const f2 = sample(); find(f2, 'les_2026-09-21_subj_v95-math').id = 'les_random1';
+  expectFail(f2, 'must be les_2026-09-21_subj_v95-math');
+  const f3 = sample(); find(f3, 'bnote_2026-09-21_blk_d1-1015').id = 'bnote_random1';
+  expectFail(f3, 'must be bnote_2026-09-21_blk_d1-1015');
+});
+
+test('schedule times, flags and positions are checked', () => {
+  const f1 = sample(); find(f1, 'blk_d1-1015').start = '25:00';
+  expectFail(f1, 'bad format');
+  const f2 = sample(); find(f2, 'dayp_2026-09-21').flags = ['Pajama day'];
+  expectFail(f2, 'must be one of');
+  const f3 = sample(); find(f3, 'les_2026-09-21_subj_v95-math').pos.k = 'quiz';
+  expectFail(f3, 'must be one of');
+});
+
+test('a lesson must point at a subject, and a block note at a block', () => {
+  const f = sample(); find(f, 'les_2026-09-21_subj_v95-math').subjectId = 'blk_d1-1015';
+  f.records.find(r => r.id === 'les_2026-09-21_subj_v95-math').id = 'les_2026-09-21_blk_d1-1015';
+  expectFail(f, 'expected subject');
+});
+
 test('every record type says whether it is live or private', () => {
   for (const [name, t] of Object.entries(contract.types)) assert.ok(['live', 'private'].includes(t.space), name);
 });
 
 test('anything that names or points at a child is private', () => {
-  for (const name of ['student', 'orfCheck', 'orfGoal', 'placement', 'visitor']) assert.equal(contract.types[name].space, 'private', name);
+  for (const name of ['student', 'orfCheck', 'orfGoal', 'placement', 'visitor', 'privateNote']) assert.equal(contract.types[name].space, 'private', name);
 });
 
 test('a live type never points at a private one', () => {

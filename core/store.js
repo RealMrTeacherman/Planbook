@@ -13,7 +13,10 @@
 
   // One upgrade step per contract version: UPGRADES[n] turns version n-1 records into version n.
   // Empty until version 2 exists; tests add a step to prove the mechanism.
-  const UPGRADES = {};
+  const UPGRADES = {
+    // 2: the planner's types were added; no version 1 record changes.
+    2: records => records
+  };
 
   const req = r => new Promise((ok, no) => { r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); });
   const done = tx => new Promise((ok, no) => { tx.oncomplete = () => ok(); tx.onerror = () => no(tx.error); tx.onabort = () => no(tx.error || new Error('write cancelled')); });

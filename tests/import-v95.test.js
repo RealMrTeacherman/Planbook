@@ -6,7 +6,10 @@ const fs = require('node:fs');
 const { execFileSync } = require('node:child_process');
 
 const IMPORTER = process.env.SUITE_IMPORTER || path.join(__dirname, '..', 'core', 'import-v95.js');
-const imp = require(IMPORTER);
+const imp0 = require(IMPORTER);
+const NAMES_MOD = require(path.join(__dirname, '..', 'core', 'names.js'));
+// Every conversion gets the name check, as the import page gives it.
+const imp = Object.assign({}, imp0, { convert: (f, o = {}) => imp0.convert(f, Object.assign({ names: NAMES_MOD }, o)) });
 const { validateFile } = require(path.join(__dirname, '..', 'contract', 'validate.js'));
 const contract = require(path.join(__dirname, '..', 'contract', 'contract.json'));
 const FILE = path.join(__dirname, 'fixtures', 'v95-sample.json');
@@ -14,17 +17,19 @@ const sample = () => JSON.parse(fs.readFileSync(FILE, 'utf8'));
 const out = () => imp.convert(sample());
 const byId = (o, id) => o.records.find(r => r.id === id);
 const NAMES = ['Mila', 'Okafor', 'Theodore', 'Theo', 'Reyes', 'Juniper', 'June', 'Banks', 'Oscar', 'Lindqvist', 'Wren', 'Castillo', 'Odette'];
+// The report must not name a child; planner text that names one is checked separately below.
 
 test('the result passes the contract', () => {
   const o = out();
-  const r = validateFile({ contract: 'classroom-suite', version: 1, exportedAt: o.savedAt, device: 'test', records: o.records }, contract);
+  const r = validateFile({ contract: 'classroom-suite', version: contract.version, exportedAt: o.savedAt, device: 'test', records: o.records }, contract);
   assert.deepEqual(r.errors, []);
 });
 
 test('every kind of record comes in, in the expected numbers', () => {
   assert.deepEqual(out().counts, {
     student: 5, schoolYear: 1, gradingPeriod: 4, schoolDay: 1, orfCheck: 4, orfGoal: 2,
-    station: 4, group: 8, placement: 6, visitor: 1, unit: 2
+    station: 4, group: 8, placement: 6, visitor: 1, unit: 2,
+    subject: 6, block: 94, dayPlan: 5, lessonPlan: 12, blockNote: 2, privateNote: 3
   });
 });
 
@@ -163,7 +168,8 @@ test('calendar: school year, four quarters, and days off with their names', () =
 test('what is not converted yet is listed as kept', () => {
   const k = out().kept;
   assert.equal(k['Gradebook marks'], 3);
-  assert.equal(k['Planner days'], 2);
+  assert.equal(k['Planner days'], undefined, 'the planner is converted now, not just kept');
+  assert.equal(k['lp:settings:v2'], undefined);
   assert.equal(k['iReady rows'], undefined, 'an empty list is not shown');
   assert.equal(k['suite:win:v1'], 1);
 });
@@ -189,4 +195,77 @@ test('a v95 file with empty or broken keys still converts what it can', () => {
   assert.equal(o.counts.orfCheck, undefined);
   assert.equal(o.counts.station, undefined);
   assert.equal(o.archive['suite:groups:v1'], '{not json');
+});
+
+// ---------- the planner (step 4a) ----------
+test('the planner comes in: subjects, every weekday\'s schedule, days, lessons, block notes', () => {
+  const c = out().counts;
+  assert.equal(c.subject, 6);
+  assert.equal(c.block, 94);
+  assert.equal(c.dayPlan, 5);
+  assert.equal(c.lessonPlan, 12);
+  assert.equal(c.blockNote, 2);
+});
+
+test('Reveal positions keep their kind, free text stays as typed, untaught days stay untaught', () => {
+  const o = out();
+  assert.deepEqual(byId(o, 'les_2026-09-14_subj_v95-math').pos, { unit: 1, lesson: 0, k: 'diag' });
+  assert.deepEqual(byId(o, 'les_2026-09-14_subj_v95-science').pos, { text: 'Plants: what do they need?' });
+  assert.equal(byId(o, 'les_2026-09-18_subj_v95-math').taught, false);
+  assert.equal(byId(o, 'dayp_2026-09-18'), undefined, 'a draft day with no notes or flags needs no day record');
+});
+
+test('math follows the pacing guide and reading follows Benchmark, as switches on the subject', () => {
+  const o = out();
+  assert.equal(byId(o, 'subj_v95-math').pacing, true);
+  assert.equal(byId(o, 'subj_v95-reading').benchmark, true);
+  assert.equal(byId(o, 'subj_v95-science').pacing, undefined);
+  assert.equal(byId(o, 'year_2026').earlyReleaseWeekday, 'wed');
+});
+
+test('schedule blocks keep their times, names, subjects and standing notes', () => {
+  const o = out();
+  const b = byId(o, 'blk_d1-1015');
+  assert.deepEqual([b.weekday, b.start, b.name, b.subjectId], [1, '10:15', 'Math core lesson', 'subj_v95-math']);
+  assert.match(b.note, /Reveal/);
+  assert.equal(byId(o, 'blk_d1-930').subjectId, null, 'recess has no subject');
+  assert.equal(o.records.filter(r => r.type === 'block' && r.weekday === 3).length, 13, 'the Wednesday early-release day');
+});
+
+test('flags keep only real flags; a block note for a block that is gone joins the day\'s notes', () => {
+  const o = out();
+  assert.deepEqual(byId(o, 'dayp_2026-09-17').flags, ['Fire drill']);
+  assert.match(byId(o, 'dayp_2026-09-15').notes, /9:00 Old block: Gone from the schedule/);
+  assert.equal(byId(o, 'bnote_2026-09-15_blk_d2-1015').text, 'Use the big ten frames');
+  assert.ok(o.notes.some(n => /block no longer on the schedule/.test(n)));
+});
+
+test('planner notes that name a child become private notes, and leave the live records', () => {
+  const o = out();
+  assert.equal(byId(o, 'dayp_2026-09-16').notes, undefined);
+  assert.equal(byId(o, 'pnote_v95-day-2026-09-16').text, 'Mila to speech at 10:15');
+  assert.equal(byId(o, 'les_2026-09-17_subj_v95-math').note, undefined);
+  assert.equal(byId(o, 'pnote_v95-lesson-les_2026-09-17_subj_v95-math').subjectId, 'subj_v95-math');
+  assert.equal(byId(o, 'blk_d2-745').note, undefined);
+  assert.deepEqual([byId(o, 'pnote_v95-standing-blk_d2-745').about, byId(o, 'pnote_v95-standing-blk_d2-745').weekday], ['standing', 2]);
+  assert.equal(byId(o, 'les_2026-09-15_subj_v95-math').note, 'Attitude survey first', 'a note with no name stays live');
+  assert.ok(o.notes.some(n => /3 planner notes name a child/.test(n)));
+});
+
+test('no live record carries a class-list name in a checked field, except those reported', () => {
+  const o = out();
+  const N = require(path.join(__dirname, '..', 'core', 'names.js'));
+  const kids = o.records.filter(r => r.type === 'student');
+  const leaks = o.records.filter(r => contract.types[r.type].space === 'live')
+    .filter(r => N.textToCheck(r, contract).some(t => N.nameHits(t, kids).length));
+  assert.deepEqual(leaks.map(r => r.id), ['les_2026-09-17_subj_v95-science']);
+  assert.ok(o.heldBack.some(h => /contain a name from your class list/.test(h.why)));
+});
+
+test('a lesson for a subject the planner does not have is held back with the reason', () => {
+  assert.ok(out().heldBack.some(h => h.what === 'a planned lesson on 2026-09-16' && /not in the planner settings/.test(h.why)));
+});
+
+test('without the name check the importer stops, rather than letting names reach live sync', () => {
+  assert.throws(() => imp0.convert(sample()), /name check did not load/);
 });

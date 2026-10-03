@@ -1,6 +1,6 @@
 {
   "contract": "classroom-suite",
-  "version": 1,
+  "version": 2,
   "notes": [
     "Every record in every tool carries the envelope. Only the owner tool writes a type; readers never write it.",
     "Space: 'live' types can never name a child and may sync through Firebase on the teacher's personal account. 'private' types can name a child and travel only through the district Drive folder. A live type may not point at a private one. Text fields marked nameCheck are checked against the class list before a live record is saved.",
@@ -8,7 +8,8 @@
     "A file whose version is higher than the app's is refused. A lower version is upgraded once, by one upgrade step per version.",
     "Real student names never appear in this file, the code, the tests or the docs. Fixtures use invented names.",
     "v95 import: every type below names the v95 storage it comes from in 'fromV95'. ORF dates are converted from v95's UTC timestamps to the Oregon calendar date.",
-    "Walk to WIN lists name every second grader, so they stay inside Small groups' private data and never enter this contract; only today's list reaches display.json."
+    "Walk to WIN lists name every second grader, so they stay inside Small groups' private data and never enter this contract; only today's list reaches display.json.",
+    "Version 2 adds the planner: subjects, schedule blocks, day plans, lesson plans and block notes (all live), and private notes. Version 1 records are unchanged, so the upgrade from 1 to 2 changes nothing."
   ],
   "file": {
     "fields": {
@@ -553,6 +554,355 @@
         }
       },
       "fromV95": "suite:groups:v1.math.stations, pageStations"
+    },
+    "subject": {
+      "owner": "planner",
+      "space": "live",
+      "readers": [
+        "gradebook",
+        "subplans"
+      ],
+      "idPrefix": "subj",
+      "idRule": "random",
+      "fromV95": "lp:settings:v2.subjects",
+      "fields": {
+        "name": {
+          "type": "string",
+          "required": true,
+          "max": 40,
+          "nameCheck": true
+        },
+        "curriculum": {
+          "type": "string",
+          "max": 60,
+          "nameCheck": true
+        },
+        "schema": {
+          "type": "enum",
+          "required": true,
+          "values": [
+            "uwd",
+            "ul",
+            "l",
+            "free"
+          ],
+          "note": "how a position is counted: unit/week/day, unit/lesson, lesson, or free text"
+        },
+        "color": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "on": {
+          "type": "bool",
+          "required": true
+        },
+        "order": {
+          "type": "int",
+          "required": true,
+          "min": 0,
+          "max": 50
+        },
+        "start": {
+          "type": "object",
+          "fields": {
+            "unit": {
+              "type": "int",
+              "min": 0,
+              "max": 50
+            },
+            "week": {
+              "type": "int",
+              "min": 1,
+              "max": 20
+            },
+            "day": {
+              "type": "int",
+              "min": 1,
+              "max": 7
+            },
+            "lesson": {
+              "type": "int",
+              "min": 0,
+              "max": 60
+            },
+            "k": {
+              "type": "enum",
+              "values": [
+                "diag",
+                "open",
+                "probe",
+                "review",
+                "assess",
+                "bench",
+                "summ"
+              ]
+            },
+            "text": {
+              "type": "string",
+              "max": 120,
+              "nameCheck": true
+            }
+          },
+          "nullable": true
+        },
+        "weeksPerUnit": {
+          "type": "int",
+          "min": 1,
+          "max": 20,
+          "nullable": true
+        },
+        "daysPerWeek": {
+          "type": "int",
+          "min": 1,
+          "max": 7,
+          "nullable": true
+        },
+        "lessonsPerUnit": {
+          "type": "int",
+          "min": 1,
+          "max": 60,
+          "nullable": true
+        },
+        "pacing": {
+          "type": "bool",
+          "note": "Math follows the Reveal pacing guide"
+        },
+        "benchmark": {
+          "type": "bool",
+          "note": "Reading follows Benchmark Advance"
+        }
+      }
+    },
+    "block": {
+      "owner": "planner",
+      "space": "live",
+      "readers": [
+        "subplans"
+      ],
+      "idPrefix": "blk",
+      "idRule": "random",
+      "fromV95": "lp:settings:v2.templates",
+      "note": "One block of one weekday's schedule. It runs until the next block starts.",
+      "fields": {
+        "weekday": {
+          "type": "int",
+          "required": true,
+          "min": 0,
+          "max": 6
+        },
+        "start": {
+          "type": "string",
+          "required": true,
+          "pattern": "^([01]?\\d|2[0-3]):[0-5]\\d$"
+        },
+        "name": {
+          "type": "string",
+          "required": true,
+          "max": 60,
+          "nameCheck": true
+        },
+        "subjectId": {
+          "type": "ref",
+          "to": "subject",
+          "nullable": true
+        },
+        "note": {
+          "type": "string",
+          "max": 300,
+          "nameCheck": true,
+          "note": "the standing note, shown every week"
+        }
+      }
+    },
+    "dayPlan": {
+      "owner": "planner",
+      "space": "live",
+      "readers": [
+        "subplans"
+      ],
+      "idPrefix": "dayp",
+      "idRule": "dayp_<date>",
+      "fromV95": "lp:days:v2[date] notes, flags, saved",
+      "fields": {
+        "date": {
+          "type": "date",
+          "required": true
+        },
+        "notes": {
+          "type": "string",
+          "max": 2000,
+          "nameCheck": true
+        },
+        "flags": {
+          "type": "array",
+          "max": 8,
+          "of": {
+            "type": "enum",
+            "values": [
+              "Assembly",
+              "Early release",
+              "Sub",
+              "Fire drill",
+              "Field trip",
+              "Picture day",
+              "Testing",
+              "Half day"
+            ]
+          }
+        },
+        "saved": {
+          "type": "bool"
+        }
+      }
+    },
+    "lessonPlan": {
+      "owner": "planner",
+      "space": "live",
+      "readers": [
+        "gradebook",
+        "subplans"
+      ],
+      "idPrefix": "les",
+      "idRule": "les_<date>_<subjectId>",
+      "fromV95": "lp:days:v2[date].entries[subject]",
+      "fields": {
+        "date": {
+          "type": "date",
+          "required": true
+        },
+        "subjectId": {
+          "type": "ref",
+          "required": true,
+          "to": "subject"
+        },
+        "pos": {
+          "type": "object",
+          "fields": {
+            "unit": {
+              "type": "int",
+              "min": 0,
+              "max": 50
+            },
+            "week": {
+              "type": "int",
+              "min": 1,
+              "max": 20
+            },
+            "day": {
+              "type": "int",
+              "min": 1,
+              "max": 7
+            },
+            "lesson": {
+              "type": "int",
+              "min": 0,
+              "max": 60
+            },
+            "k": {
+              "type": "enum",
+              "values": [
+                "diag",
+                "open",
+                "probe",
+                "review",
+                "assess",
+                "bench",
+                "summ"
+              ]
+            },
+            "text": {
+              "type": "string",
+              "max": 120,
+              "nameCheck": true
+            }
+          },
+          "required": true
+        },
+        "taught": {
+          "type": "bool",
+          "required": true
+        },
+        "note": {
+          "type": "string",
+          "max": 500,
+          "nameCheck": true
+        }
+      }
+    },
+    "blockNote": {
+      "owner": "planner",
+      "space": "live",
+      "readers": [
+        "subplans"
+      ],
+      "idPrefix": "bnote",
+      "idRule": "bnote_<date>_<blockId>",
+      "fromV95": "lp:days:v2[date].blockNotes",
+      "note": "A note for one block on one day only.",
+      "fields": {
+        "date": {
+          "type": "date",
+          "required": true
+        },
+        "blockId": {
+          "type": "ref",
+          "required": true,
+          "to": "block"
+        },
+        "text": {
+          "type": "string",
+          "required": true,
+          "max": 500,
+          "nameCheck": true
+        }
+      }
+    },
+    "privateNote": {
+      "owner": "planner",
+      "space": "private",
+      "readers": [
+        "subplans"
+      ],
+      "idPrefix": "pnote",
+      "idRule": "random",
+      "note": "A planner note that names a child. It shows where a live note would, but travels only through the Drive folder.",
+      "fields": {
+        "about": {
+          "type": "enum",
+          "required": true,
+          "values": [
+            "day",
+            "block",
+            "standing",
+            "lesson"
+          ]
+        },
+        "date": {
+          "type": "date",
+          "nullable": true
+        },
+        "weekday": {
+          "type": "int",
+          "min": 0,
+          "max": 6,
+          "nullable": true
+        },
+        "blockId": {
+          "type": "ref",
+          "to": "block",
+          "nullable": true
+        },
+        "subjectId": {
+          "type": "ref",
+          "to": "subject",
+          "nullable": true
+        },
+        "text": {
+          "type": "string",
+          "required": true,
+          "max": 2000
+        }
+      }
     }
   },
   "display": {

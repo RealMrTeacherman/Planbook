@@ -34,8 +34,17 @@
   function checkFile(f, contract) {
     if (f && f.suite === 1 && f.keys) return 'This is a v95 sync file. Bring it in with the v95 import page instead.';
     if (!f || f.contract !== 'classroom-suite') return 'This is not a suite sync file.';
-    const r = SuiteContract.validateFile(f, contract);
-    if (r.needsUpgrade) return `This file was made by an older version of the suite (${f.version}). Open the suite on that device so it updates, then send it again.`;
+    let r = SuiteContract.validateFile(f, contract);
+    if (r.needsUpgrade) {
+      // A file from a device that has not updated yet: bring its records up to this version.
+      const ups = (typeof SuiteStore !== 'undefined' && SuiteStore.UPGRADES) || {};
+      for (let v = f.version + 1; v <= contract.version; v++) {
+        if (!ups[v]) return `This file was made by an older version of the suite (${f.version}). Open the suite on that device so it updates, then send it again.`;
+        f.records = ups[v](f.records);
+      }
+      f.version = contract.version;
+      r = SuiteContract.validateFile(f, contract);
+    }
     if (!r.ok) return 'This file does not match the contract, so nothing was loaded: ' + r.errors.slice(0, 3).join('; ');
     return null;
   }

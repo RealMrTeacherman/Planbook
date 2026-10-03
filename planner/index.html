@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Planner · Planbook</title>
+<link rel="stylesheet" href="../core/look.css">
+<link rel="stylesheet" href="planner.css">
+<link rel="manifest" href="../manifest.webmanifest">
+<meta name="theme-color" content="#10655C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Planbook">
+<link rel="apple-touch-icon" href="../icons/icon-180.png">
+<script src="../core/boot.js"></script>
+</head>
+<body class="wide">
+<main>
+  <header class="top">
+    <div class="top-row">
+      <a href="../" class="home">Planbook</a>
+      <a href="../sync/" class="chip" id="liveChip">Live sync</a>
+    </div>
+    <div class="top-row">
+      <h1 id="heading">Planner</h1>
+      <nav class="tabs" role="tablist" aria-label="View">
+        <button role="tab" id="tabToday" data-view="today">Day</button>
+        <button role="tab" id="tabWeek" data-view="week">Week</button>
+      </nav>
+    </div>
+    <div class="datenav">
+      <button class="quiet compact" id="prev" aria-label="Previous">‹</button>
+      <button class="quiet compact" id="todayBtn">Today</button>
+      <span id="dateLabel" aria-live="polite"></span>
+      <button class="quiet compact" id="next" aria-label="Next">›</button>
+    </div>
+  </header>
+
+  <section class="panel warn" id="problem" hidden role="alert"><p id="problemText"></p></section>
+  <section class="panel" id="empty" hidden>
+    <h2>Nothing to plan with yet</h2>
+    <p class="small">Bring in your v95 data first, on <a href="../import/">Bring in v95 data</a>, or sign in to live sync on the <a href="../sync/">Sync page</a> so this device gets your planner from the other one.</p>
+  </section>
+
+  <div id="dayView" class="day" hidden>
+    <aside class="day-side" id="daySide"></aside>
+    <section class="day-main" id="dayMain"></section>
+  </div>
+  <section id="weekView" hidden></section>
+</main>
+
+<dialog id="nameDialog" aria-labelledby="nameTitle">
+  <form method="dialog">
+    <h2 id="nameTitle">This note names a child</h2>
+    <p id="nameText"></p>
+    <p class="small">The planner syncs live through Firebase, outside the district. A private note shows in the same place but travels only through your district Drive folder.</p>
+    <div class="dialog-buttons">
+      <button value="private">Keep it private</button>
+      <button value="anyway" class="quiet">Save it live anyway</button>
+      <button value="edit" class="quiet">Edit it</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="../contract/validate.js"></script>
+<script src="../core/merge.js"></script>
+<script src="../core/store.js"></script>
+<script src="../core/transport.js"></script>
+<script src="../settings/firebase.js"></script>
+<script src="../core/names.js"></script>
+<script src="../core/live.js"></script>
+<script src="../core/live-firebase.js"></script>
+<script src="../core/plan.js"></script>
+<script src="planner.js"></script>
+</body>
+</html>

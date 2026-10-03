@@ -31,11 +31,22 @@
     return namesOf(students).filter(n => new RegExp(`(?<!${LETTER})${escape(n)}(?!${LETTER})`, 'iu').test(t));
   }
 
-  // The text fields of a record that the contract marks for checking.
+  // The text fields of a record that the contract marks for checking, at any depth
+  // (a free-text lesson position keeps its words in pos.text).
   function textToCheck(rec, contract) {
     const spec = contract.types[rec.type];
     if (!spec) return [];
-    return Object.entries(spec.fields).filter(([, f]) => f.nameCheck).map(([k]) => rec[k]).filter(v => typeof v === 'string' && v.trim());
+    const out = [];
+    const walk = (obj, fields) => {
+      if (!obj || typeof obj !== 'object') return;
+      for (const [k, f] of Object.entries(fields)) {
+        const v = obj[k];
+        if (f.nameCheck && typeof v === 'string' && v.trim()) out.push(v);
+        if (f.fields) walk(v, f.fields);
+      }
+    };
+    walk(rec, spec.fields);
+    return out;
   }
 
   const api = { nameHits, namesOf, textToCheck };

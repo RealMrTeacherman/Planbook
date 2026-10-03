@@ -1,0 +1,667 @@
+{
+ "source": "v95 planner defaults",
+ "flags": [
+  "Assembly",
+  "Early release",
+  "Sub",
+  "Fire drill",
+  "Field trip",
+  "Picture day",
+  "Testing",
+  "Half day"
+ ],
+ "subjects": [
+  {
+   "id": "phonics",
+   "name": "Phonics",
+   "curriculum": "ECRI",
+   "schema": "uwd",
+   "color": "#5E8C3A",
+   "start": {
+    "unit": 1,
+    "week": 1,
+    "day": 1
+   },
+   "weeksPerUnit": 5,
+   "daysPerWeek": 5,
+   "on": true
+  },
+  {
+   "id": "reading",
+   "name": "Reading",
+   "curriculum": "Benchmark",
+   "schema": "uwd",
+   "color": "#16706B",
+   "start": {
+    "unit": 1,
+    "week": 1,
+    "day": 1
+   },
+   "weeksPerUnit": 3,
+   "daysPerWeek": 5,
+   "on": true
+  },
+  {
+   "id": "writing",
+   "name": "Writing",
+   "curriculum": "Benchmark",
+   "schema": "uwd",
+   "color": "#7A4A6B",
+   "start": {
+    "unit": 1,
+    "week": 1,
+    "day": 1
+   },
+   "weeksPerUnit": 3,
+   "daysPerWeek": 5,
+   "on": true
+  },
+  {
+   "id": "math",
+   "name": "Math",
+   "curriculum": "Reveal",
+   "schema": "ul",
+   "color": "#D89A1C",
+   "start": {
+    "unit": 1,
+    "lesson": 1
+   },
+   "lessonsPerUnit": 10,
+   "on": true
+  },
+  {
+   "id": "science",
+   "name": "Science / SS",
+   "curriculum": "OpenSciEd + SS",
+   "schema": "free",
+   "color": "#C8511C",
+   "start": {
+    "text": ""
+   },
+   "on": true
+  },
+  {
+   "id": "win",
+   "name": "WIN Time",
+   "curriculum": "Reading M/Th · Math T/F",
+   "schema": "free",
+   "color": "#45607C",
+   "start": {
+    "text": ""
+   },
+   "on": true
+  }
+ ],
+ "schedule": {
+  "0": [],
+  "1": [
+   {
+    "t": "8:00",
+    "l": "Arrival & blocks",
+    "s": "",
+    "n": "Manipulative tubs at every table spot"
+   },
+   {
+    "t": "8:05",
+    "l": "Morning Meeting",
+    "s": "",
+    "n": "Feelings check-in · schedule · attendance & lunch count · jobs · yoga dice"
+   },
+   {
+    "t": "8:15",
+    "l": "Phonics",
+    "s": "phonics",
+    "n": "ECRI slides on the carpet"
+   },
+   {
+    "t": "8:30",
+    "l": "Reading small groups",
+    "s": "reading",
+    "n": "Blue chart · Build Automaticity packets"
+   },
+   {
+    "t": "8:50",
+    "l": "Whole-group comprehension",
+    "s": "reading",
+    "n": "Benchmark Teacher’s Guide · anchor chart skill"
+   },
+   {
+    "t": "9:10",
+    "l": "Reading small groups",
+    "s": "reading",
+    "n": "Colors shift one slot down"
+   },
+   {
+    "t": "9:30",
+    "l": "Recess",
+    "s": "",
+    "n": "Teacher-supervised"
+   },
+   {
+    "t": "9:45",
+    "l": "Read aloud & snack",
+    "s": "",
+    "n": ""
+   },
+   {
+    "t": "10:00",
+    "l": "Math warm-up",
+    "s": "math",
+    "n": ""
+   },
+   {
+    "t": "10:15",
+    "l": "Math core lesson",
+    "s": "math",
+    "n": "Reveal Teacher’s Guide · Learn + On My Own"
+   },
+   {
+    "t": "10:40",
+    "l": "Math small groups",
+    "s": "math",
+    "n": "Yellow chart"
+   },
+   {
+    "t": "11:00",
+    "l": "Lunch & recess",
+    "s": "",
+    "n": "Greet students at the cafeteria at 11:40"
+   },
+   {
+    "t": "11:40",
+    "l": "Writing",
+    "s": "writing",
+    "n": "Carpet brainstorm → composition notebooks → iReady"
+   },
+   {
+    "t": "12:05",
+    "l": "WIN — Reading small groups",
+    "s": "win",
+    "n": "Pull-outs for extra support"
+   },
+   {
+    "t": "1:00",
+    "l": "Science / Social Studies",
+    "s": "science",
+    "n": ""
+   },
+   {
+    "t": "1:30",
+    "l": "Specials 1 — Health/SEL — Great Body Shop / Wayfinder",
+    "s": "",
+    "n": ""
+   },
+   {
+    "t": "1:55",
+    "l": "Specials 2 — PE",
+    "s": "",
+    "n": ""
+   },
+   {
+    "t": "2:15",
+    "l": "Closing clean-up",
+    "s": "",
+    "n": "Number boxes · trash · chairs in · backpacks"
+   },
+   {
+    "t": "2:20",
+    "l": "Shoutouts",
+    "s": "",
+    "n": "Bonus Mighty Mustangs"
+   },
+   {
+    "t": "2:25",
+    "l": "Bussers out · dismissal 2:30",
+    "s": "",
+    "n": ""
+   }
+  ],
+  "2": [
+   {
+    "t": "8:00",
+    "l": "Arrival & blocks",
+    "s": "",
+    "n": "Manipulative tubs at every table spot"
+   },
+   {
+    "t": "8:05",
+    "l": "Morning Meeting",
+    "s": "",
+    "n": "Feelings check-in · schedule · attendance & lunch count · jobs · yoga dice"
+   },
+   {
+    "t": "8:15",
+    "l": "Phonics",
+    "s": "phonics",
+    "n": "ECRI slides on the carpet"
+   },
+   {
+    "t": "8:30",
+    "l": "Reading small groups",
+    "s": "reading",
+    "n": "Blue chart · Build Automaticity packets"
+   },
+   {
+    "t": "8:50",
+    "l": "Whole-group comprehension",
+    "s": "reading",
+    "n": "Benchmark Teacher’s Guide · anchor chart skill"
+   },
+   {
+    "t": "9:10",
+    "l": "Reading small groups",
+    "s": "reading",
+    "n": "Colors shift one slot down"
+   },
+   {
+    "t": "9:30",
+    "l": "Recess",
+    "s": "",
+    "n": "Teacher-supervised"
+   },
+   {
+    "t": "9:45",
+    "l": "Read aloud & snack",
+    "s": "",
+    "n": ""
+   },
+   {
+    "t": "10:00",
+    "l": "Math warm-up",
+    "s": "math",
+    "n": ""
+   },
+   {
+    "t": "10:15",
+    "l": "Math core lesson",
+    "s": "math",
+    "n": "Reveal Teacher’s Guide · Learn + On My Own"
+   },
+   {
+    "t": "10:40",
+    "l": "Math small groups",
+    "s": "math",
+    "n": "Yellow chart"
+   },
+   {
+    "t": "11:00",
+    "l": "Lunch & recess",
+    "s": "",
+    "n": "Greet students at the cafeteria at 11:40"
+   },
+   {
+    "t": "11:40",
+    "l": "Writing",
+    "s": "writing",
+    "n": "Carpet brainstorm → composition notebooks → iReady"
+   },
+   {
+    "t": "12:05",
+    "l": "WIN — Math small groups",
+    "s": "win",
+    "n": "Pull-outs for extra support"
+   },
+   {
+    "t": "1:00",
+    "l": "Science / Social Studies",
+    "s": "science",
+    "n": ""
+   },
+   {
+    "t": "1:30",
+    "l": "Specials 1 — Music",
+    "s": "",
+    "n": ""
+   },
+   {
+    "t": "1:55",
+    "l": "Specials 2 — Library",
+    "s": "",
+    "n": ""
+   },
+   {
+    "t": "2:15",
+    "l": "Closing clean-up",
+    "s": "",
+    "n": "Number boxes · trash · chairs in · backpacks"
+   },
+   {
+    "t": "2:20",
+    "l": "Shoutouts",
+    "s": "",
+    "n": "Bonus Mighty Mustangs"
+   },
+   {
+    "t": "2:25",
+    "l": "Bussers out · dismissal 2:30",
+    "s": "",
+    "n": ""
+   }
+  ],
+  "3": [
+   {
+    "t": "8:00",
+    "l": "Morning Meeting",
+    "s": "",
+    "n": "Feelings check-in · schedule · attendance & lunch count · jobs · yoga dice"
+   },
+   {
+    "t": "8:15",
+    "l": "Phonics",
+    "s": "phonics",
+    "n": "ECRI — first 15 minutes of the Reading block"
+   },
+   {
+    "t": "8:30",
+    "l": "Reading",
+    "s": "reading",
+    "n": ""
+   },
+   {
+    "t": "9:00",
+    "l": "Structured Break",
+    "s": "",
+    "n": "Recess"
+   },
+   {
+    "t": "9:15",
+    "l": "Math",
+    "s": "math",
+    "n": ""
+   },
+   {
+    "t": "9:45",
+    "l": "Assembly / Enrichments / Math",
+    "s": "math",
+    "n": "Varies by week — extra math when there’s no assembly or enrichment"
+   },
+   {
+    "t": "10:30",
+    "l": "WIN",
+    "s": "win",
+    "n": ""
+   },
+   {
+    "t": "11:00",
+    "l": "Recess",
+    "s": "",
+    "n": ""
+   },
+   {
+    "t": "11:15",
+    "l": "Line up & sanitize",
+    "s": "",
+    "n": ""
+   },
+   {
+    "t": "11:20",
+    "l": "Lunch",
+    "s": "",
+    "n": ""
+   },
+   {
+    "t": "11:45",
+    "l": "STEAM — Teacher Choice",
+    "s": "",
+    "n": ""
+   },
+   {
+    "t": "12:20",
+    "l": "Core Arts — Health/SEL Block A",
+    "s": "",
+    "n": ""
+   },
+   {
+    "t": "12:45",
+    "l": "Dismissal",
+    "s": "",
+    "n": "Confirm the exact time"
+   }
+  ],
+  "4": [
+   {
+    "t": "8:00",
+    "l": "Arrival & blocks",
+    "s": "",
+    "n": "Manipulative tubs at every table spot"
+   },
+   {
+    "t": "8:05",
+    "l": "Morning Meeting",
+    "s": "",
+    "n": "Feelings check-in · schedule · attendance & lunch count · jobs · yoga dice"
+   },
+   {
+    "t": "8:15",
+    "l": "Phonics",
+    "s": "phonics",
+    "n": "ECRI slides on the carpet"
+   },
+   {
+    "t": "8:30",
+    "l": "Reading small groups",
+    "s": "reading",
+    "n": "Blue chart · Build Automaticity packets"
+   },
+   {
+    "t": "8:50",
+    "l": "Whole-group comprehension",
+    "s": "reading",
+    "n": "Benchmark Teacher’s Guide · anchor chart skill"
+   },
+   {
+    "t": "9:10",
+    "l": "Reading small groups",
+    "s": "reading",
+    "n": "Colors shift one slot down"
+   },
+   {
+    "t": "9:30",
+    "l": "Recess",
+    "s": "",
+    "n": "Teacher-supervised"
+   },
+   {
+    "t": "9:45",
+    "l": "Read aloud & snack",
+    "s": "",
+    "n": ""
+   },
+   {
+    "t": "10:00",
+    "l": "Math warm-up",
+    "s": "math",
+    "n": ""
+   },
+   {
+    "t": "10:15",
+    "l": "Math core lesson",
+    "s": "math",
+    "n": "Reveal Teacher’s Guide · Learn + On My Own"
+   },
+   {
+    "t": "10:40",
+    "l": "Math small groups",
+    "s": "math",
+    "n": "Yellow chart"
+   },
+   {
+    "t": "11:00",
+    "l": "Lunch & recess",
+    "s": "",
+    "n": "Greet students at the cafeteria at 11:40"
+   },
+   {
+    "t": "11:40",
+    "l": "Writing",
+    "s": "writing",
+    "n": "Carpet brainstorm → composition notebooks → iReady"
+   },
+   {
+    "t": "12:05",
+    "l": "WIN — Reading small groups",
+    "s": "win",
+    "n": "Pull-outs for extra support"
+   },
+   {
+    "t": "1:00",
+    "l": "Science / Social Studies",
+    "s": "science",
+    "n": ""
+   },
+   {
+    "t": "1:30",
+    "l": "Specials 1 — Music",
+    "s": "",
+    "n": ""
+   },
+   {
+    "t": "1:55",
+    "l": "Specials 2 — Health/SEL — Great Body Shop / Wayfinder",
+    "s": "",
+    "n": ""
+   },
+   {
+    "t": "2:15",
+    "l": "Closing clean-up",
+    "s": "",
+    "n": "Number boxes · trash · chairs in · backpacks"
+   },
+   {
+    "t": "2:20",
+    "l": "Shoutouts",
+    "s": "",
+    "n": "Bonus Mighty Mustangs"
+   },
+   {
+    "t": "2:25",
+    "l": "Bussers out · dismissal 2:30",
+    "s": "",
+    "n": ""
+   }
+  ],
+  "5": [
+   {
+    "t": "8:00",
+    "l": "Arrival & blocks",
+    "s": "",
+    "n": "Manipulative tubs at every table spot"
+   },
+   {
+    "t": "8:05",
+    "l": "Morning Meeting",
+    "s": "",
+    "n": "Feelings check-in · schedule · attendance & lunch count · jobs · yoga dice"
+   },
+   {
+    "t": "8:15",
+    "l": "Phonics",
+    "s": "phonics",
+    "n": "ECRI slides on the carpet"
+   },
+   {
+    "t": "8:30",
+    "l": "Reading small groups",
+    "s": "reading",
+    "n": "Blue chart · Build Automaticity packets"
+   },
+   {
+    "t": "8:50",
+    "l": "Whole-group comprehension",
+    "s": "reading",
+    "n": "Benchmark Teacher’s Guide · anchor chart skill"
+   },
+   {
+    "t": "9:10",
+    "l": "Reading small groups",
+    "s": "reading",
+    "n": "Colors shift one slot down"
+   },
+   {
+    "t": "9:30",
+    "l": "Recess",
+    "s": "",
+    "n": "Teacher-supervised"
+   },
+   {
+    "t": "9:45",
+    "l": "Read aloud & snack",
+    "s": "",
+    "n": ""
+   },
+   {
+    "t": "10:00",
+    "l": "Math warm-up",
+    "s": "math",
+    "n": ""
+   },
+   {
+    "t": "10:15",
+    "l": "Math core lesson",
+    "s": "math",
+    "n": "Reveal Teacher’s Guide · Learn + On My Own"
+   },
+   {
+    "t": "10:40",
+    "l": "Math small groups",
+    "s": "math",
+    "n": "Yellow chart"
+   },
+   {
+    "t": "11:00",
+    "l": "Lunch & recess",
+    "s": "",
+    "n": "Greet students at the cafeteria at 11:40"
+   },
+   {
+    "t": "11:40",
+    "l": "Writing",
+    "s": "writing",
+    "n": "Carpet brainstorm → composition notebooks → iReady"
+   },
+   {
+    "t": "12:05",
+    "l": "WIN — Math small groups",
+    "s": "win",
+    "n": "Pull-outs for extra support"
+   },
+   {
+    "t": "1:00",
+    "l": "Science / Social Studies",
+    "s": "science",
+    "n": ""
+   },
+   {
+    "t": "1:30",
+    "l": "Specials 1 — PE",
+    "s": "",
+    "n": ""
+   },
+   {
+    "t": "1:55",
+    "l": "Specials 2 — Health/SEL — Great Body Shop / Wayfinder",
+    "s": "",
+    "n": ""
+   },
+   {
+    "t": "2:15",
+    "l": "Closing clean-up",
+    "s": "",
+    "n": "Number boxes · trash · chairs in · backpacks"
+   },
+   {
+    "t": "2:20",
+    "l": "Shoutouts",
+    "s": "",
+    "n": "Bonus Mighty Mustangs"
+   },
+   {
+    "t": "2:25",
+    "l": "Bussers out · dismissal 2:30",
+    "s": "",
+    "n": ""
+   }
+  ],
+  "6": []
+ }
+}

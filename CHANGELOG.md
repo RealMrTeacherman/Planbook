@@ -1,5 +1,44 @@
 # Changelog
 
+## Step 4a — the planner: Day and Week
+
+**What it does.** `planner/` is the new planner, laid out for both the iPhone and the MacBook.
+- **Day:** the day in schedule order. Each subject's card sits at its first block, with:
+  - its lesson, which you can step with ‹ ›; Reveal and Benchmark titles show under it
+  - the next lesson suggested after the last one taught
+  - Mark taught, and a note
+  Plain blocks show their standing note and a note for that day. Beside or above the schedule: the day's flags, its notes, and private notes. Days off, weekends and Wednesday early release are marked.
+- **Week:** subjects by days on the MacBook; a list of days on the iPhone. Any cell opens that day.
+- Everything syncs live. On the MacBook, the planner page also keeps the Drive folder copy current.
+
+**Contract version 2.** New live types: `subject`, `block` (one per block per weekday), `dayPlan`, `lessonPlan` (one per subject per day), `blockNote`. New private type: `privateNote`. Version 1 records are unchanged; a version-1 file from a device that has not updated yet is upgraded and loaded.
+
+**Data, not code.** The district calendar (31 days off, first and last day, Wednesday early release), the Reveal pacing guide, the Benchmark scope and sequence, and the default subjects and schedule. All are now JSON in `data/`, extracted by running v95's own code, not retyped.
+
+**Importing v95's planner.** Subjects, every weekday's schedule, planned days, lessons (Reveal's openers, probes and tests kept), flags and block notes. A block note for a block that is gone joins that day's notes.
+- **Planner notes that name a child become private notes**, so they never go to live sync.
+- Names left in a block name, subject name or lesson text are reported, because they will sync live.
+
+**The name check, three ways.** A planner note that names a child asks: Keep it private (Drive path only), Save it live anyway, or Edit it.
+
+**Ported from v95 and checked against it.**
+- Reveal stepping matches v95's `curriculum.js` at all 143 steps of the guide and from leftover positions.
+- Times with no AM/PM sort as a school day (1:00 after 11:40).
+- The suggestion counts only days marked taught.
+
+**Left out, by your choice:** v95's Team tab. The family preview is step 4c.
+
+**Mistakes in this step, found and fixed before release.**
+- **A privacy bug.** The import page did not load the name check, and the importer quietly skipped it, so imported notes naming a child would have gone live. My Node tests passed because Node found the module another way; the browser screenshot showed it. The page now loads the check, and the importer refuses to run without it. A test proves the refusal, and a deliberate break proves the test.
+- The "Mark taught" toggle had a tangled condition, and clearing a never-saved note would have crashed. Both were found on rereading.
+- The iPhone week ran lesson titles into the ✓ ("✓Unit 1"). The MacBook day had loud note buttons and steppers at opposite edges.
+- The import report still listed the planner as "kept for later" after it was converted.
+- A gate check compared the two devices at a fixed moment; it now waits until they agree.
+
+**Tests.** 188 tests. The planner gate test runs a MacBook and an iPhone, with the stand-in Firebase. The MacBook imports v95 and the iPhone receives the planner live. The same lessons show day by day on both devices. Edits made on either device arrive on the other: steps, taught, flags, free text and notes. All three name-check answers are tested, and private notes never reach the server. The planner also opens offline. `npm run test:breaks`: 62 deliberate breaks.
+
+**You need to do one thing:** paste the new `firestore.rules` into Firebase. The old rules refuse the planner's new types.
+
 ## Step 3, follow-up — your Firebase settings
 
 - `settings/firebase.js` now holds your Firebase project's settings, so live sync is on for your site.

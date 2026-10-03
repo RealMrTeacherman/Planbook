@@ -32,11 +32,13 @@ test('every page and script the app uses is in the offline copy', () => {
       if (/\.(js|css|json)$/.test(f)) assert.ok(listed.has(`${dir}/${f}`), `${dir}/${f}`);
     }
   }
-  for (const page of ['import/', 'sync/']) assert.ok(listed.has(page) && listed.has(page + 'index.html'), page);
+  for (const page of ['import/', 'sync/', 'planner/']) assert.ok(listed.has(page) && listed.has(page + 'index.html'), page);
+  for (const f of fs.readdirSync(path.join(ROOT, 'planner'))) assert.ok(listed.has('planner/' + f), 'planner/' + f);
+  for (const f of fs.readdirSync(path.join(ROOT, 'data'))) assert.ok(listed.has('data/' + f), 'data/' + f);
 });
 
 test('every page sets up the offline copy and the home-screen app, with relative paths only', () => {
-  for (const p of ['index.html', 'import/index.html', 'sync/index.html']) {
+  for (const p of ['index.html', 'import/index.html', 'sync/index.html', 'planner/index.html']) {
     const html = read(p);
     assert.match(html, /core\/boot\.js/, p);
     assert.match(html, /rel="manifest"/, p);

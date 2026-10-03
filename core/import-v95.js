@@ -65,7 +65,7 @@
     return { first: parts[0] || 'Student', last: parts.slice(1).join(' ') };
   }
 
-  function convert(file) {
+  function convert(file, options = {}) {
     if (!file || typeof file !== 'object' || file.suite !== 1 || !file.keys || typeof file.keys !== 'object') {
       throw new Error('This is not a v95 sync file. In v95, use Save a sync file and load that.');
     }
@@ -210,8 +210,8 @@
       records.push(rec('orf_' + safe(r.id), 'orfCheck', f));
     }
     if (demoSkipped) notes.push(`${plural(demoSkipped, 'sample ORF check', 'sample ORF checks')} from the ORF tool's demo class ${demoSkipped === 1 ? 'was' : 'were'} left out.`);
-    if (excluded) notes.push(`${plural(excluded, 'ORF check is', 'ORF checks are')} set not to count toward marks. That choice moves over with the gradebook in step 5.`);
-    if (orfOnly.size) notes.push(`${plural(orfOnly.size, 'ORF student was', 'ORF students were')} never linked to a gradebook student. They came in as inactive students, to match up in step 6.`);
+    if (excluded) notes.push(`${plural(excluded, 'ORF check is', 'ORF checks are')} set not to count toward marks. That choice moves over when the gradebook is rebuilt.`);
+    if (orfOnly.size) notes.push(`${plural(orfOnly.size, 'ORF student was', 'ORF students were')} never linked to a gradebook student. They came in as inactive students, to match up when the ORF tool is rebuilt.`);
 
     const goals = (parseKey(keys, 'suite:orfgoals:v1') || {}).goals || {};
     for (const [orfSid, g] of Object.entries(goals)) {
@@ -297,6 +297,115 @@
       });
     }
 
+    // ---- Planner: subjects, schedule, days ----
+    const lp = parseKey(keys, 'lp:settings:v2');
+    const lpDays = parseKey(keys, 'lp:days:v2') || {};
+    const FLAGS = ['Assembly', 'Early release', 'Sub', 'Fire drill', 'Field trip', 'Picture day', 'Testing', 'Half day'];
+    const subjId = new Map();      // v95 subject id -> contract id
+    const int = (v, lo, hi) => { const n = Math.round(Number(v)); return Number.isFinite(n) && n >= lo && n <= hi ? n : null; };
+    function cleanPos(p) {
+      const q = {};
+      if (!p || typeof p !== 'object') return q;
+      [['unit', 0, 50], ['week', 1, 20], ['day', 1, 7], ['lesson', 0, 60]].forEach(([k, lo, hi]) => { const n = int(p[k], lo, hi); if (n !== null) q[k] = n; });
+      if (['diag', 'open', 'probe', 'review', 'assess', 'bench', 'summ'].includes(p.k)) q.k = p.k;
+      if (typeof p.text === 'string') q.text = cut(p.text, 120);
+      return q;
+    }
+    if (lp && Array.isArray(lp.subjects)) {
+      lp.subjects.forEach((sb, i) => {
+        if (!sb || !sb.id) return;
+        const id = 'subj_v95-' + safe(sb.id, 1);
+        const schema = ['uwd', 'ul', 'l', 'free'].includes(sb.schema) ? sb.schema : 'free';
+        const f = { name: cut(sb.name, 40) || 'Subject', schema, on: sb.on !== false, order: i, start: cleanPos(sb.start) };
+        if (cut(sb.curriculum, 60)) f.curriculum = cut(sb.curriculum, 60);
+        if (/^#[0-9A-Fa-f]{6}$/.test(sb.color || '')) f.color = sb.color;
+        const w = int(sb.weeksPerUnit, 1, 20), d = int(sb.daysPerWeek, 1, 7), l = int(sb.lessonsPerUnit, 1, 60);
+        if (w !== null) f.weeksPerUnit = w;
+        if (d !== null) f.daysPerWeek = d;
+        if (l !== null) f.lessonsPerUnit = l;
+        // v95 decided these by subject id; here they are the subject's own switches.
+        if (sb.id === 'math' && schema === 'ul') f.pacing = sb.pacing !== false;
+        if (sb.id === 'reading' && schema === 'uwd') f.benchmark = sb.benchmark !== false;
+        records.push(rec(id, 'subject', f));
+        subjId.set(String(sb.id), id);
+      });
+      // Wednesday early release was built into v95's planner; keep it with the school year.
+      const yr = records.find(r => r.type === 'schoolYear');
+      if (yr) yr.earlyReleaseWeekday = 'wed';
+    }
+    const blockAt = new Map();     // "<weekday>|<start>|<name>" -> block id
+    if (lp && lp.templates && typeof lp.templates === 'object') {
+      for (const [dow, list] of Object.entries(lp.templates)) {
+        const wd = int(dow, 0, 6);
+        if (wd === null || !Array.isArray(list)) continue;
+        const used = new Set();
+        list.forEach(b => {
+          if (!b || !/^([01]?\d|2[0-3]):[0-5]\d$/.test(String(b.t || '').trim())) { if (b) heldBack.push({ what: 'a schedule block', why: 'its start time cannot be read' }); return; }
+          const start = String(b.t).trim();
+          let id = `blk_d${wd}-${start.replace(':', '')}`, n = 2;
+          while (used.has(id)) id = `blk_d${wd}-${start.replace(':', '')}-${n++}`;
+          used.add(id);
+          const f = { weekday: wd, start, name: cut(b.l, 60) || 'Block', subjectId: subjId.get(String(b.s)) || null };
+          if (cut(b.n, 300)) f.note = cut(b.n, 300);
+          records.push(rec(id, 'block', f));
+          blockAt.set(`${wd}|${start}|${f.name}`, id);
+        });
+      }
+    }
+    let notesMoved = 0;
+    for (const [date, d] of Object.entries(lpDays)) {
+      if (!isDate(date) || !d || typeof d !== 'object') continue;
+      const wd = new Date(date + 'T12:00:00Z').getUTCDay();
+      let notes = cut(d.notes, 2000);
+      for (const [bk, text] of Object.entries(d.blockNotes || {})) {
+        if (!cut(text, 500)) continue;
+        const [start, ...rest] = String(bk).split('|');
+        const bid = blockAt.get(`${wd}|${start}|${cut(rest.join('|'), 60)}`);
+        if (bid) records.push(rec(`bnote_${date}_${bid}`, 'blockNote', { date, blockId: bid, text: cut(text, 500) }));
+        else { notes = cut([notes, `${start} ${rest.join('|')}: ${text}`].filter(Boolean).join('\n'), 2000); notesMoved++; }
+      }
+      const flags = (Array.isArray(d.flags) ? d.flags : []).filter(x => FLAGS.includes(x));
+      if (notes || flags.length || d.saved) {
+        const f = { date, saved: !!d.saved };
+        if (notes) f.notes = notes;
+        if (flags.length) f.flags = [...new Set(flags)];
+        records.push(rec('dayp_' + date, 'dayPlan', f));
+      }
+      for (const [sid, e] of Object.entries(d.entries || {})) {
+        if (!e || !e.pos) continue;
+        const sj = subjId.get(String(sid));
+        if (!sj) { heldBack.push({ what: `a planned lesson on ${date}`, why: 'its subject is not in the planner settings' }); continue; }
+        const f = { date, subjectId: sj, pos: cleanPos(e.pos), taught: !!e.taught };
+        if (cut(e.note, 500)) f.note = cut(e.note, 500);
+        records.push(rec(`les_${date}_${sj}`, 'lessonPlan', f));
+      }
+    }
+    if (notesMoved) notes.push(`${plural(notesMoved, 'block note was', 'block notes were')} for a block no longer on the schedule, so ${notesMoved === 1 ? 'it was' : 'they were'} added to that day's notes.`);
+
+    // Planner text that names a child must not go to live sync: move it to a private note.
+    // Without the name check, planner notes could carry names to live sync, so stop instead of skipping it.
+    const N = options.names || (typeof SuiteNames !== 'undefined' ? SuiteNames : null);
+    if (!N || typeof N.nameHits !== 'function') throw new Error('The name check did not load, so nothing was converted. Reload the page and try again.');
+    const kids = records.filter(r => r.type === 'student');
+    let madePrivate = 0, namesLeft = 0;
+    const pid = (...parts) => 'pnote_v95-' + safe(parts.join('-').replace(/[^A-Za-z0-9_-]/g, '-'), 1);
+    const named = t => N && typeof t === 'string' && N.nameHits(t, kids).length > 0;
+    for (let i = records.length - 1; i >= 0; i--) {
+      const r = records[i];
+      if (r.type === 'dayPlan' && named(r.notes)) {
+        records.push(rec(pid('day', r.date), 'privateNote', { about: 'day', date: r.date, text: r.notes })); delete r.notes; madePrivate++;
+      } else if (r.type === 'block' && named(r.note)) {
+        records.push(rec(pid('standing', r.id), 'privateNote', { about: 'standing', weekday: r.weekday, blockId: r.id, text: r.note })); delete r.note; madePrivate++;
+      } else if (r.type === 'lessonPlan' && named(r.note)) {
+        records.push(rec(pid('lesson', r.id), 'privateNote', { about: 'lesson', date: r.date, subjectId: r.subjectId, text: r.note })); delete r.note; madePrivate++;
+      } else if (r.type === 'blockNote' && named(r.text)) {
+        records.push(rec(pid('block', r.id), 'privateNote', { about: 'block', date: r.date, blockId: r.blockId, text: r.text })); records.splice(i, 1); madePrivate++;
+      } else if ((r.type === 'block' || r.type === 'subject') && named(r.name)) namesLeft++;
+      else if (r.type === 'lessonPlan' && r.pos && named(r.pos.text)) namesLeft++;
+    }
+    if (madePrivate) notes.push(`${plural(madePrivate, 'planner note names', 'planner notes name')} a child on your class list, so ${madePrivate === 1 ? 'it was' : 'they were'} kept as private notes: they travel only through the Drive folder, never live sync.`);
+    if (namesLeft) heldBack.push({ what: `${plural(namesLeft, 'block name, subject name or lesson', 'block names, subject names or lessons')}`, why: 'they contain a name from your class list and will sync live; rename them in the planner' });
+
     // ---- Report ----
     const counts = {};
     for (const r of records) counts[r.type] = (counts[r.type] || 0) + 1;
@@ -307,9 +416,7 @@
     some('Gradebook marks', Array.isArray(g2.scores) ? g2.scores.length : 0);
     some('iReady rows', Array.isArray(g2.iready) ? g2.iready.length : 0);
     some('Not-turned-in entries', Array.isArray(g2.missing) ? g2.missing.length : 0);
-    const dd = sizeOf(keys['lp:days:v2']);
-    some('Planner days', dd && typeof dd === 'object' ? Object.keys(dd).length : 0);
-    for (const k of ['lp:settings:v2', 'suite:subplan:v1', 'suite:win:v1']) if (k in keys) kept[k] = 1;
+    for (const k of ['suite:subplan:v1', 'suite:win:v1']) if (k in keys) kept[k] = 1;
 
     return { records, archive, from: file.from || null, savedAt: T, counts, kept, notes, heldBack };
   }

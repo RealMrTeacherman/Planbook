@@ -2,7 +2,7 @@
 //  - files are cached one by one, so one missing file cannot stop a new version taking over;
 //  - pages are network-first, so a page that changed is never stuck on an old copy.
 // Scripts and data files are cache-first within one version; a new version gets a new cache.
-const VERSION = '0.3.0-step3';
+const VERSION = '0.4.0-step4a';
 const CACHE = 'planbook-' + VERSION;
 const FILES = [
   './', 'index.html', 'manifest.webmanifest',
@@ -10,7 +10,9 @@ const FILES = [
   'core/look.css', 'core/boot.js', 'core/merge.js', 'core/store.js', 'core/transport.js', 'core/import-v95.js',
   'core/names.js', 'core/live.js', 'core/live-firebase.js', 'settings/firebase.js',
   'contract/contract.json', 'contract/validate.js',
-  'import/', 'import/index.html', 'sync/', 'sync/index.html'
+  'core/plan.js', 'import/', 'import/index.html', 'sync/', 'sync/index.html',
+  'planner/', 'planner/index.html', 'planner/planner.js', 'planner/planner.css',
+  'data/reveal-grade2.json', 'data/benchmark-grade2.json', 'data/calendar-2026-27.json', 'data/planner-defaults.json'
 ];
 // Firebase's own code, from Google's CDN. Must match core/live-firebase.js (a test checks).
 const FIREBASE = '10.12.2';

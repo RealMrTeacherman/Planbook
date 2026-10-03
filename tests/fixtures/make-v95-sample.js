@@ -100,9 +100,27 @@ const keys = {
   } },
   'lp:days:v2': {
     '2026-11-11': { saved: true, noSchool: true, closedLabel: 'Veterans Day', entries: {} },
-    '2026-09-16': { saved: true, notes: '', flags: [], entries: { math: { pos: { unit: 1, lesson: 3 }, taught: true } } }
+    // The week of Sept 14: Reveal days that are not lessons, a free-text science day, notes and flags.
+    '2026-09-14': { saved: true, notes: 'Picture forms due', flags: ['Picture day'], entries: {
+      math: { pos: { unit: 1, lesson: 0, k: 'diag' }, taught: true }, reading: { pos: { unit: 1, week: 1, day: 1 }, taught: true },
+      phonics: { pos: { unit: 1, week: 1, day: 1 }, taught: true }, science: { pos: { text: 'Plants: what do they need?' }, taught: true } } },
+    '2026-09-15': { saved: true, notes: '', flags: [], entries: {
+      math: { pos: { unit: 1, lesson: 0, k: 'open' }, taught: true, note: 'Attitude survey first' }, reading: { pos: { unit: 1, week: 1, day: 2 }, taught: true } },
+      blockNotes: { '10:15|Math core lesson': 'Use the big ten frames', '7:45|Before-school duty': 'Bus line today', '9:00|Old block': 'Gone from the schedule' } },
+    '2026-09-16': { saved: true, notes: 'Mila to speech at 10:15', flags: ['Early release'], entries: {
+      math: { pos: { unit: 1, lesson: 1 }, taught: true }, reading: { pos: { unit: 1, week: 1, day: 3 }, taught: true },
+      art: { pos: { text: 'Leaf rubbings' }, taught: true } } },
+    '2026-09-17': { saved: true, notes: '', flags: ['Fire drill', 'Not a flag'], entries: {
+      math: { pos: { unit: 1, lesson: 2 }, taught: false, note: 'Theo may need the number line' }, reading: { pos: { unit: 1, week: 1, day: 4 }, taught: true },
+      science: { pos: { text: "Oscar's plant report" }, taught: true } } },
+    '2026-09-18': { saved: false, notes: '', flags: [], entries: { math: { pos: { unit: 1, lesson: 3 }, taught: false } } }
   },
-  'lp:settings:v2': { subjects: [{ id: 'math', name: 'Math', schema: 'ul' }] },
+  'lp:settings:v2': (() => {
+    const d = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'data', 'planner-defaults.json'), 'utf8'));
+    const templates = JSON.parse(JSON.stringify(d.schedule));
+    templates[2].push({ t: '7:45', l: 'Before-school duty', s: '', n: 'Juniper waits with me' });   // a standing note that names a child
+    return { subjects: d.subjects, templates };
+  })(),
   'suite:subplan:v1': { details: {} },
   'suite:win:v1': { v: 1, me: 'teacher1', teachers: {}, lists: {} },
   'suite:migrations': {}

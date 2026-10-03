@@ -92,6 +92,9 @@ function expectedId(rec, typeSpec) {
     case 'sday_<date>': return `sday_${rec.date}`;
     case 'year_<firstDay year>': return rec.firstDay ? `year_${rec.firstDay.slice(0, 4)}` : null;
     case 'ogoal_<studentId>': return `ogoal_${rec.studentId}`;
+    case 'dayp_<date>': return `dayp_${rec.date}`;
+    case 'les_<date>_<subjectId>': return `les_${rec.date}_${rec.subjectId}`;
+    case 'bnote_<date>_<blockId>': return `bnote_${rec.date}_${rec.blockId}`;
     case 'plc_<groupKind>_<unitId>_<studentId> for reading, plc_<groupKind>_<studentId> otherwise':
       return rec.groupKind === 'reading' ? `plc_reading_${rec.unitId}_${rec.studentId}` : `plc_${rec.groupKind}_${rec.studentId}`;
     default: return null;

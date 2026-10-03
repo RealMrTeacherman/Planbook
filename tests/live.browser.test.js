@@ -7,7 +7,8 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { findChrome, loadPuppeteer, serve, newPage } = require('./helpers/browser');
-const { FakeServer } = require('./helpers/fake-firebase');
+const { FakeServer, LIVE } = require('./helpers/fake-firebase');
+const LIVE_TYPES = Object.keys(LIVE);
 
 const SAMPLE = path.join(__dirname, 'fixtures', 'v95-sample.json');
 const SHOTS = process.env.SHOTS || path.join(os.tmpdir(), 'suite-screens');
@@ -52,7 +53,7 @@ test('live sync for the planner', { skip, timeout: 240000 }, async (t) => {
     await page.waitForFunction(() => /up to date/.test(document.getElementById('liveStatus').innerText), { timeout: 10000 });
   };
   const rec = (page, id) => page.evaluate(async id => (await window.__store.all()).find(r => r.id === id) || null, id);
-  const live = page => page.evaluate(async () => (await window.__store.all()).filter(r => ['schoolDay', 'schoolYear', 'gradingPeriod'].includes(r.type)).sort((a, b) => a.id < b.id ? -1 : 1));
+  const live = page => page.evaluate(async types => (await window.__store.all()).filter(r => types.includes(r.type)).sort((a, b) => a.id < b.id ? -1 : 1), LIVE_TYPES);
   const waitFor = (page, fn, arg) => page.waitForFunction(fn, { timeout: 10000 }, arg);
   const addDay = async (page, date, label, answer) => {
     let asked = null;
@@ -94,14 +95,16 @@ test('live sync for the planner', { skip, timeout: 240000 }, async (t) => {
       await mac.$eval('#livePw', e => { e.value = ''; });
     });
 
-    await t.test('signing in sends the calendar, and only the calendar', async () => {
+    await t.test('signing in sends the live records (calendar and planner), and nothing private', async () => {
       await importFile(mac, SAMPLE);
       await go(mac, 'sync');
       await signIn(mac);
       await settle();
       const types = new Set(fb.allDocs().map(r => r.type));
-      assert.deepEqual([...types].sort(), ['gradingPeriod', 'schoolDay', 'schoolYear']);
-      assert.equal(fb.allDocs().length, 6);
+      for (const ty of types) assert.ok(LIVE_TYPES.includes(ty), ty);
+      assert.ok(types.has('lessonPlan') && types.has('block') && types.has('schoolDay'));
+      assert.equal(fb.allDocs().length, (await live(mac)).length);
+      assert.equal(fb.allDocs().some(r => r.type === 'privateNote' || r.type === 'student'), false);
       assert.deepEqual(fb.refused, []);
     });
 
@@ -200,7 +203,7 @@ test('live sync for the planner', { skip, timeout: 240000 }, async (t) => {
         catch (e) { return String(e.message || e); }
       });
       assert.match(extra, /fields not allowed: studentId/);
-      assert.equal(fb.allDocs().some(r => !['schoolDay', 'schoolYear', 'gradingPeriod'].includes(r.type)), false);
+      assert.equal(fb.allDocs().some(r => !LIVE_TYPES.includes(r.type)), false);
     });
 
     await t.test('a private record arriving from the server is ignored, never merged', async () => {
