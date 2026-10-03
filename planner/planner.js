@@ -51,13 +51,13 @@
       lesson: map(lessons, r => r.date + '|' + r.subjectId), dayPlan: map(by('dayPlan'), r => r.date),
       bnote: map(by('blockNote'), r => r.date + '|' + r.blockId), days: map(by('schoolDay'), r => r.date),
       year: by('schoolYear').sort((a, b) => a.firstDay < b.firstDay ? 1 : -1)[0] || null,
-      pnotes: by('privateNote'), students: by('student')
+      pnotes: by('privateNote'), students: by('student'), periods: map(by('gradingPeriod'), r => r.id)
     };
   }
 
   // ---------- routing ----------
   function route() {
-    const m = /^#(day|week)\/(\d{4}-\d{2}-\d{2})$/.exec(location.hash);
+    const m = /^#(day|week|settings)\/(\d{4}-\d{2}-\d{2})$/.exec(location.hash);
     return m ? { view: m[1], date: m[2] } : { view: 'day', date: todayIso() };
   }
   const go = (view, date) => { location.hash = `#${view}/${date}`; };
@@ -73,6 +73,7 @@
   $('todayBtn').onclick = () => go(route().view, todayIso());
   $('tabToday').onclick = () => go('day', route().date);
   $('tabWeek').onclick = () => go('week', route().date);
+  $('tabSettings').onclick = () => go('settings', route().date);
 
   // ---------- the name check ----------
   // Returns 'live', 'private' or null (edit it). Text with no class-list name is simply live.
@@ -148,6 +149,14 @@
     return '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
   }
   const colorVars = sb => `--subj:${deep(sb.color)};--tint:${tint(sb.color)}`;
+  // "The guide has you in Unit 2 today": the pacing guide against this year's calendar.
+  function paceLine(sb, pos, date) {
+    if (!P.revealOn(sb)) return '';
+    const days = P.mathDays({ year: X.year, days: X.days, plans: X.dayPlan, blocks: X.blocks, subjectId: sb.id });
+    const expect = P.unitOnDate(P.revealPlan(days), date);
+    if (!expect) return '';
+    return Number(pos.unit) === expect ? ' · on pace with the guide' : ` · the guide has you in Unit ${expect} by now`;
+  }
   let ENDS = {};   // block id -> the time it ends (the next block's start), for the day on screen
   const PICKS = () => Object.fromEntries((D.extraSubjects || []).filter(x => x.picks).map(x => [x.id, x.picks]));
 
@@ -195,7 +204,7 @@
     const when = bl.length ? (lastEnd ? `${bl[0].start}–${lastEnd}` : bl[0].start) : '';
     const notes = X.pnotes.filter(n => n.about === 'lesson' && n.date === date && n.subjectId === sb.id);
     const free = sb.schema === 'free';
-    const picks = PICKS()[sb.id];
+    const picks = (sb.picks && sb.picks.length ? sb.picks : null) || PICKS()[sb.id];
     // The subject's blocks, folded into its card as small text: same every day, so no rows of their own.
     const blockLines = bl.map(b => {
       const bn = X.bnote[date + '|' + b.id];
@@ -209,7 +218,7 @@
     const head = free
       ? `<div class="pos"><input class="freehead" type="text" maxlength="120" data-free="${esc(sb.id)}" value="${esc(pos.text || '')}" placeholder="Add today’s topic" aria-label="${esc(sb.name)}: today’s topic">
           <button class="prev" data-focus="${esc(sb.id)}" aria-label="${esc(sb.name)}: edit today’s topic">${SVG.pen}</button></div>`
-      : `<div class="pos"><span class="label">${esc(P.label(sb, pos))}</span>
+      : `<div class="pos"><button class="labelbtn" data-jump="${esc(sb.id)}" aria-label="${esc(sb.name)}: ${esc(P.label(sb, pos))}. Jump to a lesson"><span class="label">${esc(P.label(sb, pos))}</span></button>
           <button class="prev" data-step="-1" data-s="${esc(sb.id)}" aria-label="${esc(sb.name)}: previous">${SVG.prev}</button>
           <button class="next" data-step="1" data-s="${esc(sb.id)}" aria-label="${esc(sb.name)}: next">${SVG.next}</button></div>`;
     const title = P.title(sb, pos);
@@ -220,7 +229,7 @@
       ${picks ? `<div class="picks" role="group" aria-label="What ${esc(sb.name)} is today">${picks.map(p => `<button aria-pressed="${pos.text === p}" data-pick="${esc(sb.id)}" data-text="${esc(p)}">${esc(p)}</button>`).join('')}</div>` : ''}
       ${title && !(d && d.kind === 'benchmark') ? `<div class="ttl">${esc(title)}</div>` : ''}
       ${d && d.kind === 'benchmark' ? `<div class="ttl">${esc(d.unit)}</div><div class="hint"><i>${esc(d.question)}</i></div><div class="hint">Benchmark plans by the week, so this is all of week ${d.week}${d.project ? ` · unit project: ${esc(d.project)}` : ''} · standards are mapped from the skill names</div>` : ''}
-      ${d && d.kind === 'reveal' ? `<div class="hint">${esc(d.unit)}</div>` : ''}
+      ${d && d.kind === 'reveal' ? `<div class="hint">${esc(d.unit)}${paceLine(sb, pos, date)}</div>` : ''}
       ${where ? `<div class="hint">${esc(where)}</div>` : ''}
       ${blockLines.length ? `<ul class="blk" aria-label="${esc(sb.name)} blocks">${blockLines.join('')}</ul>` : ''}
       ${curriculum(sb, pos)}
@@ -320,24 +329,210 @@
     $('weekView').innerHTML = grid + list;
   }
 
+  // ---------- settings ----------
+  const PALETTE = ['#5E8C3A', '#16706B', '#7A4A6B', '#D89A1C', '#C8511C', '#45607C', '#7B3A93', '#A63D63', '#3D4FB0', '#2F7D4E', '#0E7490', '#8B5A2B'];
+  const WD_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const WD_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  let setDow = null;
+  const fld = (rec, f, kind, value, label, extra = '') => `<label class="sf"><span>${esc(label)}</span><input type="${kind === 'date' ? 'date' : kind === 'int' ? 'number' : 'text'}" data-rec="${esc(rec.id)}" data-f="${f}" data-kind="${kind}" value="${esc(value == null ? '' : value)}" ${extra}></label>`;
+
+  function renderSettings(date) {
+    if (setDow == null) { const w = P.weekday(date); setDow = w >= 1 && w <= 5 ? w : 1; }
+    const subjOpts = sel => `<option value="">No subject</option>${X.subjects.map(s => `<option value="${esc(s.id)}"${s.id === sel ? ' selected' : ''}>${esc(s.name)}</option>`).join('')}`;
+    const blocks = X.blocks.filter(b => b.weekday === setDow).sort(P.byTime);
+    const sched = `<section class="side sset" aria-labelledby="hSched"><div class="side-head"><h2 id="hSched">Schedule</h2></div>
+      <div class="flags" role="group" aria-label="Weekday">${[1, 2, 3, 4, 5].map(w => `<button aria-pressed="${w === setDow}" data-dow="${w}">${WD_NAMES[w]}</button>`).join('')}</div>
+      <div class="srows">${blocks.map(b => {
+        const priv = X.pnotes.filter(n => n.about === 'standing' && n.blockId === b.id);
+        return `<div class="srow" data-blk="${esc(b.id)}">
+          ${fld(b, 'start', 'time', b.start, 'Time', 'inputmode="numeric" maxlength="5" class="t"')}
+          ${fld(b, 'name', 'text', b.name, 'Block', 'maxlength="60"')}
+          <label class="sf"><span>Subject</span><select data-rec="${esc(b.id)}" data-f="subjectId" data-kind="ref">${subjOpts(b.subjectId)}</select></label>
+          ${fld(b, 'note', 'text', b.note || '', 'Standing note', 'maxlength="300"')}
+          <button class="quiet compact del" data-delblk="${esc(b.id)}" aria-label="Delete ${esc(b.start)} ${esc(b.name)}">Delete</button>
+          ${priv.length ? `<div class="spriv">${privateList(priv, b.name)}</div>` : ''}</div>`;
+      }).join('') || `<p class="small">No blocks on ${WD_NAMES[setDow]} yet.</p>`}</div>
+      <div class="tile-foot"><button data-addblk="1">Add a block</button>
+        <label class="sf inline"><span>Copy from</span><select id="copyFrom">${[1, 2, 3, 4, 5].filter(w => w !== setDow).map(w => `<option value="${w}">${WD_NAMES[w]}</option>`).join('')}</select></label>
+        <button class="quiet" data-copyday="1">Copy that day here</button></div></section>`;
+
+    const subjects = `<section class="side sset" aria-labelledby="hSubj"><div class="side-head"><h2 id="hSubj">Subjects</h2></div>
+      <div class="scards">${X.subjects.map(s => `<div class="tile scard" style="${colorVars(s)}" data-subj="${esc(s.id)}">
+        <div class="tile-head"><span class="subj-chip">${esc(s.name)}</span>
+          <label class="check"><input type="checkbox" data-rec="${esc(s.id)}" data-f="on" data-kind="bool"${s.on ? ' checked' : ''}> On the planner</label></div>
+        <div class="sgrid">${fld(s, 'name', 'text', s.name, 'Name', 'maxlength="40"')}${fld(s, 'curriculum', 'text', s.curriculum || '', 'Curriculum', 'maxlength="60"')}
+          <label class="sf"><span>Counted by</span><select data-rec="${esc(s.id)}" data-f="schema" data-kind="enum">${[['uwd', 'Unit · week · day'], ['ul', 'Unit · lesson'], ['l', 'Lesson'], ['free', 'Free text']].map(([v, l]) => `<option value="${v}"${s.schema === v ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
+          ${s.schema === 'uwd' ? fld(s, 'weeksPerUnit', 'int', s.weeksPerUnit || 3, 'Weeks per unit', 'min="1" max="20"') + fld(s, 'daysPerWeek', 'int', s.daysPerWeek || 5, 'Days per week', 'min="1" max="7"') : ''}
+          ${s.schema === 'ul' ? fld(s, 'lessonsPerUnit', 'int', s.lessonsPerUnit || 10, 'Lessons per unit', 'min="1" max="60"') : ''}
+          ${s.schema === 'free' ? fld(s, 'picks', 'picks', (s.picks || PICKS()[s.id] || []).join(', '), 'Quick picks (commas between)', 'maxlength="400"') : ''}</div>
+        ${s.schema === 'ul' ? `<label class="check"><input type="checkbox" data-rec="${esc(s.id)}" data-f="pacing" data-kind="bool"${s.pacing ? ' checked' : ''}> Follows the Reveal Math pacing guide</label>` : ''}
+        ${s.schema === 'uwd' ? `<label class="check"><input type="checkbox" data-rec="${esc(s.id)}" data-f="benchmark" data-kind="bool"${s.benchmark ? ' checked' : ''}> Follows Benchmark Advance</label>` : ''}
+        <div class="swatches" role="radiogroup" aria-label="${esc(s.name)} color">${PALETTE.map(c => `<button role="radio" aria-checked="${(s.color || '').toLowerCase() === c.toLowerCase()}" data-color="${c}" data-s="${esc(s.id)}" style="background:${deep(c)}" aria-label="Color ${c}"></button>`).join('')}</div>
+      </div>`).join('')}</div>
+      <div class="tile-foot"><button data-addsubj="1">Add a subject</button></div></section>`;
+
+    const yr = X.year;
+    const offs = Object.values(X.days).filter(d => d.kind === 'noSchool' && !d.deletedAt).sort((a, b) => a.date < b.date ? -1 : 1);
+    const periods = Object.values(X.periods || {}).sort((a, b) => a.start < b.start ? -1 : 1);
+    const cal = `<section class="side sset" aria-labelledby="hCal"><div class="side-head"><h2 id="hCal">Calendar</h2></div>
+      ${yr ? `<div class="sgrid">${fld(yr, 'firstDay', 'date', yr.firstDay, 'First day')}${fld(yr, 'lastDay', 'date', yr.lastDay, 'Last day')}
+        <label class="sf"><span>Early release</span><select data-rec="${esc(yr.id)}" data-f="earlyReleaseWeekday" data-kind="enum-null"><option value="">None</option>${[1, 2, 3, 4, 5].map(w => `<option value="${WD_KEYS[w]}"${yr.earlyReleaseWeekday === WD_KEYS[w] ? ' selected' : ''}>Every ${WD_NAMES[w]}</option>`).join('')}</select></label></div>` : '<p class="small">No school year yet.</p>'}
+      <h3>Grading periods</h3>
+      <div class="sgrid three">${periods.map(g => fld(g, 'name', 'text', g.name, 'Name', 'maxlength="30"') + fld(g, 'start', 'date', g.start, 'Starts') + fld(g, 'end', 'date', g.end, 'Ends')).join('')}</div>
+      <h3>Days off</h3>
+      <div class="offs">${offs.map(d => `<div class="off"><span class="od">${esc(longDate(d.date))}</span>
+        <input type="text" aria-label="Name for ${esc(longDate(d.date))}" data-rec="${esc(d.id)}" data-f="label" data-kind="text" value="${esc(d.label || '')}" maxlength="60">
+        <button class="quiet compact" data-deloff="${esc(d.id)}" aria-label="Remove the day off on ${esc(longDate(d.date))}">Remove</button></div>`).join('')}</div>
+      <div class="tile-foot"><label class="sf inline"><span>Date</span><input type="date" id="offDate"></label>
+        <label class="sf inline"><span>Name</span><input type="text" id="offLabel" maxlength="60" placeholder="e.g. Teacher work day"></label>
+        <button data-addoff="1">Add a day off</button></div></section>`;
+
+    // Reveal: where the guide lands on this calendar, beside what was taught.
+    const math = X.subjects.find(s => P.revealOn(s));
+    let pace = '';
+    if (math) {
+      const days = P.mathDays({ year: yr, days: X.days, plans: X.dayPlan, blocks: X.blocks, subjectId: math.id });
+      const pl = P.revealPlan(days), act = P.revealActuals(X.lessons, math.id);
+      const expect = P.unitOnDate(pl, date);
+      const fmtD = d => d ? `${MON[P.parse(d).getMonth()]} ${P.parse(d).getDate()}` : '';
+      pace = `<section class="side sset" aria-labelledby="hPace"><div class="side-head"><h2 id="hPace">Reveal Math · the year</h2></div>
+        <p class="small">${days.length} school days this year have a ${esc(math.name)} block; the guide uses ${P.revealTotal()}.${expect ? ` By the calendar the guide has you in Unit ${expect} on ${esc(longDate(date))}.` : ''}</p>
+        <div class="tablewrap"><table class="pace"><thead><tr><th>Unit</th><th class="n">Days</th><th>The guide, on this calendar</th><th>Taught</th></tr></thead><tbody>
+        ${pl.map(r => { const a = act[r.u]; return `<tr${r.u === expect ? ' class="here"' : ''}><td><b>${r.u}</b> ${esc(r.title)}</td><td class="n">${r.days}</td>
+          <td>${r.from ? `${fmtD(r.from)}–${fmtD(r.to)}${r.short ? ' (runs out)' : ''}` : 'not on the calendar'}</td>
+          <td>${a ? `${fmtD(a.from)}–${fmtD(a.to)} · ${a.n} ${a.n === 1 ? 'day' : 'days'}` : '—'}</td></tr>`; }).join('')}</tbody></table></div></section>`;
+    }
+    $('settingsView').innerHTML = `<div class="settings">${sched}${subjects}${cal}${pace}</div>`;
+  }
+
+  // Settings edits: one handler for every field, each change written at once (and synced live).
+  async function settingsChange(el) {
+    const rec = (await store.all()).find(r => r.id === el.dataset.rec);
+    if (!rec) return;
+    const f = el.dataset.f, kind = el.dataset.kind;
+    let v = el.type === 'checkbox' ? el.checked : el.value.trim();
+    if (kind === 'int') v = Math.max(1, parseInt(v, 10) || 1);
+    if (kind === 'ref' || kind === 'enum-null') v = v || null;
+    if (kind === 'picks') v = v.split(',').map(x => x.trim()).filter(Boolean).slice(0, 12);
+    if (kind === 'time' && !/^([01]?\d|2[0-3]):[0-5]\d$/.test(v)) { problem('A time looks like 9:15 or 12:40.'); render(); return; }
+    const next = Object.assign({}, rec, { [f]: v });
+    if (kind === 'text' && !v && f === 'note') delete next.note;
+    if (kind === 'text' && !v && f === 'label') delete next.label;
+    if ((f === 'note' || f === 'name' || f === 'label') && v) {
+      const choice = await nameCheck(v);
+      if (!choice) { el.focus(); return; }
+      if (choice === 'private') {
+        if (f !== 'note' || rec.type !== 'block') { problem('Only a standing note can be kept private; rename this without the name.'); render(); return; }
+        delete next.note;
+        await store.write([next, { id: rid('pnote'), type: 'privateNote', deletedAt: null, about: 'standing', weekday: rec.weekday, blockId: rec.id, text: v }], 'a private standing note');
+        return;
+      }
+    }
+    try { problem(''); await store.write([next], 'a setting'); }
+    catch (e) { problem('Not saved: ' + e.message); render(); }
+  }
+  document.addEventListener('change', e => { if ($('settingsView').contains(e.target) && e.target.dataset.rec) settingsChange(e.target); });
+  $('settingsView').addEventListener('focusout', () => setTimeout(() => { if (renderLater) render(); }, 0));
+
+  async function settingsClick(el) {
+    const d = el.dataset, all = await store.all();
+    const now = () => new Date().toISOString();
+    if (d.dow) { setDow = Number(d.dow); render(); return; }
+    if (d.addblk) {
+      const mine = X.blocks.filter(b => b.weekday === setDow).sort(P.byTime);
+      const last = mine[mine.length - 1];
+      let start = '8:00';
+      if (last) { const m = P.mins(last.start) + 15, h = Math.floor(m / 60), h12 = h > 12 ? h - 12 : h; start = `${h12}:${String(m % 60).padStart(2, '0')}`; }
+      await store.write([{ id: rid('blk'), type: 'block', deletedAt: null, weekday: setDow, start, name: 'New block', subjectId: null }], 'a new block');
+    } else if (d.delblk) {
+      const b = all.find(r => r.id === d.delblk);
+      if (b && confirm(`Delete ${b.start} ${b.name} from every ${WD_NAMES[b.weekday]}?`)) await store.write([Object.assign({}, b, { deletedAt: now() })], 'a block deleted');
+    } else if (d.copyday) {
+      const from = Number($('copyFrom').value);
+      const src = X.blocks.filter(b => b.weekday === from), old = X.blocks.filter(b => b.weekday === setDow);
+      if (!confirm(`Replace ${WD_NAMES[setDow]}'s ${old.length} blocks with a copy of ${WD_NAMES[from]}'s ${src.length}?`)) return;
+      await store.write([...old.map(b => Object.assign({}, b, { deletedAt: now() })),
+        ...src.map(b => Object.assign({}, b, { id: rid('blk'), weekday: setDow, deletedAt: null }))], 'a day copied');
+    } else if (d.color) {
+      const s = all.find(r => r.id === d.s);
+      await store.write([Object.assign({}, s, { color: d.color })], 'a color');
+    } else if (d.addsubj) {
+      await store.write([{ id: rid('subj'), type: 'subject', deletedAt: null, name: 'New subject', schema: 'free', on: true, order: X.subjects.length, start: { text: '' }, color: PALETTE[X.subjects.length % PALETTE.length] }], 'a new subject');
+    } else if (d.addoff) {
+      const date = $('offDate').value, label = $('offLabel').value.trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { problem('Choose a date for the day off.'); return; }
+      const rec = { id: 'sday_' + date, type: 'schoolDay', deletedAt: null, date, kind: 'noSchool' };
+      if (label) {
+        const choice = await nameCheck(label);
+        if (choice !== 'live') { if (choice === 'private') problem('A day off\'s name syncs live; name it without the child.'); return; }
+        rec.label = label;
+      }
+      await store.write([rec], 'a day off');
+    } else if (d.deloff) {
+      const r = all.find(x => x.id === d.deloff);
+      await store.write([Object.assign({}, r, { deletedAt: now() })], 'a day off removed');
+    } else return;
+    problem('');
+  }
+
+  // Jump straight to a lesson instead of stepping there.
+  async function jump(sid, date) {
+    const sb = X.subj[sid];
+    const rec = X.lesson[date + '|' + sid];
+    const pos = rec ? rec.pos : P.suggest(sb, X.lessons, date);
+    const num = (k, l, v, max) => `<label class="sf"><span>${l}</span><input type="number" min="1" max="${max}" data-j="${k}" value="${v || 1}"></label>`;
+    let body;
+    if (P.revealOn(sb)) {
+      const steps = P.revealSteps();
+      const units = [...new Set(steps.map(s => s.unit))];
+      body = `<label class="sf"><span>${esc(sb.name)}</span><select id="jumpSel">${units.map(u => `<optgroup label="Unit ${u}">${steps.filter(s => s.unit === u).map((s, i) =>
+        `<option value='${esc(JSON.stringify(s.pos))}'${P.samePos(s.pos, pos) ? ' selected' : ''}>${esc(s.name)}</option>`).join('')}</optgroup>`).join('')}</select></label>`;
+    } else if (sb.schema === 'uwd') body = `<div class="sgrid three">${num('unit', 'Unit', pos.unit, 50)}${num('week', 'Week', pos.week, 20)}${num('day', 'Day', pos.day, 7)}</div>`;
+    else if (sb.schema === 'ul') body = `<div class="sgrid">${num('unit', 'Unit', pos.unit, 50)}${num('lesson', 'Lesson', pos.lesson, 60)}</div>`;
+    else if (sb.schema === 'l') body = `<div class="sgrid">${num('lesson', 'Lesson', pos.lesson, 60)}</div>`;
+    else return;
+    $('jumpTitle').textContent = `${sb.name}: jump to a lesson`;
+    $('jumpBody').innerHTML = body;
+    const dlg = $('jumpDialog');
+    dlg.returnValue = '';
+    dlg.onclose = async () => {
+      if (dlg.returnValue !== 'go') return;
+      let next;
+      if (P.revealOn(sb)) next = JSON.parse($('jumpSel').value);
+      else { next = {}; dlg.querySelectorAll('[data-j]').forEach(i => { next[i.dataset.j] = Math.max(1, parseInt(i.value, 10) || 1); }); }
+      try { await setLesson(sid, date, () => ({ pos: next })); } catch (e) { problem('Not saved: ' + e.message); }
+    };
+    dlg.showModal();
+  }
+
   // ---------- render ----------
   let queued = false;
+  let renderLater = false;
   async function render() {
     if (editing) return;
+    // Never redraw Settings under a field being typed in; redraw when it is left.
+    const a = document.activeElement;
+    if (route().view === 'settings' && a && $('settingsView').contains(a) && a.matches('input, select')) { renderLater = true; return; }
+    renderLater = false;
     await index();
     const r = route();
-    const isWeek = r.view === 'week';
-    $('tabToday').setAttribute('aria-selected', String(!isWeek));
+    const isWeek = r.view === 'week', isSet = r.view === 'settings';
+    $('tabToday').setAttribute('aria-selected', String(r.view === 'day'));
     $('tabWeek').setAttribute('aria-selected', String(isWeek));
+    $('tabSettings').setAttribute('aria-selected', String(isSet));
     const wk = P.weekOf(r.date);
     const dd = P.parse(r.date);
     $('heading').textContent = isWeek ? `Week of ${MON[P.parse(wk[0]).getMonth()]} ${P.parse(wk[0]).getDate()}` : `${DAY[dd.getDay()]}, ${MON[dd.getMonth()]} ${dd.getDate()}`;
     $('dateLabel').textContent = isWeek ? `${MON[P.parse(wk[0]).getMonth()]} ${P.parse(wk[0]).getDate()} – ${MON[P.parse(wk[4]).getMonth()]} ${P.parse(wk[4]).getDate()}, ${P.parse(wk[4]).getFullYear()}` : String(dd.getFullYear());
+    if (isSet) { $('heading').textContent = 'Settings'; }
+    document.querySelector('.datenav').hidden = isSet;
     const nothing = !X.subjects.length && !X.blocks.length;
     $('empty').hidden = !nothing;
-    $('dayView').hidden = nothing || isWeek;
+    $('dayView').hidden = nothing || r.view !== 'day';
     $('weekView').hidden = nothing || !isWeek;
-    if (!nothing) isWeek ? renderWeek(r.date) : renderDay(r.date);
+    $('settingsView').hidden = !isSet;
+    if (isSet) renderSettings(r.date);
+    else if (!nothing) isWeek ? renderWeek(r.date) : renderDay(r.date);
     renderChip();
   }
   function renderChip() {
@@ -361,12 +556,14 @@
   }
   document.addEventListener('click', async e => {
     const el = e.target.closest('button');
+    if (el && $('settingsView').contains(el)) { try { await settingsClick(el); } catch (err) { problem('Not saved: ' + err.message); } return; }
     if (!el || !$('dayView').contains(el)) return;
     const date = route().date, d = el.dataset;
     try {
       if (d.step) await setLesson(d.s, date, r => ({ pos: Number(d.step) > 0 ? P.advance(X.subj[d.s], r.pos) : P.retreat(X.subj[d.s], r.pos) }));
       else if (d.taught) await setLesson(d.taught, date, r => ({ taught: !r.taught }));
       else if (d.pick) await setLesson(d.pick, date, () => ({ pos: { text: d.text } }));
+      else if (d.jump) await jump(d.jump, date);
       else if (d.focus) { const i = document.querySelector(`[data-free="${CSS.escape(d.focus)}"]`); if (i) { i.focus(); i.select(); } }
       else if (d.flag) {
         const plan = X.dayPlan[date] || { id: 'dayp_' + date, type: 'dayPlan', deletedAt: null, date, saved: true };

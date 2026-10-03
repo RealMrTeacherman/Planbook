@@ -272,7 +272,116 @@ test('the planner: Day and Week on MacBook and iPhone', { skip, timeout: 240000 
       await phone.screenshot({ path: path.join(SHOTS, '12-planner-week-phone.png'), fullPage: true });
     });
 
+    // ---------- step 4b: Settings ----------
+    const pickDay = async (page, n) => {
+      await page.click(`[data-dow="${n}"]`);
+      await page.waitForFunction(n => { const b = document.querySelector(`[data-dow="${n}"]`); return b && b.getAttribute('aria-pressed') === 'true'; }, {}, n);
+    };
+    const setField = async (page, sel, value) => {
+      await page.click(sel, { clickCount: 3 });
+      await page.keyboard.press('Backspace');
+      if (value) await page.type(sel, value);
+      await page.$eval(sel, e => e.blur());
+    };
+
+    await t.test('gate 4b: a schedule change made on the iPhone shows on the MacBook within seconds', async () => {
+      await open(phone, '#settings/2026-09-21');
+      await open(mac, '#day/2026-09-21');
+      const start = Date.now();
+      await setField(phone, '[data-rec="blk_d1-800"][data-f="name"]', 'Arrival and tubs');
+      await waitRec(mac, () => /Arrival and tubs/.test(document.getElementById('dayMain').innerText));
+      assert.ok(Date.now() - start < 6000);
+    });
+
+    await t.test('a time that is not a time is refused, and nothing changes', async () => {
+      await setField(phone, '[data-rec="blk_d1-800"][data-f="start"]', 'soon');
+      await phone.waitForFunction(() => /A time looks like/.test(document.getElementById('problemText').textContent));
+      assert.equal((await rec(phone, 'blk_d1-800')).start, '8:00');
+    });
+
+    await t.test('blocks can be added and deleted, and a weekday can copy another', async () => {
+      await open(mac, '#settings/2026-09-21');
+      await pickDay(mac, 5);
+      const before = await mac.$$eval('.srow', e => e.length);
+      await mac.click('[data-addblk]');
+      await mac.waitForFunction(n => document.querySelectorAll('.srow').length === n + 1, {}, before);
+      await new Promise(r => setTimeout(r, 300));
+      assert.match(await mac.$eval('.srow:last-child [data-f="name"]', e => e.value), /New block/);
+      mac.once('dialog', d => d.accept());
+      await mac.click('.srow:last-child [data-delblk]');
+      await mac.waitForFunction(n => document.querySelectorAll('.srow').length === n, {}, before);
+      await pickDay(mac, 2);
+      await mac.select('#copyFrom', '3');
+      mac.once('dialog', d => d.accept());
+      await mac.click('[data-copyday]');
+      await waitRec(mac, () => [...document.querySelectorAll('.srow [data-f="name"]')].some(i => i.value === 'Assembly / Enrichments / Other'));
+      const tue = await mac.evaluate(async () => (await window.__store.all()).filter(r => r.type === 'block' && r.weekday === 2 && !r.deletedAt).length);
+      assert.equal(tue, 13, 'Tuesday now has Wednesday\'s 13 blocks');
+    });
+
+    await t.test('a standing note that names a child can be kept private', async () => {
+      await pickDay(mac, 1);
+      await setField(mac, '[data-rec="blk_d1-930"][data-f="note"]', 'Juniper needs a buddy');
+      await mac.waitForFunction(() => document.getElementById('nameDialog').open);
+      await mac.click('#nameDialog button[value="private"]');
+      await waitRec(mac, () => /Juniper needs a buddy/.test(document.getElementById('settingsView').innerText));
+      assert.equal((await rec(mac, 'blk_d1-930')).note, undefined);
+      assert.equal(fb.allDocs().some(r => JSON.stringify(r).includes('Juniper needs')), false);
+    });
+
+    await t.test('a subject\'s color and quick picks change everywhere', async () => {
+      await mac.click('[data-s="subj_steam"][data-color="#2F7D4E"]');
+      await setField(mac, '[data-rec="subj_flex"][data-f="picks"]', 'Assembly, Library, Art');
+      await open(phone, '#day/2026-09-16');
+      await waitRec(phone, () => [...document.querySelectorAll('[data-card="subj_flex"] .picks button')].map(b => b.textContent).join('|') === 'Assembly|Library|Art');
+      const steam = await phone.$eval('[data-card="subj_steam"]', e => getComputedStyle(e).getPropertyValue('--subj').trim());
+      assert.equal(steam.toLowerCase(), '#2f7d4e');
+    });
+
+    await t.test('a day off added in Settings shows on the day, on both devices', async () => {
+      await mac.$eval('#offDate', e => { e.value = '2026-10-09'; });
+      await mac.type('#offLabel', 'Teacher work day');
+      await mac.click('[data-addoff]');
+      await open(phone, '#day/2026-10-09');
+      await waitRec(phone, () => /Teacher work day/.test(document.getElementById('daySide').innerText));
+    });
+
+    await t.test('Reveal Math · the year: twelve units on this calendar, and the Math card says where the guide is', async () => {
+      await open(mac, '#settings/2026-10-05');
+      assert.equal(await mac.$$eval('table.pace tbody tr', r => r.length), 12);
+      assert.match(await mac.$eval('#settingsView', e => e.innerText), /the guide uses 153/);
+      assert.equal(await mac.$$eval('table.pace tr.here', r => r.length), 1);
+      await open(mac, '#day/2026-10-05');
+      assert.match(await mac.$eval('[data-card="subj_v95-math"]', e => e.innerText), /guide has you in Unit \d+ by now|on pace with the guide/);
+    });
+
+    await t.test('tapping a lesson\'s position jumps straight to another lesson', async () => {
+      await open(mac, '#day/2026-10-05');
+      await mac.click('[data-card="subj_v95-math"] [data-jump]');
+      await mac.waitForFunction(() => document.getElementById('jumpDialog').open);
+      await mac.select('#jumpSel', JSON.stringify({ unit: 2, lesson: 3 }));
+      await mac.click('#jumpDialog button[value="go"]');
+      await waitRec(mac, () => document.querySelector('[data-card="subj_v95-math"] .label').textContent === 'U2 · L3');
+      await mac.click('[data-card="subj_v95-reading"] [data-jump]');
+      await mac.waitForFunction(() => document.getElementById('jumpDialog').open);
+      await setField(mac, '#jumpBody [data-j="week"]', '2');
+      await mac.click('#jumpDialog button[value="go"]');
+      await waitRec(mac, () => /^U\d+ · W2 · D\d+$/.test(document.querySelector('[data-card="subj_v95-reading"] .label').textContent));
+    });
+
+    await t.test('a change arriving from the other device never wipes a Settings field being typed in', async () => {
+      await open(mac, '#settings/2026-09-21'); await open(phone, '#settings/2026-09-21');
+      await mac.click('[data-rec="blk_d1-805"][data-f="note"]', { clickCount: 3 });
+      await mac.keyboard.type('Half typed note');
+      await setField(phone, '[data-rec="blk_d1-1100"][data-f="name"]', 'Lunch and recess');
+      await new Promise(r => setTimeout(r, 1500));
+      assert.equal(await mac.$eval('[data-rec="blk_d1-805"][data-f="note"]', e => e.value), 'Half typed note');
+      await mac.$eval('[data-rec="blk_d1-805"][data-f="note"]', e => e.blur());
+      await waitRec(mac, () => document.querySelector('[data-rec="blk_d1-1100"][data-f="name"]').value === 'Lunch and recess');
+    });
+
     await t.test('the week moves by a week; the day skips weekends', async () => {
+      await open(mac, '#week/2026-09-14');
       await mac.click('#next');
       await mac.waitForFunction(() => location.hash === '#week/2026-09-21');
       await open(mac, '#day/2026-09-18');

@@ -15,7 +15,9 @@
   // Empty until version 2 exists; tests add a step to prove the mechanism.
   const UPGRADES = {
     // 2: the planner's types were added; no version 1 record changes.
-    2: records => records
+    2: records => records,
+    // 3: subjects may carry quick picks; no version 2 record changes.
+    3: records => records
   };
 
   const req = r => new Promise((ok, no) => { r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); });

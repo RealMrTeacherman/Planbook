@@ -1,5 +1,25 @@
 # Changelog
 
+## Step 4b — the planner's Settings
+
+**A Settings tab beside Day and Week.**
+- **Schedule:** pick Monday to Friday; edit each block's time, name, subject and standing note; add or delete blocks; copy another weekday's schedule. Blocks sort by time, and every change syncs live. A standing note that names a child can be kept private.
+- **Subjects:** name, color (twelve swatches, each deepened for contrast), curriculum, how it is counted, unit sizes, on/off, the Reveal and Benchmark switches, quick picks for free-text subjects, and adding a subject.
+- **Calendar:** first and last day, the early-release weekday, the grading periods, and every day off (rename, remove, add).
+- **Reveal Math · the year:** where the pacing guide puts each unit on this year's calendar, beside what was taught, and which unit the guide has you in. Ported from v95's `plan()`; a test runs v95's own code on the district calendar and the two agree date for date.
+- **On the Math card:** "on pace with the guide" or "the guide has you in Unit 3 by now".
+- **Jump to a lesson:** tap a card's big position to choose a Reveal lesson from the guide, or type a unit, week and day.
+
+**Contract version 3:** a subject may carry `picks` (its quick choices). No other record changes; version-2 files upgrade on load. **Paste the new `firestore.rules` into Firebase**: the old rules refuse a subject with picks.
+
+**Mistakes found and fixed before release.**
+- A change from the other device would have redrawn Settings and wiped a field you were typing in. Settings now waits until you leave the field; a test and a deliberate break cover it.
+- The deliberate break for a missing upgrade step pointed at the 1→2 step, which the tests no longer exercise. It now removes the newest step.
+- Repeated column labels on every schedule row; they show once on the MacBook (screen readers still hear them on every row).
+- In my tests: clicks that raced the redraw after choosing a weekday, and an older test that assumed the Week view was still open.
+
+**Tests.** 209 tests (208 pass, 1 skipped), with 35 checks in the planner gate test, including the 4b gate: a schedule change on the iPhone shows on the MacBook within seconds. Deliberate breaks: 67.
+
 ## Step 4a, design — typed subjects show their key word in This week
 
 - In the This week grid, a typed subject (Science, WIN, STEAM, Health/SEL, the 9:45 block) shows the first meaningful word you typed ("Plants: what do they need?" → Plants; "More math" → Math), not a ✓ or a dot.

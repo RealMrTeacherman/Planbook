@@ -152,6 +152,43 @@
     }
     return null;
   }
+  // ---------- the Reveal guide against this year's calendar (ported from v95) ----------
+  // The school days that have a Math block, in order.
+  function mathDays({ year, days, plans, blocks, subjectId }) {
+    const out = [];
+    if (!year) return out;
+    const has = new Set(blocks.filter(b => !b.deletedAt && b.subjectId === subjectId).map(b => b.weekday));
+    for (let d = year.firstDay, i = 0; d <= year.lastDay && i < 400; d = addDays(d, 1), i++) {
+      if (has.has(weekday(d)) && dayStatus(d, { year, days, plan: plans && plans[d] }).school) out.push(d);
+    }
+    return out;
+  }
+  // Where the guide puts each unit, given those days. A unit's budget is its whole "Time for Unit".
+  function revealPlan(dayList) {
+    const out = []; let i = 0;
+    (REVEAL ? REVEAL.units : []).forEach(u => {
+      const n = Math.round(u.total);
+      out.push({ u: u.u, title: u.title, days: u.total, from: dayList[i] || null, to: dayList[Math.min(i + n, dayList.length) - 1] || null, short: i + n > dayList.length });
+      i += n;
+    });
+    return out;
+  }
+  function unitOnDate(pl, date) {
+    const r = pl.find(r => r.from && r.to && date >= r.from && date <= r.to);
+    return r ? r.u : null;
+  }
+  // What was actually taught, unit by unit: first day, last day, how many days.
+  function revealActuals(lessons, subjectId) {
+    const out = {};
+    lessons.filter(l => !l.deletedAt && l.subjectId === subjectId && l.taught && l.pos && BYUNIT[l.pos.unit])
+      .sort((a, b) => a.date < b.date ? -1 : 1)
+      .forEach(l => { const o = out[l.pos.unit] = out[l.pos.unit] || { from: l.date, to: l.date, n: 0 }; o.to = l.date; o.n++; });
+    return out;
+  }
+  // Every position of the guide in order, for the "jump to a lesson" list.
+  const revealSteps = () => FLAT.map(s => ({ pos: posOf(s), unit: s.u, name: s.k === 'L' ? `Lesson ${s.u}-${s.n} · ${s.t}` : s.t }));
+  const revealTotal = () => (REVEAL ? REVEAL.total : 0);
+
   const samePos = (a, b) => !!a && !!b && ['unit', 'week', 'day', 'lesson', 'k', 'text'].every(k => (a[k] ?? null) === (b[k] ?? null));
 
   // ---------- what was taught, what comes next ----------
@@ -205,7 +242,7 @@
   }
 
   const api = { mins, byTime, iso, parse, addDays, weekday, weekOf, useCurriculum, revealOn, revealNext, revealPrev,
-    advance, retreat, label, title, detail, samePos, lastTaught, suggest, dayStatus, dayLayout, WORD };
+    advance, retreat, label, title, detail, samePos, mathDays, revealPlan, unitOnDate, revealActuals, revealSteps, revealTotal, lastTaught, suggest, dayStatus, dayLayout, WORD };
   if (typeof module !== 'undefined') module.exports = api;
   if (typeof window !== 'undefined') window.SuitePlan = api;
 })();

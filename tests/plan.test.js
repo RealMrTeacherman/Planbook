@@ -145,3 +145,30 @@ test('the tile\'s curriculum detail: a Benchmark week\'s texts, skills with mapp
   assert.deepEqual(d.words, { ga: ['survive', 'paddle'], ds: ['habitats', 'burrow'] });
   assert.equal(P.detail({ id: 'x', schema: 'free' }, { text: 'a' }), null, 'free text has no curriculum');
 });
+
+test('the Reveal guide lands on this calendar exactly as v95 places it', { skip: fs.existsSync(V95) ? false : 'v95 not here' }, () => {
+  const box = { window: {} };
+  vm.runInNewContext(fs.readFileSync(V95, 'utf8'), box);
+  const RP = box.window.RevealPacing;
+  const cal = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'calendar-2026-27.json'), 'utf8'));
+  const year = { firstDay: cal.firstDay, lastDay: cal.lastDay, earlyReleaseWeekday: 'wed' };
+  const days = Object.fromEntries(Object.entries(cal.closed).map(([d, label]) => [d, { kind: 'noSchool', label }]));
+  const blocks = [1, 2, 3, 4, 5].map(wd => ({ weekday: wd, subjectId: 'm' }));
+  const list = P.mathDays({ year, days, blocks, subjectId: 'm' });
+  assert.equal(list[0], '2026-09-01');
+  assert.ok(!list.includes('2026-11-11') && !list.includes('2026-12-21'), 'days off are not math days');
+  const mine = P.revealPlan(list).map(r => ({ u: r.u, from: r.from, to: r.to, short: r.short }));
+  const theirs = JSON.parse(JSON.stringify(RP.plan(list)));
+  assert.deepEqual(mine, theirs);
+  assert.equal(P.unitOnDate(P.revealPlan(list), '2026-10-05'), RP.unitOnDate(RP.plan(list), '2026-10-05'));
+});
+
+test('a weekday with no Math block is not a math day; what was taught is counted by unit', () => {
+  const year = { firstDay: '2026-09-01', lastDay: '2026-09-30' };
+  const list = P.mathDays({ year, days: {}, blocks: [{ weekday: 1, subjectId: 'm' }, { weekday: 3, subjectId: 'm', deletedAt: 'x' }], subjectId: 'm' });
+  assert.deepEqual(list, ['2026-09-07', '2026-09-14', '2026-09-21', '2026-09-28']);
+  const L = (date, unit, taught = true) => ({ date, subjectId: 'm', pos: { unit, lesson: 1 }, taught });
+  assert.deepEqual(P.revealActuals([L('2026-09-02', 1), L('2026-09-01', 1), L('2026-09-03', 2, false), L('2026-09-08', 2)], 'm'),
+    { 1: { from: '2026-09-01', to: '2026-09-02', n: 2 }, 2: { from: '2026-09-08', to: '2026-09-08', n: 1 } });
+  assert.equal(P.revealSteps().length, 143);
+});

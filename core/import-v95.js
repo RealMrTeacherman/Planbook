@@ -362,6 +362,7 @@
       const f = { name: x.name, schema: 'free', on: true, order: nSubj + i, start: { text: '' } };
       if (x.color) f.color = x.color;
       if (x.curriculum) f.curriculum = x.curriculum;
+      if (Array.isArray(x.picks) && x.picks.length) f.picks = x.picks.slice(0, 12);
       records.push(rec(x.id, 'subject', f));
     });
     for (const [k, id] of blockAt) {   // keep the lookup in step with any renamed block

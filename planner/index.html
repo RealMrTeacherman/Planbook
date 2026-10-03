@@ -25,6 +25,7 @@
       <nav class="tabs" role="tablist" aria-label="View">
         <button role="tab" id="tabToday" data-view="today">Day</button>
         <button role="tab" id="tabWeek" data-view="week">Week</button>
+        <button role="tab" id="tabSettings" data-view="settings">Settings</button>
       </nav>
     </div>
     <div class="datenav">
@@ -46,6 +47,7 @@
     <section class="day-main" id="dayMain"></section>
   </div>
   <section id="weekView" hidden></section>
+  <section id="settingsView" hidden></section>
 </main>
 
 <dialog id="nameDialog" aria-labelledby="nameTitle">
@@ -57,6 +59,17 @@
       <button value="private">Keep it private</button>
       <button value="anyway" class="quiet">Save it live anyway</button>
       <button value="edit" class="quiet">Edit it</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="jumpDialog" aria-labelledby="jumpTitle">
+  <form method="dialog">
+    <h2 id="jumpTitle">Jump to a lesson</h2>
+    <div id="jumpBody"></div>
+    <div class="dialog-buttons">
+      <button value="go">Go there</button>
+      <button value="cancel" class="quiet">Cancel</button>
     </div>
   </form>
 </dialog>

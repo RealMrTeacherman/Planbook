@@ -1,6 +1,6 @@
 {
   "contract": "classroom-suite",
-  "version": 2,
+  "version": 3,
   "notes": [
     "Every record in every tool carries the envelope. Only the owner tool writes a type; readers never write it.",
     "Space: 'live' types can never name a child and may sync through Firebase on the teacher's personal account. 'private' types can name a child and travel only through the district Drive folder. A live type may not point at a private one. Text fields marked nameCheck are checked against the class list before a live record is saved.",
@@ -9,7 +9,8 @@
     "Real student names never appear in this file, the code, the tests or the docs. Fixtures use invented names.",
     "v95 import: every type below names the v95 storage it comes from in 'fromV95'. ORF dates are converted from v95's UTC timestamps to the Oregon calendar date.",
     "Walk to WIN lists name every second grader, so they stay inside Small groups' private data and never enter this contract; only today's list reaches display.json.",
-    "Version 2 adds the planner: subjects, schedule blocks, day plans, lesson plans and block notes (all live), and private notes. Version 1 records are unchanged, so the upgrade from 1 to 2 changes nothing."
+    "Version 2 adds the planner: subjects, schedule blocks, day plans, lesson plans and block notes (all live), and private notes. Version 1 records are unchanged, so the upgrade from 1 to 2 changes nothing.",
+    "Version 3 adds picks to a subject: the quick choices a free-text subject offers (e.g. Assembly, Enrichment, More math). No version 2 record changes."
   ],
   "file": {
     "fields": {
@@ -670,6 +671,15 @@
         "benchmark": {
           "type": "bool",
           "note": "Reading follows Benchmark Advance"
+        },
+        "picks": {
+          "type": "array",
+          "max": 12,
+          "of": {
+            "type": "string",
+            "max": 40
+          },
+          "note": "quick choices for a free-text subject"
         }
       }
     },
