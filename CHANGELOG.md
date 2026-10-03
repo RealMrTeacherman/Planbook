@@ -1,5 +1,11 @@
 # Changelog
 
+## Step 4a, design — a subject's blocks fold into its card
+
+- A subject's later blocks (Reading's 8:50 whole-group and 9:10 small groups, Math's core lesson and small groups) no longer get rows of their own. They are small lines inside the subject's card, each with its time, name and standing note.
+- A note for one of those blocks today shows on its line, and so do private notes for it.
+- The card's time chip shows the whole span, e.g. 8:30–9:30.
+
 ## Step 4a, design — wider, and the day comes first
 
 From your first look at Color blocks with your real schedule.

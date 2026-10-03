@@ -148,6 +148,7 @@
     return '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
   }
   const colorVars = sb => `--subj:${deep(sb.color)};--tint:${tint(sb.color)}`;
+  let ENDS = {};   // block id -> the time it ends (the next block's start), for the day on screen
   const PICKS = () => Object.fromEntries((D.extraSubjects || []).filter(x => x.picks).map(x => [x.id, x.picks]));
 
   const privateList = (list, label) => list.map(n => `<div class="private"><span class="lock">${SVG.lock} Private · Drive only</span><div class="ptext">${esc(n.text)}</div>
@@ -189,13 +190,21 @@
     const rec = X.lesson[date + '|' + sb.id];
     const pos = rec ? rec.pos : P.suggest(sb, X.lessons, date);
     const last = P.lastTaught(X.lessons, sb.id, date);
-    const when = row.blocks && row.blocks.length ? row.blocks[0].start : '';
+    const bl = row.blocks || [];
+    const lastEnd = bl.length ? (ENDS[bl[bl.length - 1].id] || '') : '';
+    const when = bl.length ? (lastEnd ? `${bl[0].start}–${lastEnd}` : bl[0].start) : '';
     const notes = X.pnotes.filter(n => n.about === 'lesson' && n.date === date && n.subjectId === sb.id);
     const free = sb.schema === 'free';
     const picks = PICKS()[sb.id];
-    const blocks = row.blocks && row.blocks.length > 1 ? row.blocks.map(b => `${b.start} ${b.name}`).join(' · ')
-      : row.block && row.block.name !== sb.name ? row.block.name : '';
-    const standing = (row.blocks || []).filter(b => b.note).map(b => b.note);
+    // The subject's blocks, folded into its card as small text: same every day, so no rows of their own.
+    const blockLines = bl.map(b => {
+      const bn = X.bnote[date + '|' + b.id];
+      const priv = X.pnotes.filter(n => n.blockId === b.id && ((n.about === 'block' && n.date === date) || (n.about === 'standing' && n.weekday === b.weekday)));
+      const showName = bl.length > 1 || b.name !== sb.name;
+      if (!showName && !b.note && !bn && !priv.length) return '';
+      return `<li><span class="bt">${esc(b.start)}</span>${showName ? ` ${esc(b.name)}` : ''}${b.note ? ` <span class="k">· ${esc(b.note)}</span>` : ''}
+        ${bn ? `<span class="bn">Today: ${esc(bn.text)}</span>` : ''}${privateList(priv, b.name)}</li>`;
+    }).filter(Boolean);
     const where = last ? `${free ? 'Last time:' : 'after'} ${P.label(sb, last.pos)} · ${shortDate(last.date)}` : (free ? '' : 'starting point');
     const head = free
       ? `<div class="pos"><input class="freehead" type="text" maxlength="120" data-free="${esc(sb.id)}" value="${esc(pos.text || '')}" placeholder="Add today’s topic" aria-label="${esc(sb.name)}: today’s topic">
@@ -213,8 +222,7 @@
       ${d && d.kind === 'benchmark' ? `<div class="ttl">${esc(d.unit)}</div><div class="hint"><i>${esc(d.question)}</i></div><div class="hint">Benchmark plans by the week, so this is all of week ${d.week}${d.project ? ` · unit project: ${esc(d.project)}` : ''} · standards are mapped from the skill names</div>` : ''}
       ${d && d.kind === 'reveal' ? `<div class="hint">${esc(d.unit)}</div>` : ''}
       ${where ? `<div class="hint">${esc(where)}</div>` : ''}
-      ${blocks ? `<div class="hint">${esc(blocks)}</div>` : ''}
-      ${standing.length ? `<div class="hint">${standing.map(esc).join(' · ')}</div>` : ''}
+      ${blockLines.length ? `<ul class="blk" aria-label="${esc(sb.name)} blocks">${blockLines.join('')}</ul>` : ''}
       ${curriculum(sb, pos)}
       ${rec && rec.note ? `<div class="lnote">${esc(rec.note)}</div>` : ''}${privateList(notes, sb.name)}
       <div class="tile-foot">
@@ -251,7 +259,9 @@
     if (!st.school) { main.innerHTML = `<div class="side"><h2>${esc(st.label)}</h2><p class="small">${st.outside ? 'Outside the school year.' : 'No school this day.'} Use ‹ and › to move to a school day.</p></div>`; return; }
     const rows = P.dayLayout(X.blocks, X.subjects, P.weekday(date));
     if (!rows.length) { main.innerHTML = `<div class="side"><p class="small">There is no schedule for ${DAY[P.weekday(date)]}days yet. The schedule editor arrives in the next release.</p></div>`; return; }
-    const sched = rows.filter(r => !r.unscheduled), un = rows.filter(r => r.unscheduled);
+    // A subject's later blocks live inside its card, so they get no row of their own.
+    ENDS = Object.fromEntries(rows.filter(r => r.block).map(r => [r.block.id, r.end]));
+    const sched = rows.filter(r => !r.unscheduled && r.kind !== 'continued'), un = rows.filter(r => r.unscheduled);
     // Lessons for subjects with no block today stay out of the way until asked for.
     main.innerHTML = `<div class="rows">${sched.map(r => r.kind === 'lesson' ? lessonCard(r, date) : plainRow(r, date, r.kind === 'continued')).join('')}</div>
       ${un.length ? `<details class="unsched"><summary><span class="unsched-title">Not on ${DAY[P.weekday(date)]}'s schedule</span>

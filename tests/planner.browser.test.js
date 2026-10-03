@@ -99,6 +99,17 @@ test('the planner: Day and Week on MacBook and iPhone', { skip, timeout: 240000 
       assert.match(await mac.$eval('#daySide', e => e.innerText), /Early release/);
     });
 
+    await t.test('a subject\'s later blocks fold into its card as small text, with no rows of their own', async () => {
+      await open(mac, '#day/2026-09-14');
+      assert.equal(await mac.$$eval('#dayMain .slim.continued', e => e.length), 0);
+      const blk = await mac.$eval('[data-card="subj_v95-reading"] .blk', e => e.innerText);
+      assert.match(blk, /8:50 Whole-group comprehension/);
+      assert.match(blk, /9:10 Reading small groups · Colors shift one slot down/);
+      assert.match(await mac.$eval('[data-card="subj_v95-reading"] .subj-chip', e => e.textContent), /8:30–9:30/);
+      const times = await mac.$$eval('#dayMain > .rows > *', els => els.map(e => (e.querySelector('.time, .subj-chip .t') || {}).textContent));
+      assert.ok(!times.includes('8:50') && !times.includes('9:10'), 'no rows for the later reading blocks');
+    });
+
     await t.test('a day off from the district calendar shows on both devices', async () => {
       for (const p of [mac, phone]) {
         await open(p, '#day/2026-11-25');
