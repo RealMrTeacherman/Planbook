@@ -28,10 +28,10 @@
   }
 
   // ---------- curriculum ----------
-  let REVEAL = null, BYUNIT = {}, FLAT = [], BENCH = {};
+  let REVEAL = null, BYUNIT = {}, FLAT = [], BENCH = {}, CROSS = {};
   const WORD = { diag: 'Diagnostic', open: 'Opener', probe: 'Probe', review: 'Review', assess: 'Test', bench: 'Benchmark', summ: 'Summative' };
   function useCurriculum(reveal, bench) {
-    REVEAL = reveal; BYUNIT = {}; FLAT = [];
+    REVEAL = reveal; BYUNIT = {}; FLAT = []; CROSS = (reveal && reveal.cross) || {};
     (reveal ? reveal.units : []).forEach(u => {
       BYUNIT[u.u] = u;
       u.steps.forEach(s => { s.u = u.u; s.i = FLAT.length; FLAT.push(s); });
@@ -129,6 +129,29 @@
     }
     return '';
   }
+  // Everything the curriculum says about a position, for the lesson tile. null when it says nothing.
+  function detail(sb, p) {
+    if (!p) return null;
+    if (revealOn(sb)) {
+      const s = find(p);
+      if (!s) return null;
+      const u = BYUNIT[s.u], nx = FLAT[s.i + 1];
+      const standards = (s.std || []).map(c => ({ code: c, label: CROSS[c] ? CROSS[c].lbl : '', oregon: CROSS[c] ? CROSS[c].or : [] }));
+      return {
+        kind: 'reveal', unit: `Unit ${u.u} · ${u.title}`, targets: s.tg || [], materials: [...(s.m || []), ...(s.tr || [])],
+        standards, gradeOne: standards.length > 0 && standards.every(x => /^1\./.test(x.code)), note: s.note || '',
+        next: nx && nx !== s ? (nx.k === 'L' ? `Lesson ${nx.u}-${nx.n} · ${nx.t}` : nx.t) : ''
+      };
+    }
+    if (sb.schema === 'uwd' && sb.benchmark === true) {
+      const u = BENCH[Number(p.unit)];
+      const w = u && u.weeks.find(x => x.w === Number(p.week));
+      if (!w) return null;
+      return { kind: 'benchmark', unit: `Unit ${u.u} · ${u.title}`, question: u.eq, project: u.project || '', week: w.w,
+        reads: w.reads || {}, anchor: w.anchor || [], practice: w.practice || [], words: w.words || {}, meta: w.meta || [], parts: w.parts || {} };
+    }
+    return null;
+  }
   const samePos = (a, b) => !!a && !!b && ['unit', 'week', 'day', 'lesson', 'k', 'text'].every(k => (a[k] ?? null) === (b[k] ?? null));
 
   // ---------- what was taught, what comes next ----------
@@ -182,7 +205,7 @@
   }
 
   const api = { mins, byTime, iso, parse, addDays, weekday, weekOf, useCurriculum, revealOn, revealNext, revealPrev,
-    advance, retreat, label, title, samePos, lastTaught, suggest, dayStatus, dayLayout, WORD };
+    advance, retreat, label, title, detail, samePos, lastTaught, suggest, dayStatus, dayLayout, WORD };
   if (typeof module !== 'undefined') module.exports = api;
   if (typeof window !== 'undefined') window.SuitePlan = api;
 })();

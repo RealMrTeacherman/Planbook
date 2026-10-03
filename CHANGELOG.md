@@ -1,5 +1,30 @@
 # Changelog
 
+## Step 4a, design — Color blocks
+
+**The look you chose (direction B), on every page.** Each lesson is a tile in its subject's color, with a big bold position (U1 · L1) and large buttons; routines are slim white rows. The type is Figtree for reading, Bricolage Grotesque for headings and positions, and JetBrains Mono for standard codes. The date is the page heading. The day panel and the week grid match.
+
+**The curriculum in every tile.**
+- Reveal: learning targets, materials, standards with their Oregon codes (or the note that Unit 1 is grade 1), and what comes next.
+- Benchmark: the essential question, the week's texts, skills with mapped Oregon standards, words, strategies, word study, and writing and grammar.
+- On the MacBook every section shows; on the iPhone the first two are open and the rest open with a tap.
+- Benchmark's mapped standards now travel with the data (`data/benchmark-grade2.json`, `parts` per week), extracted from v95's code.
+
+**Every instruction period gets a bold header.**
+- STEAM and Health/SEL are now subjects; your schedule blocks with those names are linked to them.
+- The Wednesday 9:45 block is now **Assembly / Enrichments / Other**, its own subject in indigo. Quick picks (Assembly, Enrichment, More math, More reading, Science, Social studies) set the day's header; the pencil writes your own. The picks are data in `data/planner-defaults.json`.
+- Free-text subjects (WIN, STEAM, Health/SEL, the 9:45 block) show the day's topic as the big header, with "Add today's topic" until you set one.
+
+**Contrast.** White text on a subject's color must reach 4.5:1, so a light color is deepened automatically (Math's v95 amber was 2.4:1). A test checks every chip.
+
+**Mistakes found and fixed before release.**
+- Long positions wrapped onto two lines on the iPhone.
+- The line under each tile crammed the last lesson, the blocks and the standing notes into one run. They are now three lines.
+
+**No contract change**, so the Firebase rules from step 4a still apply. The new subjects come from the importer, so **load a fresh v95 sync file**: an already-loaded file carries the same time, so it would not replace what is there.
+
+**Tests.** 195 tests, including the new design's curriculum sections, the quick picks, the pencil, and contrast.
+
 ## Step 4a — the planner: Day and Week
 
 **What it does.** `planner/` is the new planner, laid out for both the iPhone and the MacBook.

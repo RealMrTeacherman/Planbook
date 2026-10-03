@@ -352,6 +352,24 @@
         });
       }
     }
+    // Subjects v95 never had: STEAM, Health/SEL, and the flexible Assembly / Enrichments / Other block.
+    // Each is linked to the schedule blocks whose names match, as the teacher asked.
+    const nSubj = records.filter(r => r.type === 'subject').length;
+    (options.extraSubjects || []).forEach((x, i) => {
+      const hits = records.filter(r => r.type === 'block' && r.name.includes(x.matchBlock));
+      if (!hits.length || records.some(r => r.id === x.id)) return;
+      hits.forEach(b => { b.subjectId = x.id; if (x.renameBlock) b.name = x.renameBlock; });
+      const f = { name: x.name, schema: 'free', on: true, order: nSubj + i, start: { text: '' } };
+      if (x.color) f.color = x.color;
+      if (x.curriculum) f.curriculum = x.curriculum;
+      records.push(rec(x.id, 'subject', f));
+    });
+    for (const [k, id] of blockAt) {   // keep the lookup in step with any renamed block
+      const b = records.find(r => r.id === id);
+      const [wd, start] = k.split('|');
+      if (b && b.name !== k.split('|').slice(2).join('|')) blockAt.set(`${wd}|${start}|${b.name}`, id);
+    }
+
     let notesMoved = 0;
     for (const [date, d] of Object.entries(lpDays)) {
       if (!isDate(date) || !d || typeof d !== 'object') continue;

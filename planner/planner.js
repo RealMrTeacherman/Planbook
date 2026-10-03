@@ -18,7 +18,7 @@
     const get = u => fetch(u).then(r => { if (!r.ok) throw new Error(`${u} did not load`); return r.json(); });
     const [c, reveal, bench, cal, defs] = await Promise.all([get('../contract/contract.json'), get('../data/reveal-grade2.json'),
       get('../data/benchmark-grade2.json'), get('../data/calendar-2026-27.json'), get('../data/planner-defaults.json')]);
-    contract = c; FLAGS = defs.flags;
+    contract = c; FLAGS = defs.flags; D = defs;
     P.useCurriculum(reveal, bench);
     store = await SuiteStore.open({ contract });
     store.persist();
@@ -123,48 +123,115 @@
     };
   }
 
-  const privateList = (list, label) => list.map(n => `<div class="private"><span class="lock">Private · Drive only</span>${esc(n.text)}
-    <br><button class="quiet compact" data-delpnote="${esc(n.id)}" aria-label="Delete this private note${label ? ' for ' + esc(label) : ''}">Delete</button></div>`).join('');
-
   // ---------- the day ----------
+  const SVG = {
+    prev: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>',
+    next: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>',
+    check: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>',
+    pen: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>',
+    lock: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>'
+  };
+  // A subject's color and the pale wash its tile sits on.
+  function tint(hex, keep = 0.16) {
+    const m = /^#([0-9a-f]{6})$/i.exec(hex || '');
+    if (!m) return '#E6EBF1';
+    const n = parseInt(m[1], 16), mix = c => Math.round(c * keep + 255 * (1 - keep));
+    return `rgb(${mix(n >> 16)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
+  }
+  // White text on the subject's color must reach 4.5:1, so a light color is deepened until it does.
+  function deep(hex) {
+    const m = /^#([0-9a-f]{6})$/i.exec(hex || '');
+    if (!m) return '#45607C';
+    let [r, g, b] = [0, 8, 16].map(sh => (parseInt(m[1], 16) >> (16 - sh)) & 255);
+    const lum = () => [r, g, b].map(c => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; }).reduce((a, c, i) => a + c * [0.2126, 0.7152, 0.0722][i], 0);
+    for (let i = 0; i < 40 && 1.05 / (lum() + 0.05) < 4.5; i++) { r = Math.round(r * 0.92); g = Math.round(g * 0.92); b = Math.round(b * 0.92); }
+    return '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
+  }
+  const colorVars = sb => `--subj:${deep(sb.color)};--tint:${tint(sb.color)}`;
+  const PICKS = () => Object.fromEntries((D.extraSubjects || []).filter(x => x.picks).map(x => [x.id, x.picks]));
+
+  const privateList = (list, label) => list.map(n => `<div class="private"><span class="lock">${SVG.lock} Private · Drive only</span><div class="ptext">${esc(n.text)}</div>
+    <button class="quiet" data-delpnote="${esc(n.id)}" aria-label="Delete this private note${label ? ' for ' + esc(label) : ''}">Delete</button></div>`).join('');
+
+  // The curriculum inside the tile. Sections open on the phone; all show on the desktop.
+  function curriculum(sb, pos) {
+    const d = P.detail(sb, pos);
+    if (!d) return '';
+    const sec = (title, body, open) => `<details${open ? ' open' : ''}><summary>${esc(title)}</summary>${body}</details>`;
+    const ul = items => `<ul>${items.join('')}</ul>`;
+    const code = c => `<span class="code">${esc(c)}</span>`;
+    const item = x => `<li>${esc(x.t)} ${(x.codes || []).map(code).join(' ')}</li>`;
+    if (d.kind === 'reveal') {
+      const std = d.standards.map(s => `<li>${code(s.code)} ${esc(s.label)}${s.oregon.length ? ` <span class="k">· Oregon</span> ${s.oregon.map(code).join(' ')}` : ''}</li>`);
+      return `<div class="cur">
+        ${d.targets.length ? sec('Learning targets', ul(d.targets.map(t => `<li>${esc(t)}</li>`)), true) : ''}
+        ${d.materials.length ? sec('Materials', ul(d.materials.map(t => `<li>${esc(t)}</li>`)), true) : ''}
+        ${d.note ? sec('About this day', `<p class="hint">${esc(d.note)}</p>`, !d.targets.length) : ''}
+        ${std.length ? sec('Standards', ul(std) + (d.gradeOne ? '<p class="hint">Grade 1 standards: this launch unit counts toward no grade 2 mark.</p>' : ''), false) : ''}
+        ${d.next ? sec('Coming next', `<p class="hint">${esc(d.next)}</p>`, false) : ''}</div>`;
+    }
+    const R = d.reads, texts = [['Interactive read-aloud', R.interactive], ['Accountable text', R.accountable], ['Word study reader', R.wordStudy],
+      ...d.anchor.map(a => [a.kind, a.t]), ...d.practice.map(t => ['Practice', t])].filter(x => x[1]);
+    const P2 = d.parts;
+    const words = [...(d.words.ga || []), ...(d.words.ds || [])];
+    return `<div class="cur">
+      ${sec('Texts this week', ul(texts.map(([k, t]) => `<li><span class="k">${esc(k)}:</span> <b>${esc(t)}</b></li>`)), true)}
+      ${sec('Skills', ul((P2.reading || []).map(x => `<li>${x.kind === 'Comprehension' ? '' : `<span class="k">${esc(x.kind)}:</span> `}${esc(x.t)} ${(x.codes || []).map(code).join(' ')}</li>`)), true)}
+      ${words.length ? sec('Words to teach', `<div class="words">${words.map(w => `<span>${esc(w)}</span>`).join('')}</div>`, false) : ''}
+      ${d.meta.length ? sec('Strategies', ul(d.meta.map(t => `<li>${esc(t.replace(/^Metacognitive: /, ''))}</li>`)), false) : ''}
+      ${(P2.wordStudy || []).length ? sec('Word study', ul(P2.wordStudy.map(x => `<li><span class="k">${esc(x.kind)}:</span> ${esc(x.t)} ${(x.codes || []).map(code).join(' ')}</li>`)), false) : ''}
+      ${(P2.writing || []).length ? sec('Writing and grammar', ul(P2.writing.map(item)), false) : ''}
+    </div>`;
+  }
+
   function lessonCard(row, date) {
     const sb = row.subject;
     const rec = X.lesson[date + '|' + sb.id];
     const pos = rec ? rec.pos : P.suggest(sb, X.lessons, date);
     const last = P.lastTaught(X.lessons, sb.id, date);
-    const when = row.blocks && row.blocks.length ? `${row.blocks[0].start}` : '';
-    const blockLine = row.blocks && row.blocks.length > 1 ? `<div class="blocks">${row.blocks.map(b => `${esc(b.start)} ${esc(b.name)}`).join(' · ')}</div>`
-      : row.block && row.block.name !== sb.name ? `<div class="blocks">${esc(row.block.name)}</div>` : '';
-    const standing = (row.blocks || []).filter(b => b.note).map(b => `<div class="blocks">${esc(b.note)}</div>`).join('');
+    const when = row.blocks && row.blocks.length ? row.blocks[0].start : '';
     const notes = X.pnotes.filter(n => n.about === 'lesson' && n.date === date && n.subjectId === sb.id);
-    const posUI = sb.schema === 'free'
-      ? `<div class="pos"><input type="text" maxlength="120" data-free="${esc(sb.id)}" value="${esc(pos.text || '')}" placeholder="What you are teaching" aria-label="${esc(sb.name)}: what you are teaching"></div>`
-      : `<div class="pos"><button class="quiet" data-step="-1" data-s="${esc(sb.id)}" aria-label="${esc(sb.name)}: previous">‹</button>
-          <span class="label">${esc(P.label(sb, pos))}</span>
-          <button class="quiet" data-step="1" data-s="${esc(sb.id)}" aria-label="${esc(sb.name)}: next">›</button></div>`;
+    const free = sb.schema === 'free';
+    const picks = PICKS()[sb.id];
+    const blocks = row.blocks && row.blocks.length > 1 ? row.blocks.map(b => `${b.start} ${b.name}`).join(' · ')
+      : row.block && row.block.name !== sb.name ? row.block.name : '';
+    const standing = (row.blocks || []).filter(b => b.note).map(b => b.note);
+    const where = last ? `${free ? 'Last time:' : 'after'} ${P.label(sb, last.pos)} · ${shortDate(last.date)}` : (free ? '' : 'starting point');
+    const head = free
+      ? `<div class="pos"><input class="freehead" type="text" maxlength="120" data-free="${esc(sb.id)}" value="${esc(pos.text || '')}" placeholder="Add today’s topic" aria-label="${esc(sb.name)}: today’s topic">
+          <button class="prev" data-focus="${esc(sb.id)}" aria-label="${esc(sb.name)}: edit today’s topic">${SVG.pen}</button></div>`
+      : `<div class="pos"><span class="label">${esc(P.label(sb, pos))}</span>
+          <button class="prev" data-step="-1" data-s="${esc(sb.id)}" aria-label="${esc(sb.name)}: previous">${SVG.prev}</button>
+          <button class="next" data-step="1" data-s="${esc(sb.id)}" aria-label="${esc(sb.name)}: next">${SVG.next}</button></div>`;
     const title = P.title(sb, pos);
-    return `<article class="row card" style="--subj:${esc(sb.color || '#10655C')}" data-card="${esc(sb.id)}">
-      <div class="card-head"><span class="subj">${esc(sb.name)}</span><span class="when">${esc(when)}</span></div>
-      ${blockLine}${posUI}
-      ${title ? `<div class="title">${esc(title)}</div>` : ''}
-      <div class="title">${rec ? '' : '<span class="tag">Suggested</span>'}${last ? `${sb.schema === 'free' ? 'Last time:' : 'after'} ${esc(P.label(sb, last.pos))} · ${esc(shortDate(last.date))}` : 'starting point'}</div>
-      ${standing}
+    const d = P.detail(sb, pos);
+    return `<article class="tile" style="${colorVars(sb)}" data-card="${esc(sb.id)}">
+      <div class="tile-head"><span class="subj-chip">${when ? `<span class="t">${esc(when)}</span>` : ''}${esc(sb.name)}</span>${rec || free ? '' : '<span class="tag">Suggested</span>'}</div>
+      ${head}
+      ${picks ? `<div class="picks" role="group" aria-label="What ${esc(sb.name)} is today">${picks.map(p => `<button aria-pressed="${pos.text === p}" data-pick="${esc(sb.id)}" data-text="${esc(p)}">${esc(p)}</button>`).join('')}</div>` : ''}
+      ${title && !(d && d.kind === 'benchmark') ? `<div class="ttl">${esc(title)}</div>` : ''}
+      ${d && d.kind === 'benchmark' ? `<div class="ttl">${esc(d.unit)}</div><div class="hint"><i>${esc(d.question)}</i></div><div class="hint">Benchmark plans by the week, so this is all of week ${d.week}${d.project ? ` · unit project: ${esc(d.project)}` : ''} · standards are mapped from the skill names</div>` : ''}
+      ${d && d.kind === 'reveal' ? `<div class="hint">${esc(d.unit)}</div>` : ''}
+      ${where ? `<div class="hint">${esc(where)}</div>` : ''}
+      ${blocks ? `<div class="hint">${esc(blocks)}</div>` : ''}
+      ${standing.length ? `<div class="hint">${standing.map(esc).join(' · ')}</div>` : ''}
+      ${curriculum(sb, pos)}
       ${rec && rec.note ? `<div class="lnote">${esc(rec.note)}</div>` : ''}${privateList(notes, sb.name)}
-      <div class="card-foot">
-        <button class="taught" aria-pressed="${rec && rec.taught ? 'true' : 'false'}" data-taught="${esc(sb.id)}">${rec && rec.taught ? '✓ Taught' : 'Mark taught'}</button>
-        <button class="quiet compact" data-lnote="${esc(sb.id)}">${rec && rec.note ? 'Edit note' : 'Add note'}</button>
+      <div class="tile-foot">
+        <button class="taught" aria-pressed="${rec && rec.taught ? 'true' : 'false'}" data-taught="${esc(sb.id)}">${rec && rec.taught ? SVG.check + ' Taught' : 'Mark taught'}</button>
+        <button class="soft" data-lnote="${esc(sb.id)}">${rec && rec.note ? 'Edit note' : 'Add note'}</button>
       </div><div data-lnote-host="${esc(sb.id)}"></div></article>`;
   }
   function plainRow(row, date, continued) {
     const b = row.block;
     const bn = X.bnote[date + '|' + b.id];
     const priv = X.pnotes.filter(n => n.blockId === b.id && ((n.about === 'block' && n.date === date) || (n.about === 'standing' && n.weekday === b.weekday)));
-    return `<div class="row ${continued ? 'continued' : 'plain'}">
-      <span class="time">${esc(b.start)}</span><span class="name">${esc(b.name)}${continued ? ` <span class="muted">· continues ${esc(row.subject.name)}</span>` : ''}</span>
+    return `<div class="slim ${continued ? 'continued' : 'plain'}"${continued ? ` style="${colorVars(row.subject)}"` : ''}>
+      <span class="time">${esc(b.start)}</span><span class="name">${continued ? `<span class="dot" style="background:${deep(row.subject.color)}"></span>` : ''}${esc(b.name)}${continued ? ` <span class="muted">· continues ${esc(row.subject.name)}</span>` : ''}</span>
       ${b.note ? `<span class="standing">${esc(b.note)}</span>` : ''}
       ${bn ? `<span class="bnote">${esc(bn.text)}</span>` : ''}
       ${priv.length ? `<span class="bnote">${privateList(priv, b.name)}</span>` : ''}
-      <button class="quiet compact addnote" data-bnote="${esc(b.id)}">${bn ? 'Edit today\'s note' : 'Note for today'}</button>
+      <button class="linkbtn addnote" data-bnote="${esc(b.id)}">${bn ? 'Edit today’s note' : 'Note for today'}</button>
       <span class="bnote" data-bnote-host="${esc(b.id)}"></span></div>`;
   }
   function renderDay(date) {
@@ -172,26 +239,28 @@
     const plan = X.dayPlan[date];
     const flags = new Set((plan && plan.flags) || []);
     const dayPriv = X.pnotes.filter(n => n.about === 'day' && n.date === date);
-    $('daySide').innerHTML = `
-      ${st.school ? (st.early ? `<div class="banner">${esc(st.label || 'Early release')}</div>` : '') : `<div class="banner off">${esc(st.label)}</div>`}
-      <section class="panel"><h2>The day</h2>
+    const tagline = !st.school ? st.label : st.early ? (st.label || 'Early release') : '';
+    $('daySide').innerHTML = `<section class="side">
+        <div class="side-head"><h2>The day</h2>${tagline ? `<span class="tagline">${esc(tagline)}</span>` : ''}</div>
         <div class="flags" role="group" aria-label="Flags for the day">${FLAGS.map(f => `<button aria-pressed="${flags.has(f)}" data-flag="${esc(f)}">${esc(f)}</button>`).join('')}</div>
-        ${plan && plan.notes ? `<p style="white-space:pre-wrap">${esc(plan.notes)}</p>` : '<p class="small">No notes for this day.</p>'}
+        ${plan && plan.notes ? `<p class="daynotes">${esc(plan.notes)}</p>` : '<p class="small">No notes for this day.</p>'}
         ${privateList(dayPriv, 'the day')}
         <div id="dayNoteHost"><button class="quiet compact" id="dayNoteBtn">${plan && plan.notes ? 'Edit notes' : 'Add notes'}</button></div>
       </section>`;
     const main = $('dayMain');
-    if (!st.school) { main.innerHTML = `<p class="small">${st.outside ? 'Outside the school year.' : 'No school this day.'} Use ‹ and › to move to a school day.</p>`; return; }
+    if (!st.school) { main.innerHTML = `<div class="side"><h2>${esc(st.label)}</h2><p class="small">${st.outside ? 'Outside the school year.' : 'No school this day.'} Use ‹ and › to move to a school day.</p></div>`; return; }
     const rows = P.dayLayout(X.blocks, X.subjects, P.weekday(date));
-    if (!rows.length) { main.innerHTML = `<p class="small">There is no schedule for ${DAY[P.weekday(date)]}days yet. The schedule editor arrives in the next release.</p>`; return; }
+    if (!rows.length) { main.innerHTML = `<div class="side"><p class="small">There is no schedule for ${DAY[P.weekday(date)]}days yet. The schedule editor arrives in the next release.</p></div>`; return; }
     const sched = rows.filter(r => !r.unscheduled), un = rows.filter(r => r.unscheduled);
     main.innerHTML = `<div class="rows">${sched.map(r => r.kind === 'lesson' ? lessonCard(r, date) : plainRow(r, date, r.kind === 'continued')).join('')}</div>
       ${un.length ? `<p class="unsched-head">Not on ${DAY[P.weekday(date)]}'s schedule</p><div class="rows">${un.map(r => lessonCard(r, date)).join('')}</div>` : ''}`;
+    // On the desktop every curriculum section shows; on the phone they open one at a time.
+    if (matchMedia('(min-width: 900px)').matches) main.querySelectorAll('.cur details').forEach(d => { d.open = true; });
   }
 
   // ---------- the week ----------
   function renderWeek(date) {
-    const dates = P.weekOf(date);
+    const dates = P.weekOf(date), today = todayIso();
     const st = Object.fromEntries(dates.map(d => [d, P.dayStatus(d, { year: X.year, days: X.days, plan: X.dayPlan[d] })]));
     const on = X.subjects.filter(s => s.on);
     const cell = (sb, d) => {
@@ -201,13 +270,13 @@
       return `<b>${esc(P.label(sb, r.pos))}</b> ${r.taught ? '<span class="tick" aria-label="taught">✓</span>' : '<span class="muted">planned</span>'}${ttl ? `<span class="t">${esc(ttl)}</span>` : ''}`;
     };
     const head = d => `${DAY[P.weekday(d)]} ${P.parse(d).getMonth() + 1}/${P.parse(d).getDate()}`;
-    const grid = `<div class="week-grid"><table><thead><tr><th class="subj" style="border-left-color:transparent">Subject</th>
-      ${dates.map(d => `<th><a href="#day/${d}">${esc(head(d))}</a>${st[d].school ? (st[d].early ? '<span class="small muted"> · early</span>' : '') : ''}</th>`).join('')}</tr></thead><tbody>
-      ${on.map(sb => `<tr><th class="subj" style="--subj:${esc(sb.color || '#10655C')}">${esc(sb.name)}</th>${dates.map(d => st[d].school
+    const grid = `<div class="week-grid"><table><thead><tr><th class="subj"><span class="muted">Subject</span></th>
+      ${dates.map(d => `<th${d === today ? ' class="today"' : ''}><a href="#day/${d}">${esc(head(d))}</a>${st[d].school ? (st[d].early ? '<span class="small muted"> · early</span>' : '') : ''}</th>`).join('')}</tr></thead><tbody>
+      ${on.map(sb => `<tr style="${colorVars(sb)}"><th class="subj"><span class="subj-chip" style="padding:4px 12px">${esc(sb.name)}</span></th>${dates.map(d => st[d].school
         ? `<td><a class="cell" href="#day/${d}">${cell(sb, d)}</a></td>` : `<td class="off">${esc(st[d].label)}</td>`).join('')}</tr>`).join('')}
       </tbody></table></div>`;
-    const list = `<div class="week-days">${dates.map(d => `<section class="panel wday"><h2><a href="#day/${d}">${esc(longDate(d))}</a></h2>
-      ${st[d].school ? on.map(sb => `<div class="wline"><span class="s">${esc(sb.name)}</span><span>${cell(sb, d)}</span></div>`).join('') : `<p class="muted">${esc(st[d].label)}</p>`}
+    const list = `<div class="week-days">${dates.map(d => `<section class="wday"><h2><a href="#day/${d}">${esc(longDate(d))}</a></h2>
+      ${st[d].school ? on.map(sb => `<div class="wline" style="${colorVars(sb)}"><span class="s">${esc(sb.name)}</span><span>${cell(sb, d)}</span></div>`).join('') : `<p class="muted">${esc(st[d].label)}</p>`}
       </section>`).join('')}</div>`;
     $('weekView').innerHTML = grid + list;
   }
@@ -222,8 +291,9 @@
     $('tabToday').setAttribute('aria-selected', String(!isWeek));
     $('tabWeek').setAttribute('aria-selected', String(isWeek));
     const wk = P.weekOf(r.date);
-    $('dateLabel').textContent = isWeek ? `${MON[P.parse(wk[0]).getMonth()]} ${P.parse(wk[0]).getDate()} – ${MON[P.parse(wk[4]).getMonth()]} ${P.parse(wk[4]).getDate()}, ${P.parse(wk[4]).getFullYear()}` : longDate(r.date);
-    $('heading').textContent = isWeek ? 'Week' : 'Day';
+    const dd = P.parse(r.date);
+    $('heading').textContent = isWeek ? `Week of ${MON[P.parse(wk[0]).getMonth()]} ${P.parse(wk[0]).getDate()}` : `${DAY[dd.getDay()]}, ${MON[dd.getMonth()]} ${dd.getDate()}`;
+    $('dateLabel').textContent = isWeek ? `${MON[P.parse(wk[0]).getMonth()]} ${P.parse(wk[0]).getDate()} – ${MON[P.parse(wk[4]).getMonth()]} ${P.parse(wk[4]).getDate()}, ${P.parse(wk[4]).getFullYear()}` : String(dd.getFullYear());
     const nothing = !X.subjects.length && !X.blocks.length;
     $('empty').hidden = !nothing;
     $('dayView').hidden = nothing || isWeek;
@@ -257,6 +327,8 @@
     try {
       if (d.step) await setLesson(d.s, date, r => ({ pos: Number(d.step) > 0 ? P.advance(X.subj[d.s], r.pos) : P.retreat(X.subj[d.s], r.pos) }));
       else if (d.taught) await setLesson(d.taught, date, r => ({ taught: !r.taught }));
+      else if (d.pick) await setLesson(d.pick, date, () => ({ pos: { text: d.text } }));
+      else if (d.focus) { const i = document.querySelector(`[data-free="${CSS.escape(d.focus)}"]`); if (i) { i.focus(); i.select(); } }
       else if (d.flag) {
         const plan = X.dayPlan[date] || { id: 'dayp_' + date, type: 'dayPlan', deletedAt: null, date, saved: true };
         const f = new Set(plan.flags || []);

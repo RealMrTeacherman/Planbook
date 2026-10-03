@@ -9,7 +9,8 @@ const IMPORTER = process.env.SUITE_IMPORTER || path.join(__dirname, '..', 'core'
 const imp0 = require(IMPORTER);
 const NAMES_MOD = require(path.join(__dirname, '..', 'core', 'names.js'));
 // Every conversion gets the name check, as the import page gives it.
-const imp = Object.assign({}, imp0, { convert: (f, o = {}) => imp0.convert(f, Object.assign({ names: NAMES_MOD }, o)) });
+const EXTRA = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'planner-defaults.json'), 'utf8')).extraSubjects;
+const imp = Object.assign({}, imp0, { convert: (f, o = {}) => imp0.convert(f, Object.assign({ names: NAMES_MOD, extraSubjects: EXTRA }, o)) });
 const { validateFile } = require(path.join(__dirname, '..', 'contract', 'validate.js'));
 const contract = require(path.join(__dirname, '..', 'contract', 'contract.json'));
 const FILE = path.join(__dirname, 'fixtures', 'v95-sample.json');
@@ -29,7 +30,7 @@ test('every kind of record comes in, in the expected numbers', () => {
   assert.deepEqual(out().counts, {
     student: 5, schoolYear: 1, gradingPeriod: 4, schoolDay: 1, orfCheck: 4, orfGoal: 2,
     station: 4, group: 8, placement: 6, visitor: 1, unit: 2,
-    subject: 6, block: 94, dayPlan: 5, lessonPlan: 12, blockNote: 2, privateNote: 3
+    subject: 9, block: 94, dayPlan: 5, lessonPlan: 12, blockNote: 2, privateNote: 3
   });
 });
 
@@ -200,7 +201,7 @@ test('a v95 file with empty or broken keys still converts what it can', () => {
 // ---------- the planner (step 4a) ----------
 test('the planner comes in: subjects, every weekday\'s schedule, days, lessons, block notes', () => {
   const c = out().counts;
-  assert.equal(c.subject, 6);
+  assert.equal(c.subject, 9);
   assert.equal(c.block, 94);
   assert.equal(c.dayPlan, 5);
   assert.equal(c.lessonPlan, 12);
@@ -268,4 +269,16 @@ test('a lesson for a subject the planner does not have is held back with the rea
 
 test('without the name check the importer stops, rather than letting names reach live sync', () => {
   assert.throws(() => imp0.convert(sample()), /name check did not load/);
+});
+
+test('STEAM, Health/SEL and Assembly / Enrichments / Other become subjects, linked to their blocks', () => {
+  const o = out();
+  assert.equal(byId(o, 'subj_steam').schema, 'free');
+  assert.equal(byId(o, 'blk_d3-1145').subjectId, 'subj_steam');
+  assert.equal(byId(o, 'blk_d3-1220').subjectId, 'subj_health-sel', 'Core Arts — Health/SEL Block A');
+  assert.equal(byId(o, 'blk_d1-130').subjectId, 'subj_health-sel', 'Monday specials: Health/SEL');
+  const flex = byId(o, 'blk_d3-945');
+  assert.deepEqual([flex.name, flex.subjectId], ['Assembly / Enrichments / Other', 'subj_flex']);
+  assert.equal(byId(o, 'blk_d3-915').subjectId, 'subj_v95-math', 'the 9:15 Math block stays Math');
+  assert.equal(byId(o, 'subj_flex').color, '#3D4FB0');
 });

@@ -122,3 +122,26 @@ test('weeks run Monday to Friday; a weekend shows the coming week', () => {
   assert.equal(P.weekOf('2026-10-03')[0], '2026-10-05');
   assert.equal(P.weekOf('2026-10-04')[0], '2026-10-05');
 });
+
+test('the tile\'s curriculum detail: a Reveal lesson\'s targets, materials, standards and what comes next', () => {
+  const d = P.detail(math, { unit: 1, lesson: 1 });
+  assert.equal(d.kind, 'reveal');
+  assert.deepEqual(d.targets, ['I can tell my math story.', 'I can recognize the ways in which we are all doers of math.']);
+  assert.deepEqual(d.materials, ['blank paper', 'crayons, markers, or colored pencils']);
+  assert.deepEqual(d.standards, [{ code: '1.NBT.B.3', label: 'Compare two-digit numbers', oregon: [] }]);
+  assert.equal(d.gradeOne, true, 'the launch unit teaches to grade 1 standards');
+  assert.equal(d.next, 'Lesson 1-2 · Math Is Exploring and Thinking');
+  const two = P.detail(math, { unit: 2, lesson: 1 });
+  assert.equal(two.gradeOne, false);
+  assert.ok(two.standards.every(s => s.oregon.length), 'grade 2 lessons map to Oregon codes');
+});
+
+test('the tile\'s curriculum detail: a Benchmark week\'s texts, skills with mapped standards, and words', () => {
+  const d = P.detail(reading, { unit: 1, week: 1, day: 3 });
+  assert.equal(d.kind, 'benchmark');
+  assert.equal(d.question, 'How do living things get what they need to survive?');
+  assert.equal(d.reads.interactive, 'The Frogs and the Well');
+  assert.deepEqual(d.parts.reading[0], { kind: 'Comprehension', t: 'Identify Main Topic and Key Details', codes: ['2.RI.2'] });
+  assert.deepEqual(d.words, { ga: ['survive', 'paddle'], ds: ['habitats', 'burrow'] });
+  assert.equal(P.detail({ id: 'x', schema: 'free' }, { text: 'a' }), null, 'free text has no curriculum');
+});

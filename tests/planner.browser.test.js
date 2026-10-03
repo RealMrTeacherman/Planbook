@@ -178,6 +178,48 @@ test('the planner: Day and Week on MacBook and iPhone', { skip, timeout: 240000 
       assert.equal(await phone.$eval('#nameDialog', e => e.open), false);
     });
 
+    await t.test('Color blocks: the curriculum shows in full on the MacBook, a section at a time on the iPhone', async () => {
+      await open(mac, '#day/2026-09-16'); await open(phone, '#day/2026-09-16');
+      const macMath = await mac.$eval('[data-card="subj_v95-math"]', e => e.innerText);
+      assert.match(macMath, /I can tell my math story\./);
+      assert.match(macMath, /crayons, markers, or colored pencils/);
+      assert.match(macMath, /1\.NBT\.B\.3/);
+      assert.match(macMath, /Lesson 1-2 · Math Is Exploring and Thinking/);
+      const openMac = await mac.$$eval('[data-card="subj_v95-reading"] .cur details', ds => ds.map(d => d.open));
+      assert.ok(openMac.length >= 5 && openMac.every(Boolean), 'every section open on the MacBook');
+      const openPhone = await phone.$$eval('[data-card="subj_v95-reading"] .cur details', ds => ds.map(d => d.open));
+      assert.deepEqual(openPhone.slice(0, 3), [true, true, false], 'the iPhone opens the first two');
+      assert.match(await phone.$eval('[data-card="subj_v95-reading"]', e => e.textContent), /The Frogs and the Well/);
+      assert.match(await mac.$eval('[data-card="subj_v95-reading"]', e => e.innerText), /2\.RI\.2/);
+    });
+
+    await t.test('every subject chip meets 4.5:1 contrast with its white text', async () => {
+      const ratios = await mac.$$eval('.subj-chip', chips => chips.map(c => {
+        const rgb = getComputedStyle(c).backgroundColor.match(/\d+/g).slice(0, 3).map(Number);
+        const L = rgb.map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }).reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0);
+        return [c.textContent.trim(), 1.05 / (L + 0.05)];
+      }));
+      assert.ok(ratios.length >= 6);
+      for (const [name, r] of ratios) assert.ok(r >= 4.5, `${name}: ${r.toFixed(2)}`);
+    });
+
+    await t.test('Assembly / Enrichments / Other: a quick pick becomes the header and reaches the other device', async () => {
+      const flex = '[data-card="subj_flex"]';
+      assert.equal(await mac.$eval(`${flex} [data-free]`, e => e.placeholder), 'Add today’s topic');
+      await mac.click(`${flex} [data-pick="subj_flex"][data-text="Science"]`);
+      await waitRec(mac, () => document.querySelector('[data-card="subj_flex"] [data-free]').value === 'Science');
+      assert.equal(await mac.$eval(`${flex} [data-text="Science"]`, e => e.getAttribute('aria-pressed')), 'true');
+      await waitRec(phone, () => { const i = document.querySelector('[data-card="subj_flex"] [data-free]'); return i && i.value === 'Science'; });
+    });
+
+    await t.test('the pencil puts you in the topic header', async () => {
+      await phone.click('[data-card="subj_steam"] [data-focus="subj_steam"]');
+      assert.equal(await phone.evaluate(() => document.activeElement.dataset.free), 'subj_steam');
+      await phone.keyboard.type('Bridges from straws');
+      await phone.$eval('[data-free="subj_steam"]', e => e.blur());
+      await waitRec(mac, () => { const i = document.querySelector('[data-free="subj_steam"]'); return i && i.value === 'Bridges from straws'; });
+    });
+
     await t.test('the Week view: a grid on the MacBook, a list of days on the iPhone, the same lessons', async () => {
       await open(mac, '#week/2026-09-14'); await open(phone, '#week/2026-09-14');
       assert.equal(await mac.$eval('.week-grid', e => getComputedStyle(e).display), 'block');

@@ -663,5 +663,38 @@
    }
   ],
   "6": []
- }
+ },
+ "extraSubjects": [
+  {
+   "id": "subj_steam",
+   "name": "STEAM",
+   "schema": "free",
+   "color": "#7B3A93",
+   "matchBlock": "STEAM"
+  },
+  {
+   "id": "subj_health-sel",
+   "name": "Health/SEL",
+   "schema": "free",
+   "color": "#A63D63",
+   "curriculum": "Great Body Shop / Wayfinder",
+   "matchBlock": "Health/SEL"
+  },
+  {
+   "id": "subj_flex",
+   "name": "Assembly / Enrichments / Other",
+   "schema": "free",
+   "color": "#3D4FB0",
+   "matchBlock": "Assembly / Enrichments",
+   "renameBlock": "Assembly / Enrichments / Other",
+   "picks": [
+    "Assembly",
+    "Enrichment",
+    "More math",
+    "More reading",
+    "Science",
+    "Social studies"
+   ]
+  }
+ ]
 }

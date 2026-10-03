@@ -57,6 +57,7 @@ The rebuild of the v95 suite as two tools on one written data contract: Gradeboo
 - A lesson is one `lessonPlan` per subject per day (`les_<date>_<subjectId>`). No record means "suggested": the next position after the last day **marked taught**.
 - A day off on the calendar wins over a plan; to plan on it, remove the day off. The district calendar is applied on every planner open with an early timestamp, so any change you make wins and a removal stays removed.
 - Every save of planner text goes through `nameCheck`. The importer moves name-bearing notes to `privateNote` and **refuses to run without the name check**; every page that imports must load `core/names.js` first.
+- **The look is "Color blocks"** (chosen by the teacher from four directions). `core/look.css` holds the shared tokens; `planner/planner.css` the tiles. A subject's color is deepened in `planner.js` (`deep`) until white text reaches 4.5:1; never hand-pick a chip color without that check.
 - Desktop and phone are equal: each release is checked by screenshot at 1280 px and 390 px. The Week view is a grid from 900 px and a list below.
 
 ## Running the tests

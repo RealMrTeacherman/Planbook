@@ -102,9 +102,10 @@
     $('problem').hidden = false;
   }
 
-  let store, contract, pending = null;
+  let store, contract, defaults, pending = null;
   try {
     contract = await (await fetch('../contract/contract.json')).json();
+    defaults = await (await fetch('../data/planner-defaults.json')).json();
     store = await SuiteStore.open({ contract });
   } catch (e) {
     $('nowBody').innerHTML = '';
@@ -135,7 +136,7 @@
     try { parsed = JSON.parse(await f.text()); }
     catch (e) { return problem('Nothing was loaded', `${f.name} is not a sync file. In v95, use Save a sync file and choose that.`); }
     let out;
-    try { out = SuiteImportV95.convert(parsed); }
+    try { out = SuiteImportV95.convert(parsed, { names: SuiteNames, extraSubjects: defaults.extraSubjects }); }
     catch (e) { return problem('Nothing was loaded', e.message); }
 
     const last = await store.meta.get('lastV95At');
