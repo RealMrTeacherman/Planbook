@@ -16,12 +16,51 @@
 <main>
   <p class="small"><a href="../">Planbook</a></p>
   <h1>Sync</h1>
-  <p class="lead">The MacBook and iPhone stay in step through a folder in your district Google Drive. Both work without a signal; changes travel when you send or load.</p>
+  <p class="lead">The planner and calendar sync live through your Firebase account. Everything that can name a child travels only through a folder in your district Google Drive. Both work without a signal.</p>
+
+  <section class="panel warn" id="problem" hidden role="alert">
+    <h2 id="problemTitle">Nothing was loaded</h2>
+    <p id="problemText"></p>
+  </section>
+
+  <section class="panel" id="result" hidden role="status">
+    <h2 id="resultTitle">Loaded</h2>
+    <p id="resultText"></p>
+  </section>
 
   <section class="panel" id="statusBox">
     <h2>This device</h2>
     <dl class="status" id="status"></dl>
     <p style="margin:12px 0 0"><button class="quiet compact" id="rename">Rename this device</button></p>
+  </section>
+
+  <section class="panel" id="liveBox">
+    <h2>Live sync for the planner</h2>
+    <p class="small">The planner and calendar sync instantly through your own Firebase account. They never hold student records; anything that can name a child stays on the Drive path below.</p>
+    <div id="liveOff">
+      <p class="small">Live sync is off. It turns on once your Firebase settings are added to <code>settings/firebase.js</code> in the repo.</p>
+    </div>
+    <div id="liveSignIn" hidden>
+      <p class="small">Sign in with the email and password you set up in Firebase. You do this once on each device.</p>
+      <label class="field"><span>Email</span><input type="email" id="liveEmail" autocomplete="username" autocapitalize="off"></label>
+      <label class="field"><span>Password</span><input type="password" id="livePw" autocomplete="current-password"></label>
+      <button id="liveGo">Sign in</button>
+    </div>
+    <div id="liveOn" hidden>
+      <dl class="status" id="liveStatus"></dl>
+      <p style="margin:12px 0 0"><button class="quiet compact" id="liveOut">Sign out</button></p>
+    </div>
+    <p class="small behind" id="liveError" hidden></p>
+  </section>
+
+  <section class="panel" id="liveTry" hidden>
+    <h2>Try live sync</h2>
+    <p class="small">Add a day off here. It appears on your other device within a few seconds, even if that device was offline until now.</p>
+    <p class="small behind" id="noClassList" hidden>There is no class list on this device, so labels here cannot be checked for student names. Load the MacBook's file to add one.</p>
+    <label class="field"><span>Date</span><input type="date" id="dayDate"></label>
+    <label class="field"><span>Label</span><input type="text" id="dayLabel" maxlength="60" placeholder="e.g. Teacher work day"></label>
+    <button id="dayAdd">Add day off</button>
+    <table id="daysOff" style="margin-top:12px"></table>
   </section>
 
   <section class="panel" id="folderBox" hidden>
@@ -42,26 +81,17 @@
 
   <section class="panel" id="sendBox">
     <h2>Send to the MacBook</h2>
-    <p class="small" id="sendHelp">Tap Send, choose Save to Files, then Google Drive and the suite's folder. The MacBook picks it up within a few seconds when it is open.</p>
+    <p class="small" id="sendHelp">Tap Send, choose the Drive app in the share sheet, then the Planbook folder, and upload. The MacBook picks it up within a minute when it is open.</p>
     <button id="send">Send</button>
   </section>
 
   <section class="panel" id="loadBox">
     <h2 id="loadTitle">Load from the MacBook</h2>
-    <p class="small" id="loadHelp">Tap Load, then choose classroom-suite.json from Google Drive. If Google Drive is not listed, open Browse in the picker, tap ⋯, Edit, and switch it on.</p>
+    <p class="small" id="loadHelp">First, in the Drive app, open the Planbook folder, tap ⋯ next to classroom-suite.json, then Send a copy, Save to Files, On My iPhone. Then tap Load here and choose it from On My iPhone.</p>
     <input type="file" id="file" accept=".json,.txt,application/json,text/plain" hidden>
     <button id="load">Load</button>
   </section>
 
-  <section class="panel warn" id="problem" hidden role="alert">
-    <h2 id="problemTitle">Nothing was loaded</h2>
-    <p id="problemText"></p>
-  </section>
-
-  <section class="panel" id="result" hidden role="status">
-    <h2 id="resultTitle">Loaded</h2>
-    <p id="resultText"></p>
-  </section>
 
   <section class="panel" id="tryBox" hidden>
     <h2>Try it</h2>
@@ -80,6 +110,10 @@
 <script src="../core/merge.js"></script>
 <script src="../core/store.js"></script>
 <script src="../core/transport.js"></script>
+<script src="../settings/firebase.js"></script>
+<script src="../core/names.js"></script>
+<script src="../core/live.js"></script>
+<script src="../core/live-firebase.js"></script>
 <script>
 (async function () {
   const $ = id => document.getElementById(id);
@@ -90,25 +124,30 @@
     return today ? d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
       : d.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   };
+  const show = el => { el.hidden = false; if (el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); };
   function problem(title, text) {
     $('result').hidden = true;
-    $('problemTitle').textContent = title; $('problemText').textContent = text; $('problem').hidden = false;
+    $('problemTitle').textContent = title; $('problemText').textContent = text; show($('problem'));
   }
   function result(title, text) {
     $('problem').hidden = true;
-    $('resultTitle').textContent = title; $('resultText').textContent = text; $('result').hidden = false;
+    $('resultTitle').textContent = title; $('resultText').textContent = text; show($('result'));
   }
   const summary = c => c.added + c.updated + c.deleted
     ? `${c.added} new, ${c.updated} changed, ${c.deleted} removed. ${c.keptLocal ? c.keptLocal + ' kept as they are here, being newer. ' : ''}`
     : 'Everything in this file was already here, so nothing changed.';
 
-  let store, t;
+  let store, t, live, contract;
   try {
-    const contract = await (await fetch('../contract/contract.json')).json();
+    contract = await (await fetch('../contract/contract.json')).json();
     store = await SuiteStore.open({ contract });
     store.persist();
     t = SuiteTransport.create({ store, contract });
     await t.start();
+    // The tests put a stand-in backend in window.__liveBackend; real use reads settings/firebase.js.
+    const backend = window.__liveBackend || SuiteLiveFirebase.create(window.PLANBOOK_FIREBASE);
+    live = SuiteLive.create({ store, contract, backend });
+    live.start();
   } catch (e) {
     problem('This page could not open', e.message);
     return;
@@ -180,7 +219,7 @@
 
   $('send').onclick = () => {
     t.send().then(how => {
-      if (how === 'shared') result('Sent', 'Saved for the MacBook. It merges the file within a few seconds when it is open.');
+      if (how === 'shared') result('Sent', 'Uploaded for the MacBook. It merges the file within a minute when it is open.');
       else if (how === 'downloaded') result('Saved as a download', 'This device has no share sheet, so the file was downloaded. Put it in the suite\'s Drive folder.');
     }, e => problem('Not sent', e.message));
   };
@@ -224,10 +263,66 @@
     render();
   };
 
+  // ---------- Live sync ----------
+  async function renderLive() {
+    const ls = live.status();
+    $('liveOff').hidden = ls.configured;
+    $('liveSignIn').hidden = !ls.configured || !!ls.user;
+    $('liveOn').hidden = !ls.user;
+    $('liveTry').hidden = !ls.user;
+    $('liveError').hidden = !ls.error;
+    $('liveError').textContent = ls.error || '';
+    if (ls.user) {
+      const conn = !ls.connected ? '<span class="behind">offline; changes wait here</span>'
+        : ls.pending ? `sending ${ls.pending} change${ls.pending === 1 ? '' : 's'}…` : 'up to date';
+      $('liveStatus').innerHTML = `<dt>Signed in</dt><dd>${esc(ls.user.email || 'yes')}</dd><dt>Connection</dt><dd>${conn}</dd>` +
+        `<dt>Last change in</dt><dd>${ls.lastUpdate ? when(ls.lastUpdate) : 'none yet'}</dd>`;
+      const all = await store.all();
+      $('noClassList').hidden = all.some(r => r.type === 'student' && !r.deletedAt);
+      const days = all.filter(r => r.type === 'schoolDay' && r.kind === 'noSchool' && !r.deletedAt).sort((a, b) => a.date < b.date ? -1 : 1);
+      $('daysOff').innerHTML = days.length ? days.map(d => `<tr><td>${esc(new Date(d.date + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }))}</td><td>${esc(d.label || '')}</td><td class="n"><button class="quiet compact" data-off="${esc(d.id)}">Remove</button></td></tr>`).join('')
+        : '<tr><td class="small">No days off yet.</td></tr>';
+    }
+  }
+
+  $('liveGo').onclick = async () => {
+    $('liveGo').disabled = true;
+    try { await live.signIn($('liveEmail').value, $('livePw').value); $('livePw').value = ''; result('Signed in', 'Live sync is on for this device.'); }
+    catch (e) { problem('Not signed in', e.message); }
+    $('liveGo').disabled = false;
+  };
+  $('liveOut').onclick = async () => { await live.signOut(); result('Signed out', 'Live sync is off on this device until you sign in again.'); };
+
+  $('dayAdd').onclick = async () => {
+    const date = $('dayDate').value, label = $('dayLabel').value.trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return problem('Not added', 'Choose a date first.');
+    const existing = (await store.all()).find(r => r.id === 'sday_' + date);
+    const rec = Object.assign({}, existing || { id: 'sday_' + date, type: 'schoolDay', deletedAt: null, date }, { kind: 'noSchool', deletedAt: null });
+    if (label) rec.label = label; else delete rec.label;
+    const check = await live.checkNames(rec);
+    if (check.hits.length) {
+      const list = check.hits.map(h => `"${h}"`).join(', ');
+      if (!confirm(`${list} ${check.hits.length === 1 ? 'is a name' : 'are names'} on your class list. This label syncs outside the district. Save it anyway?`)) return;
+    }
+    try { await store.write([rec], 'a day off'); $('dayLabel').value = ''; result('Added', `Day off saved${label ? ': ' + label : ''}.`); }
+    catch (e) { problem('Not added', e.message); }
+  };
+  $('daysOff').addEventListener('click', async e => {
+    const id = e.target.dataset && e.target.dataset.off;
+    if (!id) return;
+    const rec = (await store.all()).find(r => r.id === id);
+    await store.write([Object.assign({}, rec, { deletedAt: new Date().toISOString() })], 'a day off removed');
+    result('Removed', 'That day off is gone on every device.');
+  });
+
+  live.onStatus(renderLive);
+  store.onChange(() => renderLive());
+  await renderLive();
+
   t.onStatus(render);
   await render();
   window.__ready = true;
-  window.__t = t; window.__store = store;   // for the browser tests
+  window.__t = t; window.__store = store; window.__live = live;   // for the browser tests
 })();
 </script>
 </body>

@@ -15,6 +15,10 @@ The rebuild of the v95 suite as two tools on one written data contract: Gradeboo
 | `core/transport.js` | The only code that moves files: the MacBook's watched folder, the iPhone's Send and Load. |
 | `sync/` | The sync page. |
 | `index.html`, `sw.js`, `manifest.webmanifest`, `core/boot.js`, `icons/` | Home page, offline copy, home-screen app. |
+| `core/live.js`, `core/live-firebase.js` | Live sync for live record types, and its real Firebase backend. |
+| `core/names.js` | The name check for live text fields. |
+| `settings/firebase.js` | Firebase settings. Empty means live sync is off; the Creslane copy ships empty. |
+| `firestore.rules`, `tools/make-rules.js` | Server security rules, generated from the contract. Re-run the tool after any contract change. |
 | `tests/` | Node tests, a real-browser test, deliberate breaks (`mutations.js`), the names guard. |
 
 ## Rules carried over from v95
@@ -37,6 +41,14 @@ The rebuild of the v95 suite as two tools on one written data contract: Gradeboo
 - **Send must not wait for anything before `navigator.share`.** Safari needs the tap. The send-ready file is kept current in memory after every change for this reason.
 - Undo is for loads. Edits do not replace it, and undoing a load keeps records changed since.
 - `sw.js` caches files one by one and fetches pages network-first (both from v95 failures). Its `VERSION` must match `package.json`; a test checks.
+
+## Live sync, and what is easy to break
+- Two paths, chosen by each type's `space` in the contract. Live types sync through Firebase at `users/<uid>/records/<id>`; private types use only the Drive folder.
+- `live.js` never sends a private record and ignores one arriving. The server rules refuse them too. All three are tested.
+- If the server shows an older copy than a device holds (a late older write), that device sends its newer copy again. This keeps every device in step; a test proves the case occurs.
+- Live sync runs on pages that load `core/live.js`; for now only the Sync page. **Every page that edits live records must start it** (step 4's planner pages).
+- After changing the contract, run `node tools/make-rules.js`, then paste the new `firestore.rules` into the Firebase console.
+- Firebase's code comes from Google's CDN at the version in `core/live-firebase.js`. The offline copy keeps the same version; a test checks they match.
 
 ## Running the tests
 `npm install` once, then `npm test` and `npm run test:breaks`. The browser test finds Chrome on its own on a Mac; elsewhere set `CHROME` to a Chrome binary.

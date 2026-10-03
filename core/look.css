@@ -44,6 +44,7 @@ button + button { margin-top: 8px; }
 
 table { width: 100%; border-collapse: collapse; }
 td { padding: 8px 0; border-bottom: 1px solid var(--line); }
+td + td { padding-left: 12px; }
 td.n { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
 tr:last-child td { border-bottom: 0; }
 ul { margin: 0; padding-left: 20px; }
@@ -71,7 +72,7 @@ a.row::after { content: "›"; font-size: 1.6rem; color: var(--accent); line-hei
 .behind { color: var(--warn); font-weight: 600; }
 label.field { display: flex; gap: 8px; align-items: center; padding: 6px 0; }
 label.field span { min-width: 3.5em; color: var(--ink-soft); }
-input[type=text] { flex: 1; min-width: 0; font: 1rem var(--sans); min-height: 44px; padding: 0 12px;
+input[type=text], input[type=email], input[type=password], input[type=date] { flex: 1; min-width: 0; font: 1rem var(--sans); min-height: 44px; padding: 0 12px;
   border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel); color: var(--ink); }
 button.compact { min-height: 44px; width: auto; padding: 0 14px; }
 a { color: var(--accent); }

@@ -1,0 +1,18 @@
+rules_version = '2';
+// Made by tools/make-rules.js from contract/contract.json (version 1). Do not edit by hand.
+// Only you can read or write, only under your own sign-in, and only live record types:
+// the ones the contract says can never name a child. Records are never deleted, only marked deleted.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid}/records/{id} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.id == id
+        && (
+        (request.resource.data.type == 'schoolDay' && request.resource.data.keys().hasOnly(['id', 'type', 'updatedAt', 'device', 'deletedAt', 'date', 'kind', 'label'])) ||
+        (request.resource.data.type == 'schoolYear' && request.resource.data.keys().hasOnly(['id', 'type', 'updatedAt', 'device', 'deletedAt', 'firstDay', 'lastDay', 'earlyReleaseWeekday'])) ||
+        (request.resource.data.type == 'gradingPeriod' && request.resource.data.keys().hasOnly(['id', 'type', 'updatedAt', 'device', 'deletedAt', 'name', 'start', 'end']))
+        );
+    }
+  }
+}

@@ -3,6 +3,7 @@
   "version": 1,
   "notes": [
     "Every record in every tool carries the envelope. Only the owner tool writes a type; readers never write it.",
+    "Space: 'live' types can never name a child and may sync through Firebase on the teacher's personal account. 'private' types can name a child and travel only through the district Drive folder. A live type may not point at a private one. Text fields marked nameCheck are checked against the class list before a live record is saved.",
     "Merge: per record by id. Newer updatedAt wins; on an exact tie the larger device string wins. A deletion is deletedAt set, and merges like any other change.",
     "A file whose version is higher than the app's is refused. A lower version is upgraded once, by one upgrade step per version.",
     "Real student names never appear in this file, the code, the tests or the docs. Fixtures use invented names.",
@@ -62,6 +63,7 @@
   "types": {
     "student": {
       "owner": "gradebook",
+      "space": "private",
       "readers": [
         "planner",
         "subplans",
@@ -120,6 +122,7 @@
     },
     "schoolDay": {
       "owner": "planner",
+      "space": "live",
       "readers": [
         "gradebook",
         "subplans",
@@ -145,13 +148,15 @@
         "label": {
           "type": "string",
           "max": 60,
-          "note": "e.g. 'Veterans Day', 'Conferences'"
+          "note": "e.g. 'Veterans Day', 'Conferences'",
+          "nameCheck": true
         }
       },
       "fromV95": "lp:days:v2 noSchool days, suite:district:v1"
     },
     "schoolYear": {
       "owner": "planner",
+      "space": "live",
       "readers": [
         "gradebook",
         "subplans",
@@ -184,6 +189,7 @@
     },
     "gradingPeriod": {
       "owner": "planner",
+      "space": "live",
       "readers": [
         "gradebook",
         "orf"
@@ -194,7 +200,8 @@
         "name": {
           "type": "string",
           "required": true,
-          "max": 30
+          "max": 30,
+          "nameCheck": true
         },
         "start": {
           "type": "date",
@@ -209,6 +216,7 @@
     },
     "orfCheck": {
       "owner": "orf",
+      "space": "private",
       "readers": [
         "gradebook",
         "smallgroups"
@@ -334,6 +342,7 @@
     },
     "orfGoal": {
       "owner": "orf",
+      "space": "private",
       "readers": [
         "gradebook",
         "smallgroups"
@@ -363,6 +372,7 @@
     },
     "unit": {
       "owner": "smallgroups",
+      "space": "private",
       "readers": [
         "subplans",
         "display"
@@ -390,6 +400,7 @@
     },
     "group": {
       "owner": "smallgroups",
+      "space": "private",
       "readers": [
         "subplans",
         "gradebook",
@@ -443,6 +454,7 @@
     },
     "placement": {
       "owner": "smallgroups",
+      "space": "private",
       "readers": [
         "subplans",
         "gradebook",
@@ -486,6 +498,7 @@
     },
     "visitor": {
       "owner": "smallgroups",
+      "space": "private",
       "readers": [
         "subplans",
         "display"
@@ -508,6 +521,7 @@
     },
     "station": {
       "owner": "smallgroups",
+      "space": "private",
       "readers": [
         "subplans",
         "display"

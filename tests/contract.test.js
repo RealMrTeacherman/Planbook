@@ -216,3 +216,35 @@ test('the contract file itself names no owner outside the known tools', () => {
     assert.ok(!spec.readers.includes(spec.owner), `${t} lists its owner as a reader`);
   }
 });
+
+test('every record type says whether it is live or private', () => {
+  for (const [name, t] of Object.entries(contract.types)) assert.ok(['live', 'private'].includes(t.space), name);
+});
+
+test('anything that names or points at a child is private', () => {
+  for (const name of ['student', 'orfCheck', 'orfGoal', 'placement', 'visitor']) assert.equal(contract.types[name].space, 'private', name);
+});
+
+test('a live type never points at a private one', () => {
+  for (const [name, t] of Object.entries(contract.types)) {
+    if (t.space !== 'live') continue;
+    const walk = (fields, where) => {
+      for (const [k, f] of Object.entries(fields)) {
+        if (f.type === 'ref') for (const to of [].concat(f.to)) assert.equal(contract.types[to].space, 'live', `${where}.${k} points at ${to}`);
+        if (f.fields) walk(f.fields, `${where}.${k}`);
+        if (f.of && f.of.fields) walk(f.of.fields, `${where}.${k}`);
+      }
+    };
+    walk(t.fields, name);
+  }
+});
+
+test('every free-text field in a live type is marked for the name check', () => {
+  const free = ['label', 'name', 'note', 'notes', 'text', 'title'];
+  for (const [name, t] of Object.entries(contract.types)) {
+    if (t.space !== 'live') continue;
+    for (const [k, f] of Object.entries(t.fields)) {
+      if (f.type === 'string' && free.some(w => k.toLowerCase().includes(w))) assert.equal(f.nameCheck, true, `${name}.${k}`);
+    }
+  }
+});

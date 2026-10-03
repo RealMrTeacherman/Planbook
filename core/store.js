@@ -113,16 +113,16 @@
         v95Keys.forEach(k => tx.objectStore('v95').put(extra.v95[k], k));
         const meta = tx.objectStore('meta');
         Object.entries(extra.meta || {}).forEach(([k, v]) => meta.put(v, k));
-        // Undo holds exactly what this load replaced. Edits made here are not loads:
-        // they leave the last load's undo in place.
-        if (info.kind !== 'edit') meta.put({
+        // Undo holds exactly what this load replaced. Only file loads can be undone: edits
+        // made here, and changes arriving by live sync, leave the last load's undo in place.
+        if ((info.kind || 'load') === 'load') meta.put({
           at: new Date().toISOString(), source: info.source || 'a file',
-          records: changes.map(c => ({ id: c.id, before: c.before, afterAt: c.after.updatedAt, afterDevice: c.after.device })),
+          records: changes.map(c => ({ id: c.id, type: c.after.type, before: c.before, afterAt: c.after.updatedAt, afterDevice: c.after.device })),
           v95: v95Keys.map(k => ({ key: k, before: v95Before[k] === undefined ? null : v95Before[k] })),
           meta: metaKeys.map(k => ({ key: k, before: metaBefore[k] === undefined ? null : metaBefore[k] }))
         }, 'undo');
         await done(tx);
-        changed({ kind: info.kind || 'load', source: info.source || 'a file' });
+        changed({ kind: info.kind || 'load', source: info.source || 'a file', records: changes.map(c => c.after) });
       }
       return { counts, changed: visible };
     }
@@ -147,7 +147,7 @@
       (u.meta || []).forEach(x => x.before === null ? ms.delete(x.key) : ms.put(x.before, x.key));
       ms.delete('undo');
       await done(tx);
-      changed({ kind: 'undo', source: u.source });
+      changed({ kind: 'undo', source: u.source, records: u.records.filter(stillFromLoad).map(x => x.before || { id: x.id, type: x.type, gone: true }) });
       return { source: u.source, at: u.at, kept };
     }
 

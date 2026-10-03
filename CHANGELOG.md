@@ -1,5 +1,39 @@
 # Changelog
 
+## Step 3 — live sync for the planner
+
+**What it does.** Records the contract marks **live** (for now the school year, days off and grading periods; the planner's types join in step 4) sync instantly between devices through Firebase on your personal Google account. Edits made offline wait and go up on reconnect. Everything marked **private** never leaves on this path. The Sync page has a Live sync section (sign in, connection, last change) and a Try live sync list of days off.
+
+**Files.**
+- `core/live.js`: the live-sync logic, written against a small backend interface.
+- `core/live-firebase.js`: the real backend (Firebase Auth by email and password, Firestore with its offline cache).
+- `core/names.js`: the name check.
+- `settings/firebase.js`: your Firebase settings. It ships empty, which means live sync is off.
+- `firestore.rules`: the server's security rules, made by `tools/make-rules.js` from the contract.
+
+**Protecting student data, three ways.**
+- The contract gives every type a `space`. Tests prove that anything naming or pointing at a child is private, and that no live type points at a private one.
+- The app refuses to send a private record, and ignores one if it ever arrives.
+- The server's rules allow only your sign-in, only live types, only their listed fields, and no deleting. The rules are generated from the contract, and a test fails if the two disagree.
+
+**The name check.** Before a live text field is saved, it is checked against first names, nicknames, display names and last names on this device's class list. Whole words, any case: "Mila's" counts, "Milan" does not. A match asks before saving. A device with no class list says it cannot check.
+
+**Changes to earlier files.**
+- Store change events now carry the changed records.
+- Only file loads can be undone. Changes arriving by live sync leave "Undo the last load" alone.
+- An undone file load removes its live days on every device, as deletions.
+- The iPhone's Send and Load wording now describes the Drive-app route, since the Files connection is blocked.
+- Messages appear at the top of the Sync page.
+
+**Mistakes in this step, found and fixed before release.**
+- Two of my new tests were wrong. One mistook the field name `deletedAt` for permission to delete. The other compared two identical lists from different JavaScript sandboxes, which never count as the same.
+- The iPhone's Send and Load help still described the Files picker your district blocks.
+- Day-off dates ran into their labels.
+
+**Tests.** 144 tests. The live-sync gate test runs a MacBook, an iPhone and an iPad without a class list in three Chrome profiles, against a stand-in Firebase that applies the same rules. The hardest case is checked to actually happen, not just to come out right: both devices edit the same day offline, the iPhone's older edit reaches the server after the MacBook's newer one, and every device and the server still end on the newer edit. `npm run test:breaks` makes 50 deliberate breaks.
+
+**Not tested here.** Real Firebase. My test machine cannot reach it, so the first real connection is this step's gate on your devices.
+
 ## Step 2 — MacBook and iPhone sync
 
 **What it does.** `sync/` keeps the MacBook and iPhone in step through one folder in the district Google Drive, with no Google sign-in.

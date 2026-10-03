@@ -47,7 +47,19 @@ const M = [
   ['core/transport.js', 'refused-file warning dropped after one check', "problems: refused });", "problems });", true],
   ['sync/index.html', 'list rebuilt over a half-typed name', 'sig !== box.dataset.sig && ', '', true],
   ['core/store.js', 'undo wipes edits made after the load', 'u.records.filter(stillFromLoad).forEach', 'u.records.forEach', true],
-  ['core/store.js', 'an edit replaces the last load\'s undo', "if (info.kind !== 'edit') meta.put", 'meta.put', true],
+  ['core/store.js', 'an edit replaces the last load\'s undo', "if ((info.kind || 'load') === 'load') meta.put", 'meta.put', true],
+  // live sync
+  ['core/live.js', 'private records sent', 'if (!isLive(rec)) throw', 'if (false) throw', true],
+  ['core/live.js', 'private records accepted from the server', 'const incoming = (msg.records || []).filter(isLive);', 'const incoming = (msg.records || []);', true],
+  ['core/live.js', 'newer copy not sent again after a late older write', 'else if (incoming.length) await sendNewer(new Set(incoming.map(r => r.id)));', '', true],
+  ['core/live.js', 'an undone file load leaves its days on other devices', 'if (LIVE.has(r.type)) push({', 'if (false) push({', true],
+  ['core/live.js', 'nothing sent on first connect', 'if (!initialDone && state.connected) { initialDone = true; await sendNewer(null); }', '', true],
+  ['core/names.js', 'name check matches inside longer words', '(?!${LETTER})', '', false],
+  ['core/names.js', 'nicknames not checked', '(s.aka || []).forEach(add);', '', false],
+  ['sync/index.html', 'labels saved without the name check', 'if (check.hits.length) {', 'if (false) {', true],
+  ['firestore.rules', 'server rules allow deleting', 'allow create, update:', 'allow create, update, delete:', false],
+  ['tools/make-rules.js', 'server rules stop checking the type', "request.resource.data.type == ${q(name)} && ", '', false],
+  ['core/live-firebase.js', 'records written outside your own folder', "sdk.fs.doc(db, 'users', mustUser().uid, 'records', rec.id)", "sdk.fs.doc(db, 'records', rec.id)", false],
   ['sw.js', 'offline copy missing the sync page', "'sync/', 'sync/index.html'", "'sync/'", false]
 ];
 
@@ -56,8 +68,8 @@ let missed = 0;
 for (const [file, name, from, to, browser] of M) {
   if (only && !name.includes(only)) continue;
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mut-'));
-  for (const d of ['contract', 'core', 'import', 'sync', 'icons', 'tests']) fs.cpSync(path.join(ROOT, d), path.join(dir, d), { recursive: true });
-  for (const f of ['index.html', 'sw.js', 'manifest.webmanifest', 'package.json']) fs.copyFileSync(path.join(ROOT, f), path.join(dir, f));
+  for (const d of ['contract', 'core', 'import', 'sync', 'icons', 'settings', 'tools', 'tests']) fs.cpSync(path.join(ROOT, d), path.join(dir, d), { recursive: true });
+  for (const f of ['index.html', 'sw.js', 'manifest.webmanifest', 'package.json', 'firestore.rules']) fs.copyFileSync(path.join(ROOT, f), path.join(dir, f));
   if (fs.existsSync(path.join(ROOT, 'node_modules'))) fs.symlinkSync(path.join(ROOT, 'node_modules'), path.join(dir, 'node_modules'));
   const p = path.join(dir, file), src = fs.readFileSync(p, 'utf8');
   if (src.split(from).length !== 2) { console.log(`SETUP ERROR: "${name}" does not match exactly once`); missed++; continue; }

@@ -1,0 +1,5 @@
+node_modules/
+sub-plan-standing-notes.json
+private-names.txt
+*.v95-sync.json
+classroom-*.json
