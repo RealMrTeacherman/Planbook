@@ -1,5 +1,12 @@
 # Changelog
 
+## Step 3, follow-up — your Firebase settings
+
+- `settings/firebase.js` now holds your Firebase project's settings, so live sync is on for your site.
+- Two tests assumed that file was always empty. The settings check now accepts empty or a complete setup and rejects a half-filled one; I confirmed all three cases. The "live sync is off" test now hands its page an empty file itself.
+- Every test page now sees empty settings, so GitHub's test machines never contact your real Firebase.
+- Still owed for step 9: the Creslane share copy must ship with empty settings, checked by a test there.
+
 ## Step 3 — live sync for the planner
 
 **What it does.** Records the contract marks **live** (for now the school year, days off and grading periods; the planner's types join in step 4) sync instantly between devices through Firebase on your personal Google account. Edits made offline wait and go up on reconnect. Everything marked **private** never leaves on this path. The Sync page has a Live sync section (sign in, connection, last change) and a Try live sync list of days off.

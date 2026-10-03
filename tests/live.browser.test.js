@@ -71,6 +71,11 @@ test('live sync for the planner', { skip, timeout: 240000 }, async (t) => {
   try {
     await t.test('without Firebase settings, live sync says it is off and nothing else changes', async () => {
       const bare = await newPage(await browser.createBrowserContext(), { width: 390 });
+      // Whatever this repo's settings hold, this device gets an empty settings file.
+      await bare.setRequestInterception(true);
+      bare.on('request', r => /settings\/firebase\.js$/.test(r.url())
+        ? r.respond({ status: 200, contentType: 'text/javascript', body: 'window.PLANBOOK_FIREBASE = null;' })
+        : r.continue());
       await go(bare, 'sync');
       assert.equal(await bare.$eval('#liveOff', e => e.hidden), false);
       assert.equal(await bare.$eval('#liveSignIn', e => e.hidden), true);

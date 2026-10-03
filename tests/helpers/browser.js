@@ -41,6 +41,10 @@ function serve() {
 // A page that never waits on Google Fonts, and collects real errors.
 async function newPage(context, { width = 390, iphone = false } = {}) {
   const page = await context.newPage();
+  // Tests never talk to the real Firebase, whatever settings/firebase.js holds.
+  await page.evaluateOnNewDocument(() => {
+    Object.defineProperty(window, 'PLANBOOK_FIREBASE', { get: () => null, set: () => {}, configurable: false });
+  });
   page.errors = [];
   page.on('pageerror', e => page.errors.push(String(e)));
   page.on('console', m => { if (m.type() === 'error' && !/fonts\.g|Failed to load resource|ERR_/.test(m.text())) page.errors.push(m.text()); });

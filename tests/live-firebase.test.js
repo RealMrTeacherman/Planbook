@@ -87,8 +87,12 @@ test('the offline copy keeps the same Firebase version this file loads', () => {
   assert.deepEqual([...box.__r], FB.FILES);
 });
 
-test('the settings file ships empty, so a fresh copy has live sync off', () => {
+test('the settings file is either empty (live sync off) or a complete Firebase setup', () => {
   const box = { window: {} };
   vm.runInNewContext(fs.readFileSync(path.join(ROOT, 'settings', 'firebase.js'), 'utf8'), box);
-  assert.equal(box.window.PLANBOOK_FIREBASE, null);
+  const c = box.window.PLANBOOK_FIREBASE;
+  if (c === null) return;
+  for (const k of ['apiKey', 'authDomain', 'projectId', 'appId']) assert.equal(typeof c[k], 'string', k);
+  assert.match(c.authDomain, /\.firebaseapp\.com$/);
+  assert.equal(FB.create(c).configured, true);
 });
