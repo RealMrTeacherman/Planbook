@@ -37,6 +37,10 @@
 
 **Tests.** 188 tests. The planner gate test runs a MacBook and an iPhone, with the stand-in Firebase. The MacBook imports v95 and the iPhone receives the planner live. The same lessons show day by day on both devices. Edits made on either device arrive on the other: steps, taught, flags, free text and notes. All three name-check answers are tested, and private notes never reach the server. The planner also opens offline. `npm run test:breaks`: 62 deliberate breaks.
 
+**Found after the push, by GitHub's own test run.** It failed on the deliberate breaks, and the cause was two weaknesses in my tests:
+- **The break runner gave each break 3 minutes.** With four browser test files, a run took about 3½ minutes and was cut off before its tally, which the runner counted as "not caught." Each break now runs only the test file for its feature (about a minute), the limit is 15 minutes, and a cut-off run reports TIMED OUT instead of a verdict.
+- **The "untaught day doesn't count" test never set up that case:** the untaught lesson fell on the same date being suggested. It now puts one in between, and that break is caught.
+
 **You need to do one thing:** paste the new `firestore.rules` into Firebase. The old rules refuse the planner's new types.
 
 ## Step 3, follow-up — your Firebase settings

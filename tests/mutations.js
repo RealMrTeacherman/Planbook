@@ -34,51 +34,55 @@ const M = [
   ['core/import-v95.js', 'links from copies not learned', 'if (learned.has(k)) return stuId.get(learned.get(k));', ''],
   ['core/import-v95.js', 'load time instead of file time', 'const T = at.toISOString();', 'const T = new Date(Date.now() + Math.random() * 1e6).toISOString();'],
   // store and page (real browser)
-  ['core/store.js', 'store skips the contract', 'const check = SuiteContract.validateFile(fileOf(next), contract);', 'const check = { ok: true };', true],
-  ['core/store.js', 'a no-change load still writes', 'const touched = changes.length + v95Keys.length;', 'const touched = 1;', true],
-  ['core/store.js', 'undo forgets kept v95 data', 'u.v95.forEach(x => x.before === null ? vs.delete(x.key) : vs.put(x.before, x.key));', '', true],
-  ['core/store.js', 'upgrade not recorded', "tx.objectStore('meta').put(schema + 1, 'schemaVersion');", '', true],
-  ['import/index.html', 'older file allowed', 'if (last && Date.parse(out.savedAt) < Date.parse(last)) {', 'if (false) {', true],
+  ['core/store.js', 'store skips the contract', 'const check = SuiteContract.validateFile(fileOf(next), contract);', 'const check = { ok: true };', 'tests/browser.test.js'],
+  ['core/store.js', 'a no-change load still writes', 'const touched = changes.length + v95Keys.length;', 'const touched = 1;', 'tests/browser.test.js'],
+  ['core/store.js', 'undo forgets kept v95 data', 'u.v95.forEach(x => x.before === null ? vs.delete(x.key) : vs.put(x.before, x.key));', '', 'tests/browser.test.js'],
+  ['core/store.js', 'upgrade not recorded', "tx.objectStore('meta').put(schema + 1, 'schemaVersion');", '', 'tests/browser.test.js'],
+  ['import/index.html', 'older file allowed', 'if (last && Date.parse(out.savedAt) < Date.parse(last)) {', 'if (false) {', 'tests/browser.test.js'],
   // sync
-  ['core/transport.js', 'phone file removed without updating the MacBook copy', 'const w = await fh.createWritable(); await w.write(JSON.stringify(f)); await w.close();', '', true],
-  ['core/transport.js', 'refused files retried every few seconds', 'if (seen && seen.lastModified === file.lastModified) {', 'if (false) {', true],
-  ['core/transport.js', '"not sent yet" never cleared', "await store.meta.set('unsentSince', null);", '', true],
+  ['core/transport.js', 'phone file removed without updating the MacBook copy', 'const w = await fh.createWritable(); await w.write(JSON.stringify(f)); await w.close();', '', 'tests/sync.browser.test.js'],
+  ['core/transport.js', 'refused files retried every few seconds', 'if (seen && seen.lastModified === file.lastModified) {', 'if (false) {', 'tests/sync.browser.test.js'],
+  ['core/transport.js', '"not sent yet" never cleared', "await store.meta.set('unsentSince', null);", '', 'tests/sync.browser.test.js'],
   ['core/transport.js', 'Drive\'s "(1)" names ignored', '(?: ?\\(\\d+\\))?', '', false],
-  ['core/transport.js', 'refused-file warning dropped after one check', "problems: refused });", "problems });", true],
-  ['sync/index.html', 'list rebuilt over a half-typed name', 'sig !== box.dataset.sig && ', '', true],
-  ['core/store.js', 'undo wipes edits made after the load', 'u.records.filter(stillFromLoad).forEach', 'u.records.forEach', true],
-  ['core/store.js', 'an edit replaces the last load\'s undo', "if ((info.kind || 'load') === 'load') meta.put", 'meta.put', true],
+  ['core/transport.js', 'refused-file warning dropped after one check', "problems: refused });", "problems });", 'tests/sync.browser.test.js'],
+  ['sync/index.html', 'list rebuilt over a half-typed name', 'sig !== box.dataset.sig && ', '', 'tests/sync.browser.test.js'],
+  ['core/store.js', 'undo wipes edits made after the load', 'u.records.filter(stillFromLoad).forEach', 'u.records.forEach', 'tests/sync.browser.test.js'],
+  ['core/store.js', 'an edit replaces the last load\'s undo', "if ((info.kind || 'load') === 'load') meta.put", 'meta.put', 'tests/sync.browser.test.js'],
   // live sync
-  ['core/live.js', 'private records sent', 'if (!isLive(rec)) throw', 'if (false) throw', true],
-  ['core/live.js', 'private records accepted from the server', 'const incoming = (msg.records || []).filter(isLive);', 'const incoming = (msg.records || []);', true],
-  ['core/live.js', 'newer copy not sent again after a late older write', 'else if (incoming.length) await sendNewer(new Set(incoming.map(r => r.id)));', '', true],
-  ['core/live.js', 'an undone file load leaves its days on other devices', 'if (LIVE.has(r.type)) push({', 'if (false) push({', true],
-  ['core/live.js', 'nothing sent on first connect', 'if (!initialDone && state.connected) { initialDone = true; await sendNewer(null); }', '', true],
+  ['core/live.js', 'private records sent', 'if (!isLive(rec)) throw', 'if (false) throw', 'tests/live.browser.test.js'],
+  ['core/live.js', 'private records accepted from the server', 'const incoming = (msg.records || []).filter(isLive);', 'const incoming = (msg.records || []);', 'tests/live.browser.test.js'],
+  ['core/live.js', 'newer copy not sent again after a late older write', 'else if (incoming.length) await sendNewer(new Set(incoming.map(r => r.id)));', '', 'tests/live.browser.test.js'],
+  ['core/live.js', 'an undone file load leaves its days on other devices', 'if (LIVE.has(r.type)) push({', 'if (false) push({', 'tests/live.browser.test.js'],
+  ['core/live.js', 'nothing sent on first connect', 'if (!initialDone && state.connected) { initialDone = true; await sendNewer(null); }', '', 'tests/live.browser.test.js'],
   ['core/names.js', 'name check matches inside longer words', '(?!${LETTER})', '', false],
   ['core/names.js', 'nicknames not checked', '(s.aka || []).forEach(add);', '', false],
-  ['sync/index.html', 'labels saved without the name check', 'if (check.hits.length) {', 'if (false) {', true],
+  ['sync/index.html', 'labels saved without the name check', 'if (check.hits.length) {', 'if (false) {', 'tests/live.browser.test.js'],
   ['firestore.rules', 'server rules allow deleting', 'allow create, update:', 'allow create, update, delete:', false],
   ['tools/make-rules.js', 'server rules stop checking the type', "request.resource.data.type == ${q(name)} && ", '', false],
   ['core/live-firebase.js', 'records written outside your own folder', "sdk.fs.doc(db, 'users', mustUser().uid, 'records', rec.id)", "sdk.fs.doc(db, 'records', rec.id)", false],
   // planner
   ['core/import-v95.js', 'importer runs without the name check', "if (!N || typeof N.nameHits !== 'function') throw", 'if (false) throw', false],
   ['core/import-v95.js', 'imported day notes that name a child stay live', "if (r.type === 'dayPlan' && named(r.notes)) {", 'if (false) {', false],
-  ['import/index.html', 'import page without the name check', '<script src="../core/names.js"></script>\n', '', true],
+  ['import/index.html', 'import page without the name check', '<script src="../core/names.js"></script>\n', '', 'tests/browser.test.js'],
   ['core/plan.js', 'Reveal skips a day', 'if (s) return posOf(FLAT[s.i + 1] || s);', 'if (s) return posOf(FLAT[s.i + 2] || s);', false],
   ['core/plan.js', 'afternoon times sort before the morning', 'if (hh < 7) hh += 12;', '', false],
   ['core/plan.js', 'an untaught day counts as taught', "!l.taught || ", '', false],
   ['core/plan.js', 'days off ignored', "if (sd && sd.kind === 'noSchool') return", 'if (false) return', false],
-  ['core/store.js', 'no upgrade from version 1', '2: records => records', '', true],
-  ['planner/planner.js', 'Keep it private saves the note live', "if (choice === 'private') {\n      const writes", "if (false) {\n      const writes", true],
-  ['planner/planner.js', 'notes saved without the name check', "if (!hits.length) return Promise.resolve('live');", "return Promise.resolve('live');", true],
-  ['planner/planner.js', 'the district calendar not applied', "await applyCalendar(cal);", '', true],
+  ['core/store.js', 'no upgrade from version 1', '2: records => records', '', 'tests/sync.browser.test.js'],
+  ['planner/planner.js', 'Keep it private saves the note live', "if (choice === 'private') {\n      const writes", "if (false) {\n      const writes", 'tests/planner.browser.test.js'],
+  ['planner/planner.js', 'notes saved without the name check', "if (!hits.length) return Promise.resolve('live');", "return Promise.resolve('live');", 'tests/planner.browser.test.js'],
+  ['planner/planner.js', 'the district calendar not applied', "await applyCalendar(cal);", '', 'tests/planner.browser.test.js'],
   ['sw.js', 'offline copy missing the planner', "'planner/', 'planner/index.html', ", '', false],
   ['sw.js', 'offline copy missing the sync page', "'sync/', 'sync/index.html'", "'sync/'", false]
 ];
 
-const only = process.argv[2];
+// node tests/mutations.js [name filter]   or   node tests/mutations.js --from=N --to=M (by position)
+const arg = process.argv[2] || '';
+const range = /^--from=(\d+)(?: --to=(\d+))?$/.exec(process.argv.slice(2).join(' '));
+const only = range ? null : arg;
 let missed = 0;
-for (const [file, name, from, to, browser] of M) {
+for (const [i, [file, name, from, to, browser]] of M.entries()) {
+  if (range && (i < Number(range[1]) || (range[2] !== undefined && i > Number(range[2])))) continue;
   if (only && !name.includes(only)) continue;
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mut-'));
   for (const d of ['contract', 'core', 'import', 'sync', 'planner', 'data', 'icons', 'settings', 'tools', 'tests']) fs.cpSync(path.join(ROOT, d), path.join(dir, d), { recursive: true });
@@ -88,8 +92,14 @@ for (const [file, name, from, to, browser] of M) {
   if (src.split(from).length !== 2) { console.log(`SETUP ERROR: "${name}" does not match exactly once`); missed++; continue; }
   fs.writeFileSync(p, src.replace(from, to));
   const all = fs.readdirSync(path.join(dir, 'tests')).filter(f => f.endsWith('.test.js')).map(f => 'tests/' + f);
-  const files = all.filter(f => browser ? /browser\.test\.js$/.test(f) : !/browser\.test\.js$/.test(f));
-  const r = spawnSync(process.execPath, ['--test', ...files], { cwd: dir, encoding: 'utf8', timeout: 180000 });
+  // browser: false = the Node tests; true = every browser test; a path = just that browser test.
+  const files = typeof browser === 'string' ? [browser] : all.filter(f => browser ? /browser\.test\.js$/.test(f) : !/browser\.test\.js$/.test(f));
+  const r = spawnSync(process.execPath, ['--test', ...files], { cwd: dir, encoding: 'utf8', timeout: 900000 });
+  if (r.error || r.signal) {   // cut off before the tests finished: no verdict either way
+    console.log(`TIMED OUT: ${name}`); missed++;
+    fs.rmSync(dir, { recursive: true, force: true });
+    continue;
+  }
   // Caught means a test failed. (A skipped browser test cannot fail, so a break it should catch shows as not caught.)
   const caught = r.status !== 0 && /# fail [1-9]/.test(r.stdout);
   console.log(`${caught ? 'caught' : 'NOT CAUGHT'}: ${name}`);

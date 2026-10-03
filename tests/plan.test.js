@@ -65,7 +65,10 @@ test('the suggestion is the lesson after the last one taught before that day', (
   const L = (date, pos, taught = true) => ({ type: 'lessonPlan', date, subjectId: math.id, pos, taught });
   const lessons = [L('2026-09-14', { unit: 1, lesson: 0, k: 'diag' }), L('2026-09-15', { unit: 1, lesson: 0, k: 'open' }),
     L('2026-09-16', { unit: 1, lesson: 1 }, false), L('2026-09-17', { unit: 1, lesson: 1 })];
-  assert.deepEqual(P.suggest(math, lessons, '2026-09-16'), { unit: 1, lesson: 1 }, 'a planned but untaught day does not count');
+  assert.deepEqual(P.suggest(math, lessons, '2026-09-16'), { unit: 1, lesson: 1 });
+  // Thursday: Wednesday was planned as L1 but not taught, so the suggestion still follows Tuesday's opener.
+  assert.deepEqual(P.suggest(math, lessons, '2026-09-17'), { unit: 1, lesson: 1 }, 'a planned but untaught day does not count');
+  assert.deepEqual(P.lastTaught(lessons, math.id, '2026-09-17'), { pos: { unit: 1, lesson: 0, k: 'open' }, date: '2026-09-15' });
   assert.deepEqual(P.suggest(math, lessons, '2026-09-18'), { unit: 1, lesson: 2 });
   assert.deepEqual(P.suggest(math, lessons, '2026-09-01'), { unit: 1, lesson: 1 }, 'nothing taught yet: the subject\'s start');
   const gone = lessons.map(l => Object.assign({}, l, { deletedAt: '2026-09-20T00:00:00Z' }));
