@@ -276,6 +276,8 @@
     const dates = P.weekOf(date);
     const st = Object.fromEntries(dates.map(d => [d, P.dayStatus(d, { year: X.year, days: X.days, plan: X.dayPlan[d] })]));
     const on = X.subjects.filter(s => s.on && X.blocks.some(b => !b.deletedAt && b.subjectId === s.id));
+    const SKIP = new Set(['a', 'an', 'the', 'more', 'our', 'my', 'and', 'of', 'to', 'in', 'on', 'for', 'with', 'at']);
+    const keyWord = t => (String(t).match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) || []).find(w => !SKIP.has(w.toLowerCase())) || '';
     const ABBR = { Diagnostic: 'Diag', Opener: 'Open', Review: 'Rev', Benchmark: 'Bench', Summative: 'Summ' };
     const short = (sb, pos) => P.label(sb, pos).replace(/^U\d+ · /, '').replace(/ · /g, ' ').replace(/^(\w+)/, w => ABBR[w] || w);
     const cell = (sb, d) => {
@@ -283,9 +285,10 @@
       const r = X.lesson[d + '|' + sb.id];
       if (!r) return '<td class="none">·</td>';
       const full = P.label(sb, r.pos);
-      // Free text is too long for a cell: a mark here, the words on hover and in the Day view.
-      const text = sb.schema === 'free' ? (r.taught ? '✓' : '•') : short(sb, r.pos) + (r.taught ? ' ✓' : '');
-      return `<td${r.taught ? ' class="done"' : ''}><a href="#day/${d}" title="${esc(full)}" aria-label="${esc(sb.name)}, ${esc(DAY[P.weekday(d)])}: ${esc(full)}${r.taught ? ', taught' : ''}">${esc(text)}</a></td>`;
+      // Free text is too long for a cell: its key word here, the whole of it on hover and in the Day view.
+      // A typed word shows taught by its color and weight, leaving the cell's room for the word.
+      const text = sb.schema === 'free' ? (keyWord(full) || '•') : short(sb, r.pos) + (r.taught ? ' ✓' : '');
+      return `<td class="${r.taught ? 'done' : ''}${sb.schema === 'free' ? ' word' : ''}"><a href="#day/${d}" title="${esc(full)}" aria-label="${esc(sb.name)}, ${esc(DAY[P.weekday(d)])}: ${esc(full)}${r.taught ? ', taught' : ''}">${esc(text)}</a></td>`;
     };
     return `<section class="side miniweek" aria-label="This week">
       <div class="side-head"><h2>This week</h2><a href="#week/${date}">Open Week</a></div>

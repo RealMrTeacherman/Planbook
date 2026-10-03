@@ -223,6 +223,10 @@ test('the planner: Day and Week on MacBook and iPhone', { skip, timeout: 240000 
       const text = await mac.$eval('.miniweek', e => e.innerText);
       assert.match(text, /W1 D3 ✓/);
       assert.match(text, /Diag ✓/);
+      assert.match(text, /Plants/, 'a typed subject shows its key word');
+      const cell = await mac.$eval('.miniweek a[title="Plants: what do they need?"]', e => [e.textContent, e.parentElement.className, e.getAttribute('aria-label'), e.scrollWidth <= e.clientWidth]);
+      assert.deepEqual(cell.slice(0, 3), ['Plants', 'done word', 'Science / SS, Mon: Plants: what do they need?, taught']);
+      assert.equal(cell[3], true, 'the word fits its cell');
       await mac.click('.miniweek thead a[href="#day/2026-09-17"]');
       await mac.waitForFunction(() => location.hash === '#day/2026-09-17');
     });

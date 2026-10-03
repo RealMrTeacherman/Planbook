@@ -1,5 +1,12 @@
 # Changelog
 
+## Step 4a, design — typed subjects show their key word in This week
+
+- In the This week grid, a typed subject (Science, WIN, STEAM, Health/SEL, the 9:45 block) shows the first meaningful word you typed ("Plants: what do they need?" → Plants; "More math" → Math), not a ✓ or a dot.
+- A taught word shows in its subject's color and bold, rather than with a ✓, so the word has room. Hovering shows the full text and "taught". Curriculum positions keep "W1 D1 ✓".
+- To give the words room, the subject column is a little narrower and the cell padding a little smaller. A test checks the word fits its cell.
+- A correction to the last entry's commit message: it said 199 tests; it was 198 (197 passing, 1 skipped).
+
 ## Step 4a, design — a subject's blocks fold into its card
 
 - A subject's later blocks (Reading's 8:50 whole-group and 9:10 small groups, Math's core lesson and small groups) no longer get rows of their own. They are small lines inside the subject's card, each with its time, name and standing note.
