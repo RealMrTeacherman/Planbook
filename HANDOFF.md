@@ -73,5 +73,17 @@ The rebuild of the v95 suite as two tools on one written data contract: Gradeboo
 ## Releasing
 - **Any change to a cached file needs a new `VERSION` in `sw.js`** (and `package.json`), or devices keep the old script. Step 4d's follow-up missed this once.
 
+## Where the build stands, and what is next
+
+Done and passed on the teacher's devices: 0 contract, 1 store and v95 import, 2 Drive-folder sync (MacBook side; the iPhone uses the Drive app: Send to the Drive app, Load via Drive → Send a copy → Save to Files), 3 live sync (Firebase), 4a–4d planner (Day, Week, Settings, family email, Phonics inside Reading, Agenda look per device), 5 sub plans.
+
+**Next: step 6, the gradebook.** Approved shape (from v95's 5,472-line gradebook/index.html):
+- **6a: Enter scores.** Phone-first entry opening on the day's Reveal lesson (v95 `plannedStepOn`, `followDayLesson`); assignments are marks sharing std + date + ctx; undo; "not turned in". Roster in Settings (add, rename, ELD, aka, Synergy id). Import the 524 marks (gb2_standards_v1.scores; derived marks carry `source`). All private (Drive path). Gate: a mark entered on the iPhone reaches the MacBook through the Drive app (the step 2 device gate).
+- **6b: Report card.** Port v95 exactly: `computeMark` (rule latest / mean / weighted, default weighted), `roundMark`, `lineMark`, `carriedMark`, `finalMark`, overrides, report lines, quarters; Synergy print and CSV. ORF feeds marks on **fluency only** (comprehension does not count), with v95's cuts 4 = 75th, 3 = 50th, 2 = 25th of end-of-year H&T 2017. Marks stored under Oregon codes. Gate: run v95's gradebook in Chrome on the same data (as tests/subplan-v95.browser.test.js does) and match every student × line × quarter.
+- **6c: Groups & patterns.** Skill groups (`buildSkillGroups`, GROUP_DECAY 0.62), pins in groupPins, "Not placed" tray.
+- **Left out by the teacher's choice:** the iReady, Students, Planning and Fluency tabs (ORF has its own step 7). The 51 iReady rows stay in the kept v95 data.
+
+Each release keeps the habits: a plan approved first, tests from a clean copy, deliberate breaks (`npm run test:breaks`), screenshots at 1280 and 390 px in both looks, a frank CHANGELOG, a new `VERSION` in sw.js, and GitHub's run green.
+
 ## Running the tests
 `npm install` once, then `npm test` and `npm run test:breaks`. The browser test finds Chrome on its own on a Mac; elsewhere set `CHROME` to a Chrome binary.
