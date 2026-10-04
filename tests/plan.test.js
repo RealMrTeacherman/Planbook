@@ -11,7 +11,7 @@ const bench = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'benchmark-grad
 const defaults = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'planner-defaults.json'), 'utf8'));
 P.useCurriculum(JSON.parse(JSON.stringify(reveal)), bench);
 
-const V95 = '/home/claude/v95/classroom-suite/curriculum.js';
+const V95 = path.join(process.env.V95_DIR || '/home/claude/v95/classroom-suite', 'curriculum.js');
 const math = { id: 'subj_v95-math', schema: 'ul', pacing: true, lessonsPerUnit: 10, start: { unit: 1, lesson: 1 } };
 const reading = { id: 'subj_v95-reading', schema: 'uwd', weeksPerUnit: 3, daysPerWeek: 5, benchmark: true, start: { unit: 1, week: 1, day: 1 } };
 

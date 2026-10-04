@@ -94,22 +94,58 @@ const M = [
   ['core/import-v95.js', 'a gone block\'s note loses its block', "records.push(rec(`bnote_${date}_${gone}`, 'blockNote', { date, blockId: gone, text: cut(text, 500) }));", '', false],
   ['planner/planner.js', 'printing does not mark the day as a sub day', "if (!flags.has('Sub')) { flags.add('Sub');", "if (false) { flags.add('Sub');", 'tests/planner.browser.test.js'],
   ['sw.js', 'offline copy missing the planner', "'planner/', 'planner/index.html', ", '', false],
-  ['sw.js', 'offline copy missing the sync page', "'sync/', 'sync/index.html'", "'sync/'", false]
+  ['sw.js', 'offline copy missing the sync page', "'sync/', 'sync/index.html'", "'sync/'", false],
+  // step 6a: the gradebook
+  ['core/grade.js', 'a probe covers the whole unit', 's.k === \'probe\' ? lessonsOf(s.u, s.after)', 's.k === \'probe\' ? lessonsOf(s.u)', false],
+  ['core/grade.js', 'tapping the same number again does not clear', 'if (have && have.value === value) return result(', 'if (false) return result(', false],
+  ['core/grade.js', 'a mark leaves the child on the not-turned-in list', '.concat(handIn(recs, studentId, standard, date, today))', '', false],
+  ['core/grade.js', 'undo overwrites a change made on the other device', 'if (!same(cur, e.after)) { changedSince++; return; }', '', false],
+  ['core/grade.js', 'Log the rest includes children who have left', 'students.filter(s => s.active).forEach(s => {', 'students.forEach(s => {', false],
+  ['core/grade.js', 'taking a lesson replaces a typed name', '(cur.what ? lessonFromCtx(cur.what) != null : !unnamed)', '(true)', false],
+  ['core/grade.js', 'excused work counts toward an assignment', 'missing.forEach(m => { if (!m.excused) slot(m.standard, m.date, m.what).missing++; });', 'missing.forEach(m => { slot(m.standard, m.date, m.what).missing++; });', false],
+  ['core/grade.js', 'a day off still has a lesson', 'if (!P.dayStatus(date, { year, days }).school) return null;', '', false],
+  ['core/grade.js', 're-marking takes one name of several', 'return names.length === 1 && names[0] !== \'-\' ? names[0] : \'\';', 'return names[0] && names[0] !== \'-\' ? names[0] : \'\';', false],
+  ['core/import-v95.js', 'marks for a child who is gone are brought in', '      const sid = stuId.get(String(x.sid));\n      if (!sid) { markGone++; continue; }', '      const sid = stuId.get(String(x.sid)) || \'stu_\' + x.sid;', false],
+  ['core/import-v95.js', 'of two marks for one day, the earlier is kept', 'markIds.set(id, rec(id, \'mark\', f));', 'if (!markIds.has(id)) markIds.set(id, rec(id, \'mark\', f));', false],
+  ['core/import-v95.js', 'turned-off standards come in switched on', '.filter(c => gb.active[c] && STD.test(c))', '.filter(c => STD.test(c))', false],
+  ['contract/validate.js', 'a mark\'s id is not checked', 'case \'mark_<source_><studentId>_<standard>_<date>\':', 'case \'mark rule switched off\':', false],
+  ['sw.js', 'offline copy missing the gradebook', '\'gradebook/\', \'gradebook/index.html\', ', '', false],
+  ['gradebook/gradebook.js', 'a redraw wipes a note being typed', 'if (a && document.querySelector(\'main\').contains(a) && a.matches(\'input:not([type=checkbox]), textarea, select\')) { renderLater = true; return; }', '', 'tests/gradebook.browser.test.js'],
+  ['gradebook/gradebook.js', 'a note typed before the mark is lost', 'note: UI.pending[key] || \'\', today', 'note: \'\', today', 'tests/gradebook.browser.test.js'],
+  ['gradebook/gradebook.js', 'the card does not follow the day\'s lesson', '    if (UI.follow) follow();\n', '', 'tests/gradebook.browser.test.js'],
+  ['gradebook/gradebook.js', 'All marks only one standard', 'else if (d.v && d.all) await tapAll(d.all, Number(d.v));', 'else if (d.v && d.all) await tapMark(d.all, UI.std, Number(d.v));', 'tests/gradebook.browser.test.js'],
+  ['gradebook/gradebook.css', 'a marked 2 too light to read', '--m2: #7F5A14;', '--m2: #A87621;', 'tests/gradebook.browser.test.js'],
+  ['gradebook/gradebook.css', 'the note under the marks on the MacBook', '.kid:not(:has(.mrow)) { display: grid;', '.kid:not(:has(.mrow)) { display: flex;', 'tests/gradebook.browser.test.js'],
+  ['core/colors.js', 'subject colors not deepened for white text', 'for (let i = 0; i < 40 &&', 'for (let i = 0; i < 0 &&', 'tests/planner.browser.test.js']
 ];
 
 // node tests/mutations.js [name filter]   or   node tests/mutations.js --from=N --to=M (by position)
 const arg = process.argv[2] || '';
 const range = /^--from=(\d+)(?: --to=(\d+))?$/.exec(process.argv.slice(2).join(' '));
 const only = range ? null : arg;
+// A throwaway copy of the project.
+function copyProject() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mut-'));
+  for (const d of ['contract', 'core', 'import', 'sync', 'planner', 'gradebook', 'data', 'icons', 'settings', 'tools', 'tests']) fs.cpSync(path.join(ROOT, d), path.join(dir, d), { recursive: true });
+  for (const f of ['index.html', 'sw.js', 'manifest.webmanifest', 'package.json', 'firestore.rules']) fs.copyFileSync(path.join(ROOT, f), path.join(dir, f));
+  if (fs.existsSync(path.join(ROOT, 'node_modules'))) fs.symlinkSync(path.join(ROOT, 'node_modules'), path.join(dir, 'node_modules'));
+  return dir;
+}
+// Control: the tests must pass on an unbroken copy, or every break would look caught (a folder missing from
+// the copy once made a test fail in every copy).
+{
+  const dir = copyProject();
+  const files = fs.readdirSync(path.join(dir, 'tests')).filter(f => f.endsWith('.test.js') && !/browser\.test\.js$/.test(f)).map(f => 'tests/' + f);
+  const r = spawnSync(process.execPath, ['--test', ...files], { cwd: dir, encoding: 'utf8', timeout: 900000 });
+  fs.rmSync(dir, { recursive: true, force: true });
+  if (r.status !== 0) { console.log('CONTROL FAILED: the Node tests fail on an unbroken copy, so no break can be judged.\n' + (r.stdout || '').split('\n').filter(l => /^not ok|^# fail/.test(l)).join('\n')); process.exit(1); }
+}
 let missed = 0;
 for (const [i, [file, name, from, to, browser]] of M.entries()) {
   if (range && (i < Number(range[1]) || (range[2] !== undefined && i > Number(range[2])))) continue;
   if (only && only !== '--node-only' && !name.includes(only)) continue;
   if (only === '--node-only' && browser) continue;
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mut-'));
-  for (const d of ['contract', 'core', 'import', 'sync', 'planner', 'data', 'icons', 'settings', 'tools', 'tests']) fs.cpSync(path.join(ROOT, d), path.join(dir, d), { recursive: true });
-  for (const f of ['index.html', 'sw.js', 'manifest.webmanifest', 'package.json', 'firestore.rules']) fs.copyFileSync(path.join(ROOT, f), path.join(dir, f));
-  if (fs.existsSync(path.join(ROOT, 'node_modules'))) fs.symlinkSync(path.join(ROOT, 'node_modules'), path.join(dir, 'node_modules'));
+  const dir = copyProject();
   const p = path.join(dir, file), src = fs.readFileSync(p, 'utf8');
   if (src.split(from).length !== 2) { console.log(`SETUP ERROR: "${name}" does not match exactly once`); missed++; continue; }
   fs.writeFileSync(p, src.replace(from, to));

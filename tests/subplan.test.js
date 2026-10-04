@@ -3,6 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const V95_DIR = process.env.V95_DIR || '/home/claude/v95/classroom-suite';
 const ROOT = path.join(__dirname, '..');
 const read = f => JSON.parse(fs.readFileSync(path.join(ROOT, f), 'utf8'));
 const P = require(path.join(ROOT, 'core', 'plan.js'));
@@ -33,8 +34,8 @@ test('with no standing notes, the plan says nothing is there yet', () => {
   assert.equal(sp.hasContent(), false);
 });
 
-test('v95\'s printouts are copied exactly from its source (when v95 is here)', { skip: fs.existsSync('/home/claude/v95/classroom-suite/sub-plans.js') ? false : 'v95 not here' }, () => {
-  const src = fs.readFileSync('/home/claude/v95/classroom-suite/sub-plans.js', 'utf8');
+test('v95\'s printouts are copied exactly from its source (when v95 is here)', { skip: fs.existsSync(path.join(V95_DIR, 'sub-plans.js')) ? false : 'v95 not here' }, () => {
+  const src = fs.readFileSync(path.join(V95_DIR, 'sub-plans.js'), 'utf8');
   const mine = fs.readFileSync(path.join(ROOT, 'core', 'subplan-v95.js'), 'utf8');
   for (const f of ['buildFull', 'buildGlance', 'groupsHTML', 'justToday']) {
     const b = mine.indexOf('  function ' + f + '(');

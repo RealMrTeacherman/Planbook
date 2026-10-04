@@ -26,10 +26,28 @@ test('the planner: Day and Week on MacBook and iPhone', { skip, timeout: 240000 
   const mac = await device({ width: 1280 });
   const phone = await device({ width: 390, iphone: true });
 
+  // Wait until the page has stopped redrawing (a change arriving from live sync redraws it), so a check
+  // never reads a card that a redraw is about to replace.
+  const settled = async page => {
+    let last = await page.evaluate(() => window.__renders || 0);
+    for (let i = 0; i < 30; i++) {
+      await new Promise(r => setTimeout(r, 300));
+      const now = await page.evaluate(() => window.__renders || 0);
+      if (now === last) return;
+      last = now;
+    }
+  };
+  // Set a field and fire its change the way leaving it would: once redraws have stopped, and in one step,
+  // so a redraw cannot replace the field between finding it and changing it.
+  const changeField = async (page, sel, value) => {
+    await settled(page);
+    await page.evaluate((sel, value) => { const e = document.querySelector(sel); e.value = value; e.dispatchEvent(new Event('change', { bubbles: true })); }, sel, value);
+    await settled(page);
+  };
   const open = async (page, hash) => {
     await page.goto(`${base}/planner/${hash}`, { waitUntil: 'domcontentloaded' });
     await page.waitForFunction('window.__ready === true', { timeout: 15000 });
-    await new Promise(r => setTimeout(r, 300));
+    await settled(page);
   };
   const signIn = async page => {
     await page.goto(`${base}/sync/`, { waitUntil: 'domcontentloaded' });
@@ -116,16 +134,18 @@ test('the planner: Day and Week on MacBook and iPhone', { skip, timeout: 240000 
 
     await t.test('Phonics sits inside the Reading card, first, still tracked on its own', async () => {
       await open(mac, '#day/2026-09-14');
-      const r = await mac.$eval('[data-card="subj_v95-reading"]', c => ({
+      // One evaluate, not $eval: finding the card and reading it in two steps let a redraw slip between them.
+      const r = await mac.evaluate(() => { const c = document.querySelector('[data-card="subj_v95-reading"]'); return ({
         nested: !!c.querySelector(':scope > .subsec[data-card="subj_v95-phonics"]'),
         firstChild: c.children[1].dataset.card,
-        phonicsTaught: c.querySelector('[data-card="subj_v95-phonics"] .taught').getAttribute('aria-pressed') }));
+        phonicsTaught: c.querySelector('[data-card="subj_v95-phonics"] .taught').getAttribute('aria-pressed') }); });
       assert.deepEqual(r, { nested: true, firstChild: 'subj_v95-phonics', phonicsTaught: 'true' });
       assert.equal(await mac.$$eval('#dayMain > .rows > [data-card="subj_v95-phonics"]', e => e.length), 0, 'no Phonics card of its own');
       const lefts = await mac.$$eval('[data-card="subj_v95-reading"] .pos .label', ls => ls.map(l => Math.round(l.getBoundingClientRect().left - l.closest('.pos').getBoundingClientRect().left)));
       assert.ok(lefts.every(x => x <= 2), `positions sit at the left of their row, not centered: ${lefts}`);
       await mac.click('[data-card="subj_v95-phonics"] [data-taught]');
       await waitRec(mac, async () => (await window.__store.all()).find(x => x.id === 'les_2026-09-14_subj_v95-phonics').taught === false);
+      await settled(mac);   // the first tap's save redraws the day; tap again only once that has finished
       assert.equal(await mac.$eval('[data-card="subj_v95-reading"] > .tile-foot .taught', e => e.getAttribute('aria-pressed')), 'true', 'Reading untouched');
       await mac.click('[data-card="subj_v95-phonics"] [data-taught]');
       // ...and it is a setting: Phonics back on its own card, then inside Reading again.
@@ -540,10 +560,10 @@ test('the planner: Day and Week on MacBook and iPhone', { skip, timeout: 240000 
 
     await t.test('sub notes are edited in Settings, show in the plan, and never reach the server', async () => {
       await open(mac, '#settings/2026-09-15');
-      await mac.$eval('[data-rec="subplan_main"][data-f="intro"]', e => { e.value = 'Welcome! Lunch count is on the clipboard.'; e.dispatchEvent(new Event('change', { bubbles: true })); });
+      await changeField(mac, '[data-rec="subplan_main"][data-f="intro"]', 'Welcome! Lunch count is on the clipboard.');
       await pickDay(mac, 1);
-      await mac.$eval('[data-blk="blk_d1-930"][data-f="detail"]', e => { e.value = 'Recess duty is on the playground map.'; e.dispatchEvent(new Event('change', { bubbles: true })); });
-      await mac.$eval('[data-special="T"][data-i="0"]', e => { e.value = 'Music'; e.dispatchEvent(new Event('change', { bubbles: true })); });
+      await changeField(mac, '[data-blk="blk_d1-930"][data-f="detail"]', 'Recess duty is on the playground map.');
+      await changeField(mac, '[data-special="T"][data-i="0"]', 'Music');
       await waitRec(mac, async () => (await window.__store.all()).some(r => r.id === 'subblk_blk_d1-930'));
       await open(mac, '#sub/2026-09-14');
       await mac.click('[data-subkind="full"]');

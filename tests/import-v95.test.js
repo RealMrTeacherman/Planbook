@@ -30,7 +30,8 @@ test('every kind of record comes in, in the expected numbers', () => {
   assert.deepEqual(out().counts, {
     student: 5, schoolYear: 1, gradingPeriod: 4, schoolDay: 1, orfCheck: 4, orfGoal: 2,
     station: 4, group: 8, placement: 6, visitor: 1, unit: 2,
-    subject: 9, block: 95, dayPlan: 5, lessonPlan: 12, blockNote: 3, privateNote: 3, familyWeek: 2, subBlock: 5, subPlan: 1
+    subject: 9, block: 95, dayPlan: 5, lessonPlan: 12, blockNote: 3, privateNote: 3, familyWeek: 2, subBlock: 5, subPlan: 1,
+    mark: 8, missingWork: 3, gradebookSettings: 1
   });
 });
 
@@ -168,11 +169,80 @@ test('calendar: school year, four quarters, and days off with their names', () =
 
 test('what is not converted yet is listed as kept', () => {
   const k = out().kept;
-  assert.equal(k['Gradebook marks'], 3);
+  assert.equal(k['Gradebook marks'], undefined, 'marks are converted now, not just kept');
   assert.equal(k['Planner days'], undefined, 'the planner is converted now, not just kept');
   assert.equal(k['lp:settings:v2'], undefined);
   assert.equal(k['iReady rows'], undefined, 'an empty list is not shown');
   assert.equal(k['suite:win:v1'], 1);
+});
+
+// ---------- step 6a: the gradebook ----------
+const marksOf = o => o.records.filter(r => r.type === 'mark');
+test('marks come in one per child, standard and day, with the value, what it was and the note', () => {
+  const o = out();
+  const m = byId(o, 'mark_stu_p8q7r6s_2-OA-A-1_2026-09-15');
+  assert.deepEqual([m.studentId, m.standard, m.date, m.value, m.what, m.note, m.source],
+    ['stu_p8q7r6s', '2.OA.A.1', '2026-09-15', 2, 'Lesson 1-3', 'Used a number line', null]);
+  const plain = byId(o, 'mark_stu_k3j9x2a_2-NBT-B-5_2026-09-28');
+  assert.equal('what' in plain, false, 'no name stays no name: its own assignment');
+  assert.equal('note' in plain, false, 'an empty note is left out');
+});
+
+test('marks worked out from ORF or iReady keep their source and a separate id', () => {
+  const o = out();
+  assert.equal(byId(o, 'mark_orf_stu_k3j9x2a_2-RF-4_2026-09-16').source, 'orf');
+  assert.equal(byId(o, 'mark_iready_stu_z1y2x3w_2-NBT-B-5_2026-09-10').value, 3);
+  assert.equal(marksOf(o).filter(m => m.source).length, 2);
+  assert.match(o.notes.join(' '), /8 gradebook marks came in, 2 of them worked out from the ORF tool or iReady/);
+});
+
+test('a mark for a child no longer in the class list is held back and reported', () => {
+  const o = out();
+  assert.equal(marksOf(o).length, 8);
+  assert.ok(o.heldBack.some(h => h.what === '1 gradebook mark' && /no longer in the class list/.test(h.why)));
+});
+
+test('two marks for one child, standard and day: the later one, which v95 counts, is kept', () => {
+  const f = sample(), g = JSON.parse(f.keys.gb2_standards_v1);
+  g.scores.push({ id: 's9', sid: 'k3j9x2a', std: '2.OA.A.1', v: 1, date: '2026-09-15', note: '', ctx: 'retake' });
+  f.keys.gb2_standards_v1 = JSON.stringify(g);
+  const o = imp.convert(f);
+  const m = byId(o, 'mark_stu_k3j9x2a_2-OA-A-1_2026-09-15');
+  assert.deepEqual([m.value, m.what], [1, 'retake']);
+  assert.equal(marksOf(o).length, 8);
+  assert.match(o.notes.join(' '), /1 mark was a second mark for the same child, standard and day/);
+});
+
+test('a broken mark is held back rather than guessed at', () => {
+  const f = sample(), g = JSON.parse(f.keys.gb2_standards_v1);
+  g.scores.push({ id: 'b1', sid: 'k3j9x2a', std: '2.OA.A.1', v: 7, date: '2026-09-15' },
+    { id: 'b2', sid: 'k3j9x2a', std: 'place value', v: 3, date: '2026-09-15' },
+    { id: 'b3', sid: 'k3j9x2a', std: '2.OA.A.1', v: 3, date: 'Sept 15' });
+  f.keys.gb2_standards_v1 = JSON.stringify(g);
+  const o = imp.convert(f);
+  assert.ok(o.heldBack.some(h => h.what === '3 gradebook marks'));
+  assert.equal(byId(o, 'mark_stu_k3j9x2a_2-OA-A-1_2026-09-15').value, 3, 'the good mark is untouched');
+});
+
+test('work not turned in comes in still out, handed in, or excused', () => {
+  const o = out();
+  const out1 = byId(o, 'miss_stu_ab-2e9_2-OA-A-1_2026-09-15');
+  assert.deepEqual([out1.received, out1.excused, out1.what], [null, false, 'Lesson 1-3']);
+  assert.equal(byId(o, 'miss_stu_p8q7r6s_2-NBT-B-5_2026-09-28').received, '2026-09-30');
+  assert.equal(byId(o, 'miss_stu_z1y2x3w_2-NBT-B-5_2026-09-28').excused, true);
+});
+
+test('the tracked standards and settings come in; a turned-off standard stays off', () => {
+  const s = byId(out(), 'gbset_main');
+  assert.deepEqual(s.on, ['2.OA.A.1', '2.NBT.B.5', '2.RF.4', '2.RL.1', '2.L.4']);
+  assert.deepEqual([s.rule, s.codes, s.subject], ['weighted', 'oregon', 'Math']);
+});
+
+test('the imported gradebook passes the contract', () => {
+  const o = out();
+  const file = { contract: 'classroom-suite', version: contract.version, exportedAt: '2026-10-01T22:04:05.000Z', device: 'v95', records: o.records };
+  const r = validateFile(file, contract);
+  assert.deepEqual(r.errors, []);
 });
 
 test('the report never names a child', () => {

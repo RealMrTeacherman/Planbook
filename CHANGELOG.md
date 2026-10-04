@@ -1,5 +1,46 @@
 # Changelog
 
+## Step 6a — the gradebook: Enter scores
+
+**A Gradebook page** (Planbook home → Gradebook), with Enter scores and Settings. Phone first, in the design you chose: A, "Roster list", with a note line under each child's marks on the iPhone and beside them on the MacBook.
+- **It opens on the day's lesson** from the planner (the one planned, else the one it suggests), as v95 did: the lesson's first Oregon standard and its name ("Lesson 2-4"). The card says so ("Tue, Oct 6 · Lesson 2-4 in the planner"). A typed name is never replaced, and a name is never added beside marks entered without one (that would split an assignment), both as in v95.
+- **Each child:** 1–4 in v95's colors, their last mark ("was 3 · 9/15"), Not in, and a note. Tap a number to save it; tap it again to clear it. A note typed before the mark is kept and saved with it.
+- **Grade all together** for a lesson with two or more standards (a row per standard and All), from the lesson's chips or from "also covers" when the same name is used on the same day.
+- **‹ ›** step through assignments; **Next unfinished**; **Change** opens the subject, standard, date, "What was it?", and the Reveal unit and lesson menus.
+- **Undo** undoes exactly your last action (a mark, a change, a clear, Grade all, a batch of Not in), and puts back only what has not changed since on the other device. It says so if something had.
+- **Log the rest as not in**, and **Still waiting on**, with Handed in and Excuse. Giving a mark takes a child off the list.
+- **Settings:** the class list (add a child; first and last name, Also called, Synergy id, ELD; untick In the class when a child leaves, and their marks stay), and which standards you track, with Math codes shown as Oregon or CCSS.
+
+**Contract version 7:** `mark`, `missingWork` and `gradebookSettings`, all **private** (Drive path only), so on the iPhone your tracked standards arrive with the Drive file, like the marks. One mark per child, per standard, per day; its id is built from those, so the iPhone and MacBook cannot make two. The Firebase rules change only in their header comment; pasting them is optional.
+
+**Import:** your marks (derived ones from ORF and iReady keep their source and show as derived), work not turned in, your tracked standards and settings. A mark for a child no longer on your class list, or one that is not 1 to 4 under a standard code with a date, is held back and reported. If v95 has two marks for one child, standard and day, the later one, which v95 counts, is kept. iReady rows stay in the kept v95 data. The import page now names every kind of record, including the sub plan records it showed by their code names since step 5.
+
+**The standards catalog** (107 standards, 67 on by default) is copied out of v95's gradebook by `tools/extract-standards.js` into `data/standards-grade2.json`, not retyped.
+
+**The gates.**
+- Which standards a guide day covers (a lesson its own, a probe the lessons before it, a review or test the unit) and the CCSS code shown for each match v95's `curriculum.js` at all 143 steps.
+- v95's own gradebook runs in Chrome on the invented class (`tests/gradebook-v95.browser.test.js`): every mark, every assignment with its counts, in order, and the Still waiting on list are the same in Planbook.
+- The device gate, as a test: a mark entered on the iPhone is sent through the Drive folder and shows on the MacBook. **On your real devices this is still yours to do.**
+
+**Differences from v95, on purpose.**
+- A lesson planned but not yet marked taught counts as the day's lesson (as everywhere in the new planner).
+- v95's "Undo last" removes the newest mark in its list, which after a change or a clear is a different mark. Undo here is exact.
+- If every mark on a standard and day already has one name, the card takes it, so re-marking never quietly drops "exit ticket".
+- v95 counts a mark for a child no longer on its class list toward an assignment (so "done" can exceed the class). Planbook holds that mark back at import and says so. The gate compares with v95's count over its class list, and checks that v95 still does this.
+- The ELA "Taught this day" chips came from v95's Planning tab, which you left out, so they did not come across.
+- A note typed before a mark is kept (v95: "Give a mark first").
+
+**Shared now:** subject colors (`core/colors.js`) and the page header and tabs (`core/look.css`), used by the planner and the gradebook.
+
+**Mistakes found and fixed before release.**
+- The invented class's marks were stored as `score`; real v95 data uses `v`. An importer built on the sample alone would have read none of your marks. The sample now has v95's real shapes.
+- **My break check was hollow for a while.** The runner did not copy the new `gradebook/` folder into its throwaway copies, so one test failed in every copy and every break looked caught; I reported "63 caught" on that basis. The runner now copies it and first checks that an unbroken copy passes. All breaks were rerun with that check.
+- Moving the colors made two old planner test races show more often: reading a card, and changing a Settings field, just as a redraw replaced it. The tests now wait for redraws to stop and read or change an element in one step. These were in the tests, not the planner: a person typing in a field is protected from redraws.
+- Four v95 tests ignored `V95_DIR`. HANDOFF gave v95's gradebook as 5,472 lines; it is 5,346.
+- In my first draft of the page: the day's lesson unnamed when it had no grade 2 standards, the standard's label shown twice, and the bottom button cut off on the iPhone.
+
+**Tests.** 290 tests: 289 pass with v95 present (1 skipped, the private names file); 281 pass without it, as on GitHub (9 skipped). Deliberate breaks: 100.
+
 ## Fix — two deliberate breaks GitHub could not catch, and a9fce9c was not green
 
 **What happened:** after a9fce9c, GitHub's `npm test` passed but `npm run test:breaks` still failed. GitHub's log was out of reach, so the whole break check was rerun without v95, as GitHub runs it. All 49 Node-side breaks were caught (a9fce9c's pacing test works). Two browser-side breaks were not, steadily, and neither depends on v95:

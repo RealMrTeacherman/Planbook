@@ -17,18 +17,33 @@ const gb = {
     { id: 't3', name: 'Quarter 3', start: '2027-01-30', end: '2027-04-09' },
     { id: 't4', name: 'Quarter 4', start: '2027-04-10', end: '2027-06-10' }
   ],
-  settings: { teacher: '', year: '2026–2027', yearStart: '2026-09-02', yearEnd: '2027-06-10', orfCuts: { 4: 75, 3: 50, 2: 25 } },
+  settings: { teacher: '', year: '2026–2027', yearStart: '2026-09-02', yearEnd: '2027-06-10', orfCuts: { 4: 75, 3: 50, 2: 25 },
+    rule: 'weighted', mathCodes: 'oregon', subject: 'Math' },
+  // The standards being tracked (v95 'active'): one turned off, one turned on that is off by default.
+  active: { '2.OA.A.1': true, '2.OA.B.2': false, '2.NBT.B.5': true, '2.RF.4': true, '2.RL.1': true, '2.L.4': true },
   orfLink: { o_linked1: 'z1y2x3w' },
   orf: [
     { id: 'orf:r_evening', srcId: 'r_evening', sid: 'k3j9x2a', date: '2026-09-16', srcDay: '2026-09-16', link: true, exclude: false, wcpm: 54 },
     { id: 'orf:r_moved', srcId: 'r_moved', sid: 'p8q7r6s', date: '2026-09-18', srcDay: '2026-09-17', link: true, exclude: true, wcpm: 202 }
   ],
+  // v95's real mark shape: the value is v. Derived marks carry source and are rebuilt by v95 each time.
   scores: [
-    { id: 's1', sid: 'k3j9x2a', std: '2.OA.A.1', date: '2026-09-15', ctx: 'Lesson 1-3', score: 3 },
-    { id: 's2', sid: 'p8q7r6s', std: '2.OA.A.1', date: '2026-09-15', ctx: 'Lesson 1-3', score: 2 },
-    { id: 's3', sid: 'z1y2x3w', std: '2.OA.A.1', date: '2026-09-15', ctx: 'Lesson 1-3', score: 4 }
+    { id: 's1', sid: 'k3j9x2a', std: '2.OA.A.1', v: 3, date: '2026-09-15', note: '', ctx: 'Lesson 1-3' },
+    { id: 's2', sid: 'p8q7r6s', std: '2.OA.A.1', v: 2, date: '2026-09-15', note: 'Used a number line', ctx: 'Lesson 1-3' },
+    { id: 's3', sid: 'z1y2x3w', std: '2.OA.A.1', v: 4, date: '2026-09-15', note: '', ctx: 'Lesson 1-3' },
+    { id: 's4', sid: 'k3j9x2a', std: '2.NBT.B.5', v: 2, date: '2026-09-28', note: '', ctx: '' },             // no name: its own assignment
+    { id: 's5', sid: 'ab', std: '2.NBT.B.5', v: 3, date: '2026-09-28', note: '', ctx: '' },
+    { id: 's6', sid: 'k3j9x2a', std: '2.OA.A.1', v: 4, date: '2026-09-29', note: '', ctx: 'exit ticket' },
+    { id: 's7', sid: 'gone99', std: '2.OA.A.1', v: 3, date: '2026-09-15', note: '', ctx: 'Lesson 1-3' },    // a child no longer in the class list
+    { id: 'orf-orf:r_evening', sid: 'k3j9x2a', std: '2.RF.4', v: 2, date: '2026-09-16', note: '54 WCPM', ctx: 'ORF check', source: 'orf' },
+    { id: 'ir-ir1-2.NBT.B.5', sid: 'z1y2x3w', std: '2.NBT.B.5', v: 3, date: '2026-09-10', note: 'Number and Operations: Early 2', ctx: 'iReady diagnostic', source: 'iready' }
   ],
-  iready: [], missing: [], groupPins: {}
+  iready: [], groupPins: {},
+  missing: [
+    { id: 'm1', sid: 'ab', std: '2.OA.A.1', date: '2026-09-15', ctx: 'Lesson 1-3', received: null, excused: false },
+    { id: 'm2', sid: 'p8q7r6s', std: '2.NBT.B.5', date: '2026-09-28', ctx: '', received: '2026-09-30', excused: false },
+    { id: 'm3', sid: 'z1y2x3w', std: '2.NBT.B.5', date: '2026-09-28', ctx: '', received: null, excused: true }
+  ]
 };
 
 const rr = {

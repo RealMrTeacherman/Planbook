@@ -1,0 +1,861 @@
+{
+ "source": "v95 gradebook/index.html CATALOG, copied by tools/extract-standards.js. Oregon 2021 codes (what Synergy uses).",
+ "standards": [
+  {
+   "code": "2.OA.A.1",
+   "subject": "Math",
+   "domain": "Operations",
+   "on": true,
+   "label": "Add/subtract word problems to 100",
+   "text": "Use addition and subtraction within 100 to solve one- and two-step problems in authentic contexts by using drawings and equations with a symbol for the unknown."
+  },
+  {
+   "code": "2.OA.B.2",
+   "subject": "Math",
+   "domain": "Operations",
+   "on": true,
+   "label": "Fluency within 20",
+   "text": "Fluently add and subtract within 20 using accurate, efficient, and flexible strategies and algorithms based on place value and properties of operations."
+  },
+  {
+   "code": "2.OA.C.3",
+   "subject": "Math",
+   "domain": "Operations",
+   "on": true,
+   "label": "Odd and even",
+   "text": "Determine whether a group up to 20 objects has an odd or even number by pairing objects or counting them by 2s; record using drawings and equations including expressing an even number as a sum of two equal addends."
+  },
+  {
+   "code": "2.OA.C.4",
+   "subject": "Math",
+   "domain": "Operations",
+   "on": true,
+   "label": "Arrays as repeated addition",
+   "text": "Use addition to find the total number of objects arranged in rectangular arrays with up to 5 rows and up to 5 columns; write an equation to express the total as a sum of equal addends."
+  },
+  {
+   "code": "2.NBT.A.1",
+   "subject": "Math",
+   "domain": "Base Ten",
+   "on": true,
+   "label": "Hundreds, tens, ones",
+   "text": "Understand 100 as a bundle of ten tens and that the three digits of a three-digit number represent amounts of hundreds, tens, and ones."
+  },
+  {
+   "code": "2.NBT.A.2",
+   "subject": "Math",
+   "domain": "Base Ten",
+   "on": true,
+   "label": "Count and skip-count to 1000",
+   "text": "Count within 1000; skip-count by 5's, 10's, and 100's."
+  },
+  {
+   "code": "2.NBT.A.3",
+   "subject": "Math",
+   "domain": "Base Ten",
+   "on": true,
+   "label": "Read/write numbers to 1000",
+   "text": "Read and write numbers to 1000 using base-ten numerals, number names, and expanded form."
+  },
+  {
+   "code": "2.NBT.A.4",
+   "subject": "Math",
+   "domain": "Base Ten",
+   "on": true,
+   "label": "Compare 3-digit numbers",
+   "text": "Compare two three-digit numbers based on meanings of the hundreds, tens, and ones digits, using >, =, and < symbols to record the results of comparisons."
+  },
+  {
+   "code": "2.NBT.B.5",
+   "subject": "Math",
+   "domain": "Base Ten",
+   "on": true,
+   "label": "Fluency within 100",
+   "text": "Fluently add and subtract within 100 using accurate, efficient, and flexible strategies based on place value, properties of operations, and/or the relationship between addition and subtraction."
+  },
+  {
+   "code": "2.NBT.B.6",
+   "subject": "Math",
+   "domain": "Base Ten",
+   "on": true,
+   "label": "Add four 2-digit numbers",
+   "text": "Add up to four two-digit numbers using strategies based on place value and properties of operations and describe how two different strategies result in the same sum."
+  },
+  {
+   "code": "2.NBT.B.7",
+   "subject": "Math",
+   "domain": "Base Ten",
+   "on": true,
+   "label": "Add/subtract within 1000",
+   "text": "Add and subtract within 1000 using concrete or visual representations and strategies based on place value, properties of operations, and/or the relationship between addition and subtraction. Relate the strategy to a written method and explain why sometimes it is necessary to compose or decompose tens or hundreds."
+  },
+  {
+   "code": "2.NBT.B.8",
+   "subject": "Math",
+   "domain": "Base Ten",
+   "on": true,
+   "label": "Mentally 10/100 more or less",
+   "text": "Without having to count, mentally find 10 more or 10 less and 100 more or 100 less than a given three-digit number."
+  },
+  {
+   "code": "2.NBT.B.9",
+   "subject": "Math",
+   "domain": "Base Ten",
+   "on": true,
+   "label": "Explain why strategies work",
+   "text": "Explain why strategies to add and subtract work using properties of operations and the relationship between addition and subtraction."
+  },
+  {
+   "code": "2.GM.A.1",
+   "subject": "Math",
+   "domain": "Geometry & Measurement",
+   "on": true,
+   "label": "Shapes and attributes",
+   "text": "Recognize and draw shapes having specified attributes, such as a given number of angles or a given number of equal faces."
+  },
+  {
+   "code": "2.GM.A.2",
+   "subject": "Math",
+   "domain": "Geometry & Measurement",
+   "on": true,
+   "label": "Partition rectangles into squares",
+   "text": "Partition a rectangle into rows and columns of same-size squares and count to find the total number of them."
+  },
+  {
+   "code": "2.GM.A.3",
+   "subject": "Math",
+   "domain": "Geometry & Measurement",
+   "on": true,
+   "label": "Equal parts of shapes",
+   "text": "Partition circles and rectangles into two, three, or four equal parts. Recognize that equal parts of identical wholes need not have the same shape."
+  },
+  {
+   "code": "2.GM.B.4",
+   "subject": "Math",
+   "domain": "Geometry & Measurement",
+   "on": true,
+   "label": "Measure with the right tool",
+   "text": "Measure the length of an object by selecting and using appropriate measurement tools."
+  },
+  {
+   "code": "2.GM.B.5",
+   "subject": "Math",
+   "domain": "Geometry & Measurement",
+   "on": true,
+   "label": "Measure in two units",
+   "text": "Measure the length of an object using two different length units and describe how the measurements relate to the size of the unit chosen."
+  },
+  {
+   "code": "2.GM.B.6",
+   "subject": "Math",
+   "domain": "Geometry & Measurement",
+   "on": true,
+   "label": "Estimate lengths",
+   "text": "Estimate lengths using units of inches, feet, yards, centimeters, and meters."
+  },
+  {
+   "code": "2.GM.B.7",
+   "subject": "Math",
+   "domain": "Geometry & Measurement",
+   "on": true,
+   "label": "Compare two lengths",
+   "text": "Measure two objects and determine the difference in their lengths in terms of a standard length unit."
+  },
+  {
+   "code": "2.GM.C.8",
+   "subject": "Math",
+   "domain": "Geometry & Measurement",
+   "on": true,
+   "label": "Length word problems",
+   "text": "Use addition and subtraction within 100 to solve problems in authentic contexts involving lengths that are given in the same units."
+  },
+  {
+   "code": "2.GM.C.9",
+   "subject": "Math",
+   "domain": "Geometry & Measurement",
+   "on": true,
+   "label": "Number line sums/differences",
+   "text": "Represent whole number lengths on a number line diagram; use number lines to find sums and differences within 100."
+  },
+  {
+   "code": "2.GM.D.10",
+   "subject": "Math",
+   "domain": "Geometry & Measurement",
+   "on": true,
+   "label": "Time to five minutes",
+   "text": "Tell and write time from analog and digital clocks to the nearest five minutes, using a.m. and p.m."
+  },
+  {
+   "code": "2.GM.D.11",
+   "subject": "Math",
+   "domain": "Geometry & Measurement",
+   "on": true,
+   "label": "Money problems",
+   "text": "Solve problems in authentic contexts involving dollar bills, quarters, dimes, nickels, and pennies, using $ and ¢ symbols appropriately."
+  },
+  {
+   "code": "2.DR.A.1",
+   "subject": "Math",
+   "domain": "Data Reasoning",
+   "on": true,
+   "label": "Pose questions, collect data",
+   "text": "Generate questions to investigate situations within the classroom. Collect or consider data that can naturally answer questions by using measurements with whole-number units."
+  },
+  {
+   "code": "2.DR.B.2",
+   "subject": "Math",
+   "domain": "Data Reasoning",
+   "on": true,
+   "label": "Interpret data",
+   "text": "Analyze data with a single-unit scale and interpret information presented to answer investigative questions."
+  },
+  {
+   "code": "2.RF.2",
+   "subject": "ELA",
+   "domain": "Foundational Skills",
+   "on": true,
+   "label": "Phonological awareness",
+   "text": "Demonstrate command of spoken words in familiar two- and three-syllable words."
+  },
+  {
+   "code": "2.RF.2a",
+   "subject": "ELA",
+   "domain": "Foundational Skills",
+   "on": false,
+   "label": "Substitute medial vowels",
+   "text": "Substitute medial vowels in one-syllable words."
+  },
+  {
+   "code": "2.RF.2b",
+   "subject": "ELA",
+   "domain": "Foundational Skills",
+   "on": false,
+   "label": "Blends in final position",
+   "text": "Substitute and delete parts of blends in the final position in one-syllable words."
+  },
+  {
+   "code": "2.RF.3",
+   "subject": "ELA",
+   "domain": "Foundational Skills",
+   "on": true,
+   "label": "Phonics and word analysis",
+   "text": "Know and apply grade-level phonics and word analysis skills in decoding words."
+  },
+  {
+   "code": "2.RF.3a",
+   "subject": "ELA",
+   "domain": "Foundational Skills",
+   "on": false,
+   "label": "Long vs. short vowels",
+   "text": "Distinguish long and short vowels when reading regularly spelled one-syllable words."
+  },
+  {
+   "code": "2.RF.3b",
+   "subject": "ELA",
+   "domain": "Foundational Skills",
+   "on": false,
+   "label": "Vowel teams",
+   "text": "Know spelling-sound correspondences for additional common vowel teams."
+  },
+  {
+   "code": "2.RF.3c",
+   "subject": "ELA",
+   "domain": "Foundational Skills",
+   "on": false,
+   "label": "Two-syllable long vowels",
+   "text": "Decode regularly spelled two-syllable words with long vowels."
+  },
+  {
+   "code": "2.RF.3d",
+   "subject": "ELA",
+   "domain": "Foundational Skills",
+   "on": false,
+   "label": "Prefixes and suffixes",
+   "text": "Decode words with grade-appropriate prefixes and suffixes."
+  },
+  {
+   "code": "2.RF.3e",
+   "subject": "ELA",
+   "domain": "Foundational Skills",
+   "on": false,
+   "label": "Inconsistent spellings",
+   "text": "Identify words with inconsistent but common spelling-sound correspondences."
+  },
+  {
+   "code": "2.RF.3f",
+   "subject": "ELA",
+   "domain": "Foundational Skills",
+   "on": false,
+   "label": "Irregularly spelled words",
+   "text": "Recognize and read grade-appropriate irregularly spelled words."
+  },
+  {
+   "code": "2.RF.4",
+   "subject": "ELA",
+   "domain": "Foundational Skills",
+   "on": true,
+   "label": "Fluency",
+   "text": "Read with sufficient accuracy and fluency to support comprehension."
+  },
+  {
+   "code": "2.RF.4a",
+   "subject": "ELA",
+   "domain": "Foundational Skills",
+   "on": false,
+   "label": "Read with purpose",
+   "text": "Read grade-level text with purpose and understanding."
+  },
+  {
+   "code": "2.RF.4b",
+   "subject": "ELA",
+   "domain": "Foundational Skills",
+   "on": false,
+   "label": "Accuracy, rate, expression",
+   "text": "Read grade-level text orally with accuracy, appropriate rate, and expression on successive readings."
+  },
+  {
+   "code": "2.RF.4c",
+   "subject": "ELA",
+   "domain": "Foundational Skills",
+   "on": false,
+   "label": "Self-correct",
+   "text": "Use context to confirm or self-correct word recognition and understanding, rereading as necessary."
+  },
+  {
+   "code": "2.RL.1",
+   "subject": "ELA",
+   "domain": "Reading Literature",
+   "on": true,
+   "label": "Ask and answer questions",
+   "text": "Ask and answer such questions as who, what, where, when, why, and how to demonstrate understanding of key details in a text."
+  },
+  {
+   "code": "2.RL.2",
+   "subject": "ELA",
+   "domain": "Reading Literature",
+   "on": true,
+   "label": "Recount and find the lesson",
+   "text": "Recount stories, including fables and folktales from diverse cultures, and determine their central message, lesson, or moral."
+  },
+  {
+   "code": "2.RL.3",
+   "subject": "ELA",
+   "domain": "Reading Literature",
+   "on": true,
+   "label": "Characters and problem",
+   "text": "Describe how characters in a story respond to major events and challenges, including identifying the characters' feelings, the plot or problem, and how it is resolved."
+  },
+  {
+   "code": "2.RL.4",
+   "subject": "ELA",
+   "domain": "Reading Literature",
+   "on": true,
+   "label": "Rhythm and word meaning",
+   "text": "Describe how words and phrases supply rhythm and meaning in a story, poem, or song."
+  },
+  {
+   "code": "2.RL.5",
+   "subject": "ELA",
+   "domain": "Reading Literature",
+   "on": true,
+   "label": "Story structure",
+   "text": "Describe the overall structure of a story, including describing how the beginning introduces the story, how the middle progresses the action, and the ending concludes the action."
+  },
+  {
+   "code": "2.RL.6",
+   "subject": "ELA",
+   "domain": "Reading Literature",
+   "on": true,
+   "label": "Points of view",
+   "text": "Acknowledge differences in the points of view of characters, including by speaking in a different voice for each character when reading dialogue aloud."
+  },
+  {
+   "code": "2.RL.7",
+   "subject": "ELA",
+   "domain": "Reading Literature",
+   "on": true,
+   "label": "Illustrations and words",
+   "text": "Use information gained from the illustrations and words in a print or digital text to demonstrate understanding of its characters, setting, or plot."
+  },
+  {
+   "code": "2.RL.9",
+   "subject": "ELA",
+   "domain": "Reading Literature",
+   "on": true,
+   "label": "Compare story versions",
+   "text": "Compare and contrast two or more versions of the same story by different authors or from different cultures."
+  },
+  {
+   "code": "2.RL.10",
+   "subject": "ELA",
+   "domain": "Reading Literature",
+   "on": true,
+   "label": "Grade 2–3 literature",
+   "text": "By the end of the year, read and comprehend literature, including stories and poetry, in the grades 2–3 text complexity band proficiently, with scaffolding as needed at the high end of the range."
+  },
+  {
+   "code": "2.RI.1",
+   "subject": "ELA",
+   "domain": "Reading Informational",
+   "on": true,
+   "label": "Ask and answer questions",
+   "text": "Ask and answer such questions as who, what, where, when, why, and how to demonstrate understanding of key details in a text."
+  },
+  {
+   "code": "2.RI.2",
+   "subject": "ELA",
+   "domain": "Reading Informational",
+   "on": true,
+   "label": "Main topic",
+   "text": "Identify the main topic of a multi-paragraph text as well as the focus of specific paragraphs within the text."
+  },
+  {
+   "code": "2.RI.3",
+   "subject": "ELA",
+   "domain": "Reading Informational",
+   "on": true,
+   "label": "Connections in a text",
+   "text": "Describe the connection between a series of historical events, scientific ideas or concepts, or steps in technical procedures in a text."
+  },
+  {
+   "code": "2.RI.4",
+   "subject": "ELA",
+   "domain": "Reading Informational",
+   "on": true,
+   "label": "Word meaning",
+   "text": "Determine the meaning of words and phrases in a text relevant to a grade 2 topic or subject area."
+  },
+  {
+   "code": "2.RI.5",
+   "subject": "ELA",
+   "domain": "Reading Informational",
+   "on": true,
+   "label": "Text features",
+   "text": "Know and use various text features to locate key facts or information in a text efficiently."
+  },
+  {
+   "code": "2.RI.6",
+   "subject": "ELA",
+   "domain": "Reading Informational",
+   "on": true,
+   "label": "Author's purpose",
+   "text": "Identify the main purpose of a text, including what the author wants to answer, explain, or describe."
+  },
+  {
+   "code": "2.RI.7",
+   "subject": "ELA",
+   "domain": "Reading Informational",
+   "on": true,
+   "label": "Images clarify text",
+   "text": "Explain how specific images contribute to and clarify a text."
+  },
+  {
+   "code": "2.RI.8",
+   "subject": "ELA",
+   "domain": "Reading Informational",
+   "on": true,
+   "label": "Reasons support points",
+   "text": "Describe how reasons support specific points the author makes in a text."
+  },
+  {
+   "code": "2.RI.9",
+   "subject": "ELA",
+   "domain": "Reading Informational",
+   "on": true,
+   "label": "Compare two texts",
+   "text": "Compare and contrast the most important points presented by two texts on the same topic."
+  },
+  {
+   "code": "2.RI.10",
+   "subject": "ELA",
+   "domain": "Reading Informational",
+   "on": true,
+   "label": "Grade 2–3 informational",
+   "text": "By the end of year, read and comprehend informational texts, including history/social studies, science, and technical texts, in the grades 2–3 text complexity band proficiently, with scaffolding as needed at the high end of the range."
+  },
+  {
+   "code": "2.W.1",
+   "subject": "ELA",
+   "domain": "Writing",
+   "on": true,
+   "label": "Opinion writing",
+   "text": "Write opinion pieces in which they introduce the topic or book they are writing about, state an opinion, supply reasons that support the opinion, use linking words to connect opinion and reasons, and provide a concluding statement or section."
+  },
+  {
+   "code": "2.W.2",
+   "subject": "ELA",
+   "domain": "Writing",
+   "on": true,
+   "label": "Informative writing",
+   "text": "Write multi-paragraph informative/explanatory texts to examine a topic and convey ideas and information clearly."
+  },
+  {
+   "code": "2.W.2a",
+   "subject": "ELA",
+   "domain": "Writing",
+   "on": false,
+   "label": "Introduce and group info",
+   "text": "Introduce a topic and group related information together; include illustrations when useful in aiding comprehension."
+  },
+  {
+   "code": "2.W.2b",
+   "subject": "ELA",
+   "domain": "Writing",
+   "on": false,
+   "label": "Facts and details",
+   "text": "Develop the topic with facts, definitions, and details."
+  },
+  {
+   "code": "2.W.2c",
+   "subject": "ELA",
+   "domain": "Writing",
+   "on": false,
+   "label": "Linking words",
+   "text": "Use linking words and phrases to connect ideas within categories of information."
+  },
+  {
+   "code": "2.W.3",
+   "subject": "ELA",
+   "domain": "Writing",
+   "on": true,
+   "label": "Narrative writing",
+   "text": "Write narratives to develop real or imagined experiences or events using effective technique, descriptive details, and clear event sequences."
+  },
+  {
+   "code": "2.W.3a",
+   "subject": "ELA",
+   "domain": "Writing",
+   "on": false,
+   "label": "Situation and characters",
+   "text": "Establish a situation and introduce a narrator and/or characters; organize an event sequence that unfolds naturally."
+  },
+  {
+   "code": "2.W.3b",
+   "subject": "ELA",
+   "domain": "Writing",
+   "on": false,
+   "label": "Dialogue and description",
+   "text": "Use dialogue and descriptions of actions, thoughts, and feelings to develop experiences and events or show the response of characters to situations."
+  },
+  {
+   "code": "2.W.3c",
+   "subject": "ELA",
+   "domain": "Writing",
+   "on": false,
+   "label": "Temporal words",
+   "text": "Use temporal words and phrases to signal event order."
+  },
+  {
+   "code": "2.W.3d",
+   "subject": "ELA",
+   "domain": "Writing",
+   "on": false,
+   "label": "Sense of closure",
+   "text": "Provide a sense of closure."
+  },
+  {
+   "code": "2.W.5",
+   "subject": "ELA",
+   "domain": "Writing",
+   "on": true,
+   "label": "Revise and edit",
+   "text": "With guidance and support, focus on a topic and strengthen writing as needed by revising and editing."
+  },
+  {
+   "code": "2.W.6",
+   "subject": "ELA",
+   "domain": "Writing",
+   "on": true,
+   "label": "Publish with technology",
+   "text": "With guidance and support, use technology to produce and publish writing as well as to interact and collaborate with others."
+  },
+  {
+   "code": "2.W.7",
+   "subject": "ELA",
+   "domain": "Writing",
+   "on": true,
+   "label": "Shared research",
+   "text": "Participate in shared research and writing projects."
+  },
+  {
+   "code": "2.W.8",
+   "subject": "ELA",
+   "domain": "Writing",
+   "on": true,
+   "label": "Gather information",
+   "text": "Recall information from experiences or gather information from provided sources to answer a question."
+  },
+  {
+   "code": "2.L.1",
+   "subject": "ELA",
+   "domain": "Language",
+   "on": true,
+   "label": "Grammar and usage",
+   "text": "Demonstrate command of the conventions of standard English grammar and usage when writing or speaking."
+  },
+  {
+   "code": "2.L.1a",
+   "subject": "ELA",
+   "domain": "Language",
+   "on": false,
+   "label": "Collective nouns",
+   "text": "Use collective nouns."
+  },
+  {
+   "code": "2.L.1b",
+   "subject": "ELA",
+   "domain": "Language",
+   "on": false,
+   "label": "Irregular plural nouns",
+   "text": "Form and use frequently occurring irregular plural nouns."
+  },
+  {
+   "code": "2.L.1c",
+   "subject": "ELA",
+   "domain": "Language",
+   "on": false,
+   "label": "Reflexive pronouns",
+   "text": "Use reflexive pronouns."
+  },
+  {
+   "code": "2.L.1d",
+   "subject": "ELA",
+   "domain": "Language",
+   "on": false,
+   "label": "Irregular past tense",
+   "text": "Form and use the past tense of frequently occurring irregular verbs."
+  },
+  {
+   "code": "2.L.1e",
+   "subject": "ELA",
+   "domain": "Language",
+   "on": false,
+   "label": "Adjectives and adverbs",
+   "text": "Use adjectives and adverbs, and choose between them depending on what is to be modified."
+  },
+  {
+   "code": "2.L.1f",
+   "subject": "ELA",
+   "domain": "Language",
+   "on": false,
+   "label": "Simple and compound sentences",
+   "text": "Produce, expand, and rearrange complete simple and compound sentences."
+  },
+  {
+   "code": "2.L.2",
+   "subject": "ELA",
+   "domain": "Language",
+   "on": true,
+   "label": "Capitals, punctuation, spelling",
+   "text": "Demonstrate command of the conventions of standard English capitalization, punctuation, and spelling when writing."
+  },
+  {
+   "code": "2.L.2a",
+   "subject": "ELA",
+   "domain": "Language",
+   "on": false,
+   "label": "Capitalize proper nouns",
+   "text": "Capitalize holidays, product names, and geographic names."
+  },
+  {
+   "code": "2.L.2b",
+   "subject": "ELA",
+   "domain": "Language",
+   "on": false,
+   "label": "Commas in letters",
+   "text": "Use commas in greetings and closings of letters."
+  },
+  {
+   "code": "2.L.2c",
+   "subject": "ELA",
+   "domain": "Language",
+   "on": false,
+   "label": "Apostrophes",
+   "text": "Use an apostrophe to form contractions and frequently occurring possessives."
+  },
+  {
+   "code": "2.L.2d",
+   "subject": "ELA",
+   "domain": "Language",
+   "on": false,
+   "label": "Spelling patterns",
+   "text": "Generalize learned spelling patterns when writing words."
+  },
+  {
+   "code": "2.L.2e",
+   "subject": "ELA",
+   "domain": "Language",
+   "on": false,
+   "label": "Use reference materials",
+   "text": "Consult reference materials, including beginning dictionaries, both print and digital, as needed to check and correct spellings."
+  },
+  {
+   "code": "2.L.3",
+   "subject": "ELA",
+   "domain": "Language",
+   "on": true,
+   "label": "Knowledge of language",
+   "text": "Use knowledge of language and its conventions when writing, speaking, reading, or listening."
+  },
+  {
+   "code": "2.L.3a",
+   "subject": "ELA",
+   "domain": "Language",
+   "on": false,
+   "label": "Formal and informal English",
+   "text": "Compare formal and informal uses of English."
+  },
+  {
+   "code": "2.L.4",
+   "subject": "ELA",
+   "domain": "Language",
+   "on": true,
+   "label": "Unknown word strategies",
+   "text": "Determine or clarify the meaning of unknown and multiple-meaning words and phrases based on grade 2 reading and content, choosing from an array of strategies."
+  },
+  {
+   "code": "2.L.4a",
+   "subject": "ELA",
+   "domain": "Language",
+   "on": false,
+   "label": "Context clues",
+   "text": "Use sentence-level context as a clue to the meaning of a word or phrase."
+  },
+  {
+   "code": "2.L.4b",
+   "subject": "ELA",
+   "domain": "Language",
+   "on": false,
+   "label": "Prefix meaning",
+   "text": "Determine the meaning of the new word formed when a known prefix is added to a known word."
+  },
+  {
+   "code": "2.L.4c",
+   "subject": "ELA",
+   "domain": "Language",
+   "on": false,
+   "label": "Root words",
+   "text": "Use a known root word as a clue to the meaning of an unknown word with the same root."
+  },
+  {
+   "code": "2.L.4d",
+   "subject": "ELA",
+   "domain": "Language",
+   "on": false,
+   "label": "Compound words",
+   "text": "Use knowledge of the meaning of individual words to predict the meaning of compound words."
+  },
+  {
+   "code": "2.L.4e",
+   "subject": "ELA",
+   "domain": "Language",
+   "on": false,
+   "label": "Glossaries and dictionaries",
+   "text": "Use glossaries, beginning dictionaries, and other reference materials, both print and digital, to determine or clarify the meaning of words and phrases."
+  },
+  {
+   "code": "2.L.5",
+   "subject": "ELA",
+   "domain": "Language",
+   "on": true,
+   "label": "Word relationships",
+   "text": "Demonstrate understanding of word relationships and nuances in word meanings."
+  },
+  {
+   "code": "2.L.5a",
+   "subject": "ELA",
+   "domain": "Language",
+   "on": false,
+   "label": "Real-life connections",
+   "text": "Identify real-life connections between words and their use."
+  },
+  {
+   "code": "2.L.5b",
+   "subject": "ELA",
+   "domain": "Language",
+   "on": false,
+   "label": "Shades of meaning",
+   "text": "Distinguish shades of meaning among closely related verbs and closely related adjectives."
+  },
+  {
+   "code": "2.L.6",
+   "subject": "ELA",
+   "domain": "Language",
+   "on": true,
+   "label": "Use new vocabulary",
+   "text": "Use words and phrases acquired through conversations, reading and being read to, and responding to texts, including using adjectives and adverbs to describe."
+  },
+  {
+   "code": "2.SL.1",
+   "subject": "ELA",
+   "domain": "Speaking & Listening",
+   "on": true,
+   "label": "Collaborative conversations",
+   "text": "Participate in collaborative conversations with diverse partners about grade 2 topics and texts with peers and adults in small and larger groups."
+  },
+  {
+   "code": "2.SL.1a",
+   "subject": "ELA",
+   "domain": "Speaking & Listening",
+   "on": false,
+   "label": "Follow discussion rules",
+   "text": "Follow agreed-upon rules for discussions."
+  },
+  {
+   "code": "2.SL.1b",
+   "subject": "ELA",
+   "domain": "Speaking & Listening",
+   "on": false,
+   "label": "Build on others' talk",
+   "text": "Build on others' talk in conversations by linking their comments to the remarks of others."
+  },
+  {
+   "code": "2.SL.1c",
+   "subject": "ELA",
+   "domain": "Speaking & Listening",
+   "on": false,
+   "label": "Ask for clarification",
+   "text": "Ask for clarification and further explanation as needed about the topics and texts under discussion."
+  },
+  {
+   "code": "2.SL.2",
+   "subject": "ELA",
+   "domain": "Speaking & Listening",
+   "on": true,
+   "label": "Recount read-alouds",
+   "text": "Recount or describe key ideas or details from a text read aloud or information presented orally or through other media."
+  },
+  {
+   "code": "2.SL.3",
+   "subject": "ELA",
+   "domain": "Speaking & Listening",
+   "on": true,
+   "label": "Question a speaker",
+   "text": "Ask and answer questions about what a speaker says in order to clarify comprehension, gather additional information, or deepen understanding of a topic or issue."
+  },
+  {
+   "code": "2.SL.4",
+   "subject": "ELA",
+   "domain": "Speaking & Listening",
+   "on": true,
+   "label": "Tell a story audibly",
+   "text": "Tell a story or recount an experience with appropriate facts and relevant, descriptive details, speaking audibly in coherent sentences."
+  },
+  {
+   "code": "2.SL.5",
+   "subject": "ELA",
+   "domain": "Speaking & Listening",
+   "on": true,
+   "label": "Audio and visual displays",
+   "text": "Create audio recordings of stories or poems; add drawings or other visual displays to stories or recounts of experiences when appropriate to clarify ideas, thoughts, and feelings."
+  },
+  {
+   "code": "2.SL.6",
+   "subject": "ELA",
+   "domain": "Speaking & Listening",
+   "on": true,
+   "label": "Complete sentences",
+   "text": "Produce complete sentences when appropriate to task and situation in order to provide requested detail or clarification."
+  }
+ ]
+}

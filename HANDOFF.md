@@ -22,7 +22,10 @@ The rebuild of the v95 suite as two tools on one written data contract: Gradeboo
 | `planner/` | The planner page: Day and Week, phone and desktop. |
 | `data/` | The district calendar, Reveal guide, Benchmark scope and sequence, planner defaults. Extracted from v95's code by running it. |
 | `firestore.rules`, `tools/make-rules.js` | Server security rules, generated from the contract. Re-run the tool after any contract change. |
-| `tests/` | Node tests, a real-browser test, deliberate breaks (`mutations.js`), the names guard. |
+| `core/grade.js` | Gradebook logic: the day's lesson, a guide day's standards (v95's rule), assignments, every entry action with exact undo. Pure; tested against v95. |
+| `core/colors.js` | Subject colors (`deep`, `tint`), shared by every page. |
+| `gradebook/` | The gradebook page: Enter scores and Settings (class list, standards). |
+| `tests/` | Node tests, real-browser tests, deliberate breaks (`mutations.js`), the names guard. |
 
 ## Rules carried over from v95
 - No real student name in any file: code, tests, docs. Fixtures use invented names. Private files (standing sub notes, Walk to WIN lists, `private-names.txt`) are never committed; `.gitignore` lists them.
@@ -57,7 +60,7 @@ The rebuild of the v95 suite as two tools on one written data contract: Gradeboo
 - A lesson is one `lessonPlan` per subject per day (`les_<date>_<subjectId>`). No record means "suggested": the next position after the last day **marked taught**.
 - A day off on the calendar wins over a plan; to plan on it, remove the day off. The district calendar is applied on every planner open with an early timestamp, so any change you make wins and a removal stays removed.
 - Every save of planner text goes through `nameCheck`. The importer moves name-bearing notes to `privateNote` and **refuses to run without the name check**; every page that imports must load `core/names.js` first.
-- **The look is "Color blocks"** (chosen by the teacher from four directions). `core/look.css` holds the shared tokens; `planner/planner.css` the tiles. A subject's color is deepened in `planner.js` (`deep`) until white text reaches 4.5:1; never hand-pick a chip color without that check.
+- **The look is "Color blocks"** (chosen by the teacher from four directions). `core/look.css` holds the shared tokens; `planner/planner.css` the tiles. The page header and tabs are in `core/look.css` too, for every page. A subject's color is deepened by `deep` in `core/colors.js` until white text reaches 4.5:1; never hand-pick a chip color without that check.
 - Desktop and phone are equal: each release is checked by screenshot at 1280 px and 390 px. The Week view is a grid from 900 px and a list below.
 
 ## The family email
@@ -70,16 +73,27 @@ The rebuild of the v95 suite as two tools on one written data contract: Gradeboo
 - `core/subplan.js` supplies the copied builders with the day (blocksFor, lessonFor, notes, math board) from records.
 - Standing notes are `subPlan` (one record, `subplan_main`) and per-block `subBlock`; both private.
 
+## The gradebook, and what is easy to break
+- Everything is private (Drive path): `mark`, `missingWork`, `gradebookSettings`, and the class list. So the iPhone's tracked standards come with the Drive file, like its marks.
+- **One mark per child, per standard, per day** (what v95 actually does). The id is built from them (`mark_<source_><studentId>_<standard>_<date>`, dots as dashes), so two devices make one record. A derived mark (ORF, iReady) carries `source` and its own id.
+- **Undo is exact and per action** (a mark, a change, a clear, a batch). It puts back only what has not changed since, on either device. v95's "remove the newest mark" is not copied.
+- The card follows the planner's lesson for the day (planned, else suggested) when it opens and when the date changes, and takes the lesson's first standard and name, never over a typed name or beside unnamed marks. If every mark on a standard and day shares one name, the card takes it, so re-marking never renames.
+- A note typed before a mark is held and saved with the mark. **Never redraw under a field being typed in**; the page waits until it is left (a test and a deliberate break cover it).
+- The standards catalog is `data/standards-grade2.json`, extracted by `node tools/extract-standards.js <v95 gradebook/index.html>`.
+- `core/grade.js`'s step-to-standards rule is checked against v95's `curriculum.js` at all 143 guide steps; the gate (`tests/gradebook-v95.browser.test.js`) runs v95's gradebook in Chrome.
+
 ## Releasing
 - **Wait for GitHub's run to finish green** before calling a release done. Tests comparing against v95 skip there, so a deliberate break must also be caught by a test that needs no v95: check with v95 hidden and `node tests/mutations.js --node-only`.
 - **Any change to a cached file needs a new `VERSION` in `sw.js`** (and `package.json`), or devices keep the old script. Step 4d's follow-up missed this once.
+- **A new folder must be added to `copyProject` in `tests/mutations.js`.** The runner now checks an unbroken copy passes first (it once did not, and every break looked caught).
+- In browser tests, wait for the page to stop redrawing (`settled`) before reading or tapping, and read an element in one `evaluate`, not `$eval` (a redraw can land between finding and reading).
 
 ## Where the build stands, and what is next
 
-Done and passed on the teacher's devices: 0 contract, 1 store and v95 import, 2 Drive-folder sync (MacBook side; the iPhone uses the Drive app: Send to the Drive app, Load via Drive → Send a copy → Save to Files), 3 live sync (Firebase), 4a–4d planner (Day, Week, Settings, family email, Phonics inside Reading, Agenda look per device), 5 sub plans.
+Done and passed on the teacher's devices: 0 contract, 1 store and v95 import, 2 Drive-folder sync (MacBook side; the iPhone uses the Drive app: Send to the Drive app, Load via Drive → Send a copy → Save to Files), 3 live sync (Firebase), 4a–4d planner (Day, Week, Settings, family email, Phonics inside Reading, Agenda look per device), 5 sub plans. Built and gated in the test suite, waiting for the teacher's devices: 6a Enter scores.
 
-**Next: step 6, the gradebook.** Approved shape (from v95's 5,472-line gradebook/index.html):
-- **6a: Enter scores.** Phone-first entry opening on the day's Reveal lesson (v95 `plannedStepOn`, `followDayLesson`); assignments are marks sharing std + date + ctx; undo; "not turned in". Roster in Settings (add, rename, ELD, aka, Synergy id). Import the 524 marks (gb2_standards_v1.scores; derived marks carry `source`). All private (Drive path). Gate: a mark entered on the iPhone reaches the MacBook through the Drive app (the step 2 device gate).
+**Now: step 6, the gradebook.** Approved shape (from v95's 5,346-line gradebook/index.html; an earlier note here said 5,472, a miscount):
+- **6a: Enter scores.** Phone-first entry opening on the day's Reveal lesson (v95 `plannedStepOn`, `followDayLesson`); assignments are marks sharing std + date + ctx; undo; "not turned in". Roster in Settings (add, rename, ELD, aka, Synergy id). Import the 524 marks (gb2_standards_v1.scores; derived marks carry `source`). All private (Drive path). Gate: a mark entered on the iPhone reaches the MacBook through the Drive app (the step 2 device gate). **Approved details (Oct 2026):** one mark per child per standard per day; imported iReady marks kept, shown as derived; Grade all together in 6a; design A ("Roster list") with an always-visible note line, under the marks on the phone and beside them on the MacBook. **Built**; the device gate is the teacher's.
 - **6b: Report card.** Port v95 exactly: `computeMark` (rule latest / mean / weighted, default weighted), `roundMark`, `lineMark`, `carriedMark`, `finalMark`, overrides, report lines, quarters; Synergy print and CSV. ORF feeds marks on **fluency only** (comprehension does not count), with v95's cuts 4 = 75th, 3 = 50th, 2 = 25th of end-of-year H&T 2017. Marks stored under Oregon codes. Gate: run v95's gradebook in Chrome on the same data (as tests/subplan-v95.browser.test.js does) and match every student × line × quarter.
 - **6c: Groups & patterns.** Skill groups (`buildSkillGroups`, GROUP_DECAY 0.62), pins in groupPins, "Not placed" tray.
 - **Left out by the teacher's choice:** the iReady, Students, Planning and Fluency tabs (ORF has its own step 7). The 51 iReady rows stay in the kept v95 data.
@@ -87,4 +101,4 @@ Done and passed on the teacher's devices: 0 contract, 1 store and v95 import, 2 
 Each release keeps the habits: a plan approved first, tests from a clean copy, deliberate breaks (`npm run test:breaks`), screenshots at 1280 and 390 px in both looks, a frank CHANGELOG, a new `VERSION` in sw.js, and GitHub's run green.
 
 ## Running the tests
-`npm install` once, then `npm test` and `npm run test:breaks`. The browser test finds Chrome on its own on a Mac; elsewhere set `CHROME` to a Chrome binary.
+`npm install` once, then `npm test` and `npm run test:breaks`. The browser test finds Chrome on its own on a Mac; elsewhere set `CHROME` to a Chrome binary. Tests that compare against v95 look in `V95_DIR` (default `/home/claude/v95/classroom-suite`; the teacher's v98 zip is that copy) and skip when it is absent; `V95_DIR=/nonexistent` runs them as GitHub does.

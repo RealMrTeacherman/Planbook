@@ -97,6 +97,12 @@ function expectedId(rec, typeSpec) {
     case 'bnote_<date>_<blockId>': return `bnote_${rec.date}_${rec.blockId}`;
     case 'subplan_main': return 'subplan_main';
     case 'subblk_<blockId>': return `subblk_${rec.blockId}`;
+    // A standard's dots become dashes so the id stays a plain id.
+    case 'mark_<source_><studentId>_<standard>_<date>':
+      return rec.standard ? `mark_${rec.source ? rec.source + '_' : ''}${rec.studentId}_${rec.standard.replace(/\./g, '-')}_${rec.date}` : null;
+    case 'miss_<studentId>_<standard>_<date>':
+      return rec.standard ? `miss_${rec.studentId}_${rec.standard.replace(/\./g, '-')}_${rec.date}` : null;
+    case 'gbset_main': return 'gbset_main';
     case 'fam_<key>': return rec.key ? 'fam_' + String(rec.key).replace(/[:|]/g, '-') : null;
     case 'plc_<groupKind>_<unitId>_<studentId> for reading, plc_<groupKind>_<studentId> otherwise':
       return rec.groupKind === 'reading' ? `plc_reading_${rec.unitId}_${rec.studentId}` : `plc_${rec.groupKind}_${rec.studentId}`;

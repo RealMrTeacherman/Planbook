@@ -81,3 +81,30 @@ label.field span { min-width: 3.5em; color: var(--ink-soft); }
 input[type=text], input[type=email], input[type=password], input[type=date] { flex: 1; min-width: 0; font: 1rem var(--sans); min-height: 48px; padding: 0 14px;
   border: 0; border-radius: 12px; background: var(--paper); color: var(--ink); }
 button.compact { min-height: 44px; width: auto; padding: 0 14px; }
+
+/* ---------- The page header, shared by the app's pages ---------- */
+.top { margin-bottom: 18px; }
+.top-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.home { font-size: .85rem; font-weight: 600; color: var(--ink-soft); }
+.top h1 { margin: 2px 0; font-size: 1.9rem; }
+.chip { display: inline-flex; align-items: center; min-height: 32px; padding: 0 12px; border-radius: 999px; background: var(--panel);
+  font-size: .85rem; font-weight: 600; color: var(--ink-soft); text-decoration: none; }
+.chip.ok { color: #16706B; }
+.chip.warn { color: var(--warn); background: var(--warn-soft); }
+
+.tabs { display: inline-flex; background: var(--panel); border-radius: var(--radius-sm); padding: 4px; }
+.tabs button { width: auto; min-height: 40px; border: 0; border-radius: 10px; background: transparent; color: var(--ink); padding: 0 16px; }
+.tabs button[aria-selected="true"] { background: var(--ink); color: #fff; }
+.tabs button + button { margin: 0; }
+.look-agenda body { font-family: 'Barlow', var(--sans); background: #F5F6F8; }
+.look-agenda .top { background: #1E2A33; color: #fff; margin: -16px -16px 18px; padding: 14px 16px 12px; }
+.look-agenda .top h1 { font-family: 'Barlow', var(--sans); font-weight: 600; letter-spacing: 0; font-size: 1.5rem; }
+.look-agenda .home, .look-agenda .top a { color: #B8C4CE; }
+.look-agenda .chip { background: transparent; border: 1px solid #3A4A56; color: #DDE3E8; }
+.look-agenda .chip.ok { color: #9FE0D2; }
+.look-agenda .tabs { background: #2B3943; border-radius: 10px; }
+.look-agenda .tabs button { color: #fff; border-radius: 8px; }
+.look-agenda .tabs button[aria-selected="true"] { background: #fff; color: #1E2A33; }
+@media (min-width: 900px) {
+  .look-agenda .top { margin: -40px -16px 22px; padding: 18px 28px 14px; }
+}

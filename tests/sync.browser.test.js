@@ -268,10 +268,10 @@ test('MacBook and iPhone stay in step through the Drive folder', { skip, timeout
       await phone.setOfflineMode(false);
     });
 
-    await t.test('the home page links to both pages, at phone width', async () => {
+    await t.test('the home page links to every page, at phone width', async () => {
       await phone.goto(`${base}/`, { waitUntil: 'domcontentloaded' });
       const links = await phone.$$eval('a.row', as => as.map(a => a.getAttribute('href')));
-      assert.deepEqual(links, ['planner/', 'sync/', 'import/']);
+      assert.deepEqual(links, ['planner/', 'gradebook/', 'sync/', 'import/']);
       await phone.screenshot({ path: path.join(SHOTS, '7-home-phone.png'), fullPage: true });
     });
 

@@ -1,19 +1,6 @@
 /* Planner, "Color blocks": each lesson is a tile in its subject's color. Phone first; desktop from 900px. */
 body.wide main { max-width: 1680px; }
 
-.top { margin-bottom: 18px; }
-.top-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.home { font-size: .85rem; font-weight: 600; color: var(--ink-soft); }
-.top h1 { margin: 2px 0; font-size: 1.9rem; }
-.chip { display: inline-flex; align-items: center; min-height: 32px; padding: 0 12px; border-radius: 999px; background: var(--panel);
-  font-size: .85rem; font-weight: 600; color: var(--ink-soft); text-decoration: none; }
-.chip.ok { color: #16706B; }
-.chip.warn { color: var(--warn); background: var(--warn-soft); }
-
-.tabs { display: inline-flex; background: var(--panel); border-radius: var(--radius-sm); padding: 4px; }
-.tabs button { width: auto; min-height: 40px; border: 0; border-radius: 10px; background: transparent; color: var(--ink); padding: 0 16px; }
-.tabs button[aria-selected="true"] { background: var(--ink); color: #fff; }
-.tabs button + button { margin: 0; }
 
 .datenav { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
 .datenav button { margin: 0 !important; min-width: 48px; border: 0; background: var(--panel); color: var(--ink); font-size: 1.2rem; }
@@ -257,15 +244,6 @@ table.pace tr.here td { background: var(--accent-soft); }
 @media (min-width: 900px) { .settings > .sset:nth-child(2) { grid-column: 1 / -1; } }
 
 /* ================= The Agenda look (html.look-agenda), chosen per device ================= */
-.look-agenda body { font-family: 'Barlow', var(--sans); background: #F5F6F8; }
-.look-agenda .top { background: #1E2A33; color: #fff; margin: -16px -16px 18px; padding: 14px 16px 12px; }
-.look-agenda .top h1 { font-family: 'Barlow', var(--sans); font-weight: 600; letter-spacing: 0; font-size: 1.5rem; }
-.look-agenda .home, .look-agenda .top a { color: #B8C4CE; }
-.look-agenda .chip { background: transparent; border: 1px solid #3A4A56; color: #DDE3E8; }
-.look-agenda .chip.ok { color: #9FE0D2; }
-.look-agenda .tabs { background: #2B3943; border-radius: 10px; }
-.look-agenda .tabs button { color: #fff; border-radius: 8px; }
-.look-agenda .tabs button[aria-selected="true"] { background: #fff; color: #1E2A33; }
 .look-agenda .datenav button { background: transparent; border: 1px solid #3A4A56; color: #fff; border-radius: 8px; min-height: 40px; }
 .look-agenda #dateLabel { font-family: var(--mono); font-weight: 600; font-size: .95rem; color: #FFD38A; }
 .look-agenda .side, .look-agenda .wday { border-radius: 10px; border: 1px solid #E3E6EA; }
@@ -310,7 +288,6 @@ table.pace tr.here td { background: var(--accent-soft); }
 }
 @media (min-width: 900px) {
   .look-agenda .day { grid-template-columns: minmax(0, 1fr) 440px; }
-  .look-agenda .top { margin: -40px -16px 22px; padding: 18px 28px 14px; }
 }
 .apane .cur { grid-template-columns: 1fr !important; }
 .apane .tile, .ainline .tile { overflow-wrap: anywhere; }

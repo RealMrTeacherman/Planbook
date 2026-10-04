@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gradebook · Planbook</title>
+<link rel="stylesheet" href="../core/look.css">
+<link rel="stylesheet" href="gradebook.css">
+<link rel="manifest" href="../manifest.webmanifest">
+<meta name="theme-color" content="#10655C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Planbook">
+<link rel="apple-touch-icon" href="../icons/icon-180.png">
+<script src="../core/boot.js"></script>
+</head>
+<body class="wide">
+<main>
+  <header class="top">
+    <div class="top-row">
+      <a href="../" class="home">Planbook</a>
+      <a href="../sync/" class="chip" id="liveChip">Live sync</a>
+    </div>
+    <div class="top-row">
+      <h1 id="heading">Gradebook</h1>
+      <nav class="tabs" role="tablist" aria-label="View">
+        <button role="tab" id="tabEnter" data-view="enter">Enter scores</button>
+        <button role="tab" id="tabSettings" data-view="settings">Settings</button>
+      </nav>
+    </div>
+  </header>
+
+  <section class="panel warn" id="problem" hidden role="alert"><p id="problemText"></p></section>
+  <p class="toast" id="toast" role="status" aria-live="polite"></p>
+  <section class="panel" id="empty" hidden>
+    <h2>No class list yet</h2>
+    <p class="small">Bring in your v95 data on <a href="../import/">Bring in v95 data</a>, or load the Drive file on the <a href="../sync/">Sync page</a>, or add your children in <a href="#settings">Settings</a>.</p>
+  </section>
+
+  <section id="enterView" hidden></section>
+  <section id="settingsView" hidden></section>
+</main>
+
+<script src="../contract/validate.js"></script>
+<script src="../core/merge.js"></script>
+<script src="../core/store.js"></script>
+<script src="../core/transport.js"></script>
+<script src="../settings/firebase.js"></script>
+<script src="../core/names.js"></script>
+<script src="../core/live.js"></script>
+<script src="../core/live-firebase.js"></script>
+<script src="../core/plan.js"></script>
+<script src="../core/colors.js"></script>
+<script src="../core/grade.js"></script>
+<script src="gradebook.js"></script>
+</body>
+</html>

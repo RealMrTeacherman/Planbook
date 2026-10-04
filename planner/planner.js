@@ -135,22 +135,8 @@
     pen: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>',
     lock: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>'
   };
-  // A subject's color and the pale wash its tile sits on.
-  function tint(hex, keep = 0.16) {
-    const m = /^#([0-9a-f]{6})$/i.exec(hex || '');
-    if (!m) return '#E6EBF1';
-    const n = parseInt(m[1], 16), mix = c => Math.round(c * keep + 255 * (1 - keep));
-    return `rgb(${mix(n >> 16)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
-  }
-  // White text on the subject's color must reach 4.5:1, so a light color is deepened until it does.
-  function deep(hex) {
-    const m = /^#([0-9a-f]{6})$/i.exec(hex || '');
-    if (!m) return '#45607C';
-    let [r, g, b] = [0, 8, 16].map(sh => (parseInt(m[1], 16) >> (16 - sh)) & 255);
-    const lum = () => [r, g, b].map(c => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; }).reduce((a, c, i) => a + c * [0.2126, 0.7152, 0.0722][i], 0);
-    for (let i = 0; i < 40 && 1.05 / (lum() + 0.05) < 4.5; i++) { r = Math.round(r * 0.92); g = Math.round(g * 0.92); b = Math.round(b * 0.92); }
-    return '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
-  }
+  // A subject's color, deepened for white text, and the pale wash its tile sits on (core/colors.js).
+  const { tint, deep } = SuiteColors;
   const colorVars = sb => `--subj:${deep(sb.color)};--tint:${tint(sb.color)}`;
   // "The guide has you in Unit 2 today": the pacing guide against this year's calendar.
   function paceLine(sb, pos, date) {

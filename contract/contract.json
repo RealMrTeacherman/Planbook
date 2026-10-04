@@ -1,6 +1,6 @@
 {
   "contract": "classroom-suite",
-  "version": 6,
+  "version": 7,
   "notes": [
     "Every record in every tool carries the envelope. Only the owner tool writes a type; readers never write it.",
     "Space: 'live' types can never name a child and may sync through Firebase on the teacher's personal account. 'private' types can name a child and travel only through the district Drive folder. A live type may not point at a private one. Text fields marked nameCheck are checked against the class list before a live record is saved.",
@@ -13,7 +13,8 @@
     "Version 3 adds picks to a subject: the quick choices a free-text subject offers (e.g. Assembly, Enrichment, More math). No version 2 record changes.",
     "Version 4 adds familyWeek: the reading goal chosen for the family email and the week's spelling list, kept per Benchmark week (key bm:<unit>|<week>) or per calendar week (wk:<Monday>). No version 3 record changes.",
     "Version 5 adds within to a subject: shown inside another subject's card on the Day view (Phonics inside Reading), while still tracked on its own. No version 4 record changes.",
-    "Version 6 adds the sub plan's private records: subPlan (the standing notes, one record) and subBlock (a schedule block's What to do and If you cannot find it). Both name children, so both are private. No version 5 record changes."
+    "Version 6 adds the sub plan's private records: subPlan (the standing notes, one record) and subBlock (a schedule block's What to do and If you cannot find it). Both name children, so both are private. No version 5 record changes.",
+    "Version 7 adds the gradebook's marks (mark), work not turned in (missingWork) and its settings (gradebookSettings). All private. A mark's id is built from child, standard and date, so two devices marking the same child the same day make one record. No version 6 record changes."
   ],
   "file": {
     "fields": {
@@ -1088,6 +1089,145 @@
         "emergency": {
           "type": "string",
           "max": 4000
+        }
+      }
+    },
+    "mark": {
+      "owner": "gradebook",
+      "space": "private",
+      "readers": [],
+      "idPrefix": "mark",
+      "idRule": "mark_<source_><studentId>_<standard>_<date>",
+      "note": "One mark per child, per standard, per day (as v95 saves them). In the id the standard's dots become dashes. A mark the teacher gave has no source; one worked out from the ORF tool or iReady carries it and is shown as derived.",
+      "fromV95": "gb2_standards_v1.scores {id, sid, std, v, date, ctx, note, source}",
+      "fields": {
+        "studentId": {
+          "type": "ref",
+          "required": true,
+          "to": "student"
+        },
+        "standard": {
+          "type": "string",
+          "required": true,
+          "max": 20,
+          "pattern": "^[0-9]\\.[A-Z]{1,3}(\\.[A-Z])?\\.[0-9]{1,2}$",
+          "note": "Oregon 2021 code, as Synergy uses (v95 std)."
+        },
+        "date": {
+          "type": "date",
+          "required": true
+        },
+        "value": {
+          "type": "int",
+          "required": true,
+          "min": 1,
+          "max": 4,
+          "note": "v95 v"
+        },
+        "what": {
+          "type": "string",
+          "max": 120,
+          "note": "What it was: 'Lesson 2-3', 'exit ticket' (v95 ctx). With standard and date it names the assignment."
+        },
+        "note": {
+          "type": "string",
+          "max": 500
+        },
+        "source": {
+          "type": "enum",
+          "values": [
+            "orf",
+            "iready"
+          ],
+          "nullable": true
+        }
+      }
+    },
+    "missingWork": {
+      "owner": "gradebook",
+      "space": "private",
+      "readers": [],
+      "idPrefix": "miss",
+      "idRule": "miss_<studentId>_<standard>_<date>",
+      "note": "Work not turned in, for one child and one assignment. Giving a mark marks it handed in.",
+      "fromV95": "gb2_standards_v1.missing {id, sid, std, date, ctx, received, excused}",
+      "fields": {
+        "studentId": {
+          "type": "ref",
+          "required": true,
+          "to": "student"
+        },
+        "standard": {
+          "type": "string",
+          "required": true,
+          "max": 20,
+          "pattern": "^[0-9]\\.[A-Z]{1,3}(\\.[A-Z])?\\.[0-9]{1,2}$"
+        },
+        "date": {
+          "type": "date",
+          "required": true
+        },
+        "what": {
+          "type": "string",
+          "max": 120
+        },
+        "received": {
+          "type": "date",
+          "nullable": true,
+          "note": "The day it was handed in; null while still out."
+        },
+        "excused": {
+          "type": "bool",
+          "required": true
+        }
+      }
+    },
+    "gradebookSettings": {
+      "owner": "gradebook",
+      "space": "private",
+      "readers": [],
+      "idPrefix": "gbset",
+      "idRule": "gbset_main",
+      "note": "The gradebook's settings, one record.",
+      "fromV95": "gb2_standards_v1.active, .settings.rule, .settings.mathCodes, .settings.subject",
+      "fields": {
+        "on": {
+          "type": "array",
+          "required": true,
+          "max": 200,
+          "of": {
+            "type": "string",
+            "max": 20
+          },
+          "note": "The standards being tracked (v95 active)."
+        },
+        "rule": {
+          "type": "enum",
+          "required": true,
+          "values": [
+            "latest",
+            "mean",
+            "weighted"
+          ],
+          "note": "How marks become a report card mark (step 6b). v95's default is weighted."
+        },
+        "codes": {
+          "type": "enum",
+          "required": true,
+          "values": [
+            "oregon",
+            "ccss"
+          ],
+          "note": "How Math codes are shown. Marks are always stored under Oregon codes."
+        },
+        "subject": {
+          "type": "enum",
+          "required": true,
+          "values": [
+            "Math",
+            "ELA",
+            "All"
+          ]
         }
       }
     }

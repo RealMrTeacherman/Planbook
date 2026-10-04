@@ -471,6 +471,63 @@
     if (madePrivate) notes.push(`${plural(madePrivate, 'planner note names', 'planner notes name')} a child on your class list, so ${madePrivate === 1 ? 'it was' : 'they were'} kept as private notes: they travel only through the Drive folder, never live sync.`);
     if (namesLeft) heldBack.push({ what: `${plural(namesLeft, 'block name, subject name or lesson', 'block names, subject names or lessons')}`, why: 'they contain a name from your class list and will sync live; rename them in the planner' });
 
+    // ---- Gradebook: marks, work not turned in, settings ----
+    // One mark per child, standard and day, as v95 saves them; if v95 has two, the later one in its
+    // list is the one v95 counts, so that one is kept. Derived marks (ORF, iReady) keep their source.
+    const STD = /^[0-9]\.[A-Z]{1,3}(\.[A-Z])?\.[0-9]{1,2}$/;
+    const stdKey = c => String(c).replace(/\./g, '-');
+    const markIds = new Map();
+    let markGone = 0, markBad = 0, markTwice = 0;
+    for (const x of Array.isArray(gb.scores) ? gb.scores : []) {
+      if (!x) continue;
+      const sid = stuId.get(String(x.sid));
+      if (!sid) { markGone++; continue; }
+      const v = Number(x.v), source = x.source == null || x.source === '' ? null : String(x.source);
+      if (!STD.test(String(x.std)) || !isDate(x.date) || !Number.isInteger(v) || v < 1 || v > 4 || (source && source !== 'orf' && source !== 'iready')) { markBad++; continue; }
+      const id = `mark_${source ? source + '_' : ''}${sid}_${stdKey(x.std)}_${x.date}`;
+      const f = { studentId: sid, standard: String(x.std), date: x.date, value: v, source };
+      if (cut(x.ctx, 120)) f.what = cut(x.ctx, 120);
+      if (cut(x.note, 500)) f.note = cut(x.note, 500);
+      if (markIds.has(id)) markTwice++;
+      markIds.set(id, rec(id, 'mark', f));
+    }
+    const marks = [...markIds.values()];
+    records.push(...marks);
+    const derived = marks.filter(m => m.source).length;
+    if (marks.length) notes.push(`${plural(marks.length, 'gradebook mark', 'gradebook marks')} came in` + (derived ? `, ${derived} of them worked out from the ORF tool or iReady (shown as derived).` : '.'));
+    if (markTwice) notes.push(`${plural(markTwice, 'mark was', 'marks were')} a second mark for the same child, standard and day; the later one, which v95 counts, was kept.`);
+    if (markGone) heldBack.push({ what: plural(markGone, 'gradebook mark', 'gradebook marks'), why: 'for a child no longer in the class list' });
+    if (markBad) heldBack.push({ what: plural(markBad, 'gradebook mark', 'gradebook marks'), why: 'not a mark from 1 to 4 under a standard code, with a date' });
+
+    // Not turned in. If v95 has two for one child and assignment, one still open wins, else the later.
+    const missIds = new Map();
+    let missGone = 0;
+    for (const m of Array.isArray(gb.missing) ? gb.missing : []) {
+      if (!m) continue;
+      const sid = stuId.get(String(m.sid));
+      if (!sid) { missGone++; continue; }
+      if (!STD.test(String(m.std)) || !isDate(m.date)) continue;
+      const id = `miss_${sid}_${stdKey(m.std)}_${m.date}`;
+      const f = { studentId: sid, standard: String(m.std), date: m.date, received: isDate(m.received) ? m.received : null, excused: !!m.excused };
+      if (cut(m.ctx, 120)) f.what = cut(m.ctx, 120);
+      const open = r => !r.received && !r.excused;
+      const have = missIds.get(id);
+      if (!have || open(f) || !open(have)) missIds.set(id, rec(id, 'missingWork', f));
+    }
+    records.push(...missIds.values());
+    if (missGone) heldBack.push({ what: plural(missGone, 'not-turned-in entry', 'not-turned-in entries'), why: 'for a child no longer in the class list' });
+
+    // Settings. With no list of standards in the file, the gradebook starts from the defaults.
+    if (gb.active && typeof gb.active === 'object') {
+      const st = gb.settings || {};
+      records.push(rec('gbset_main', 'gradebookSettings', {
+        on: Object.keys(gb.active).filter(c => gb.active[c] && STD.test(c)).slice(0, 200),
+        rule: ['latest', 'mean', 'weighted'].includes(st.rule) ? st.rule : 'weighted',
+        codes: st.mathCodes === 'ccss' ? 'ccss' : 'oregon',
+        subject: ['Math', 'ELA', 'All'].includes(st.subject) ? st.subject : 'Math'
+      }));
+    }
+
     // ---- Report ----
     const counts = {};
     for (const r of records) counts[r.type] = (counts[r.type] || 0) + 1;
@@ -478,9 +535,7 @@
     const sizeOf = v => { const p = (typeof v === 'string') ? (() => { try { return JSON.parse(v); } catch (e) { return null; } })() : v; return p; };
     const g2 = sizeOf(keys.gb2_standards_v1) || {};
     const some = (label, n) => { if (n) kept[label] = n; };
-    some('Gradebook marks', Array.isArray(g2.scores) ? g2.scores.length : 0);
     some('iReady rows', Array.isArray(g2.iready) ? g2.iready.length : 0);
-    some('Not-turned-in entries', Array.isArray(g2.missing) ? g2.missing.length : 0);
     for (const k of ['suite:subplan:v1', 'suite:win:v1']) if (k in keys) kept[k] = 1;
 
     return { records, archive, from: file.from || null, savedAt: T, counts, kept, notes, heldBack };

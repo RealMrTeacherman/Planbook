@@ -3,6 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const V95_DIR = process.env.V95_DIR || '/home/claude/v95/classroom-suite';
 const vm = require('node:vm');
 const ROOT = path.join(__dirname, '..');
 const read = f => JSON.parse(fs.readFileSync(path.join(ROOT, f), 'utf8'));
@@ -16,8 +17,8 @@ const out = imp.convert(read('tests/fixtures/v95-sample.json'), { names: require
 const D = (extra = []) => FAM.collect(out.records.concat(extra), reveal, wording);
 const text = r => FAM.html(r).replace(/<[^>]+>/g, '\n').split('\n').map(s => s.trim()).filter(Boolean);
 
-test('v95\'s family wording is copied exactly from its source (when v95 is here)', { skip: fs.existsSync('/home/claude/v95/classroom-suite/curriculum.js') ? false : 'v95 not here' }, () => {
-  const src = fs.readFileSync('/home/claude/v95/classroom-suite/curriculum.js', 'utf8');
+test('v95\'s family wording is copied exactly from its source (when v95 is here)', { skip: fs.existsSync(path.join(V95_DIR, 'curriculum.js')) ? false : 'v95 not here' }, () => {
+  const src = fs.readFileSync(path.join(V95_DIR, 'curriculum.js'), 'utf8');
   const mine = fs.readFileSync(path.join(ROOT, 'core', 'family-v95.js'), 'utf8');
   for (const name of ['var FAM_MATH', 'var FAM_META', 'var FAM_COMP', 'function famSummary', 'function parseSpelling']) {
     const a = src.indexOf(name), b = mine.indexOf(name);

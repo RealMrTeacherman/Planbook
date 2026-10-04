@@ -57,7 +57,11 @@ function sample() {
       env('pnote_a1b2c3d4', 'privateNote', { about: 'standing', weekday: 1, blockId: 'blk_d1-0930', text: 'Mila to speech' }),
       env('fam_bm-1-1', 'familyWeek', { key: 'bm:1|1', goal: 'Metacognitive: Create Mental Images', spelling: 'hat, map' }),
       env('subplan_main', 'subPlan', { signal: 'Clap twice', watch: [{ name: 'Mila', note: 'Needs a break' }], specials: { M: ['Library', 'PE'] } }),
-      env('subblk_blk_d1-1015', 'subBlock', { blockId: 'blk_d1-1015', detail: 'Guide on my desk', emergency: 'Number Corner page' })
+      env('subblk_blk_d1-1015', 'subBlock', { blockId: 'blk_d1-1015', detail: 'Guide on my desk', emergency: 'Number Corner page' }),
+      env('mark_stu_a1b2c3d4e5_2-NBT-B-5_2026-10-05', 'mark', { studentId: 'stu_a1b2c3d4e5', standard: '2.NBT.B.5', date: '2026-10-05', value: 3, what: 'Lesson 2-3', note: 'Used a number line', source: null }),
+      env('mark_orf_stu_a1b2c3d4e5_2-RF-4_2026-09-20', 'mark', { studentId: 'stu_a1b2c3d4e5', standard: '2.RF.4', date: '2026-09-20', value: 2, what: 'ORF check', note: '54 WCPM', source: 'orf' }),
+      env('miss_stu_f6g7h8i9j0_2-NBT-B-5_2026-10-05', 'missingWork', { studentId: 'stu_f6g7h8i9j0', standard: '2.NBT.B.5', date: '2026-10-05', what: 'Lesson 2-3', received: null, excused: false }),
+      env('gbset_main', 'gradebookSettings', { on: ['2.NBT.B.5', '2.RF.4'], rule: 'weighted', codes: 'oregon', subject: 'Math' })
     ]
   };
 }
@@ -104,8 +108,26 @@ test('a field not in the contract is refused', () => {
 });
 
 test('unknown record type is refused', () => {
-  const f = sample(); f.records.push(env('mark_abcd', 'mark', {}));
+  const f = sample(); f.records.push(env('hwk_abcd', 'homework', {}));
   expectFail(f, 'unknown type');
+});
+
+test('a mark\'s id is built from its child, standard and date', () => {
+  const f = sample(); find(f, 'mark_stu_a1b2c3d4e5_2-NBT-B-5_2026-10-05').date = '2026-10-06';
+  expectFail(f, 'must be mark_stu_a1b2c3d4e5_2-NBT-B-5_2026-10-06');
+  const g = sample(); find(g, 'mark_orf_stu_a1b2c3d4e5_2-RF-4_2026-09-20').source = null;
+  expectFail(g, 'must be mark_stu_a1b2c3d4e5_2-RF-4_2026-09-20');
+  const h = sample(); find(h, 'miss_stu_f6g7h8i9j0_2-NBT-B-5_2026-10-05').standard = '2.NBT.B.6';
+  expectFail(h, 'must be miss_stu_f6g7h8i9j0_2-NBT-B-6_2026-10-05');
+});
+
+test('a mark is 1 to 4, under a real standard code, for a child in the file', () => {
+  const f = sample(); find(f, 'mark_stu_a1b2c3d4e5_2-NBT-B-5_2026-10-05').value = 5;
+  expectFail(f, 'above 4');
+  const g = sample(); const m = find(g, 'mark_stu_a1b2c3d4e5_2-NBT-B-5_2026-10-05'); m.standard = 'NBT 5';
+  expectFail(g, 'bad format');
+  const h = sample(); h.records = h.records.filter(r => r.id !== 'stu_f6g7h8i9j0');
+  expectFail(h, 'stu_f6g7h8i9j0 is not in the file');
 });
 
 test('impossible dates and local times are refused', () => {
