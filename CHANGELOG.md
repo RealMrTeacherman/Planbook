@@ -1,5 +1,27 @@
 # Changelog
 
+## Step 4c — the family email
+
+**A Family email button on the Week view** opens the coming week in families' words, ready to edit and paste. It defaults to next week from Friday on, and ‹ › moves by week. On the MacBook the email sits on the right and the controls on the left; on the iPhone the controls come first. Copy puts a formatted version (bullets) and a plain-text version on the clipboard.
+- **Math, Reading and Phonics follow v95 exactly:** lessons in families' words, merged into lines; the big question, the reading goal you choose, words to listen for; sounds and spelling, and your spelling list.
+- **v95's family wording is copied out of its source** by `tools/extract-family.js` into `core/family-v95.js`, not retyped. A test checks the copy against v95's file.
+- **New: Writing,** from Benchmark's writing task, with "Beginning" in a unit's first week and "Continuing" after. The wording is in `data/family-email.json`.
+- **New: a closing sentence** from the topics typed in Science / Social Studies, Health/SEL and STEAM ("We will also explore …, and much, much more!"). It is configured in the same file.
+- **Day notes, WIN and the 9:45 block are never included.**
+- **Choosing a goal or typing spelling words updates just that line,** so hand edits stay. Once you edit the email, a change arriving from the other device does not rebuild it.
+- **One difference from v95, on purpose:** a lesson planned but not yet taught counts as what's coming. In v95 an untaught saved day meant "skipped".
+
+**Contract version 4:** `familyWeek` holds the chosen goal and spelling list, per Benchmark week (`bm:1|1`) or calendar week. Your v95 choices are imported. **Paste the new `firestore.rules` into Firebase.**
+
+**The gate.** v95's own planner runs in Chrome on the invented class, with its clock set to each week, and the new email's Math, Reading and Phonics lines match it word for word for two weeks (`tests/family-v95.browser.test.js`; skipped where v95 is absent, e.g. on GitHub).
+
+**Found in v95:** its family preview's week arrows close the preview. Opening a new sheet calls `closeSheet()`, and the old dialog's late "close" event then removes the new one. The new email is a page, not a sheet.
+
+**Mistakes and loose ends.**
+- In my tests: the copy check matched my generated file's header comment and read past the copied piece; a "not a week" key that was in fact valid; v95's full month names; clicking v95's arrows; triple-click selecting only one line of a text box; a click racing the redraw after a color change.
+- The closing first lowercased "Oscar's"; a topic starting with a class-list name now keeps its capital. On a device without the class list (the iPhone, until it loads the Drive file) it cannot tell, so edit those by hand.
+- **Unexplained:** the contrast test failed once in about eight full runs and has not recurred. Its message now reports the color and page it measured, so a repeat will say why.
+
 ## Step 4b — the planner's Settings
 
 **A Settings tab beside Day and Week.**

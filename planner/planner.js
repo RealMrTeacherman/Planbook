@@ -13,12 +13,12 @@
   function problem(text) { $('problemText').textContent = text; $('problem').hidden = !text; }
 
   // ---------- open everything ----------
-  let store, live, contract, t, FLAGS, D;
+  let store, live, contract, t, FLAGS, D, REVEAL_DATA, WORDING;
   try {
     const get = u => fetch(u).then(r => { if (!r.ok) throw new Error(`${u} did not load`); return r.json(); });
-    const [c, reveal, bench, cal, defs] = await Promise.all([get('../contract/contract.json'), get('../data/reveal-grade2.json'),
-      get('../data/benchmark-grade2.json'), get('../data/calendar-2026-27.json'), get('../data/planner-defaults.json')]);
-    contract = c; FLAGS = defs.flags; D = defs;
+    const [c, reveal, bench, cal, defs, fw] = await Promise.all([get('../contract/contract.json'), get('../data/reveal-grade2.json'),
+      get('../data/benchmark-grade2.json'), get('../data/calendar-2026-27.json'), get('../data/planner-defaults.json'), get('../data/family-email.json')]);
+    contract = c; FLAGS = defs.flags; D = defs; REVEAL_DATA = reveal; WORDING = fw;
     P.useCurriculum(reveal, bench);
     store = await SuiteStore.open({ contract });
     store.persist();
@@ -39,9 +39,10 @@
   }
 
   // ---------- the data, indexed ----------
-  let X = null;
+  let X = null, ALL = [];
   async function index() {
     const all = (await store.all()).filter(r => !r.deletedAt);
+    ALL = all;
     const by = type => all.filter(r => r.type === type);
     const map = (list, key) => Object.fromEntries(list.map(r => [key(r), r]));
     const subjects = by('subject').sort((a, b) => a.order - b.order);
@@ -51,19 +52,19 @@
       lesson: map(lessons, r => r.date + '|' + r.subjectId), dayPlan: map(by('dayPlan'), r => r.date),
       bnote: map(by('blockNote'), r => r.date + '|' + r.blockId), days: map(by('schoolDay'), r => r.date),
       year: by('schoolYear').sort((a, b) => a.firstDay < b.firstDay ? 1 : -1)[0] || null,
-      pnotes: by('privateNote'), students: by('student'), periods: map(by('gradingPeriod'), r => r.id)
+      pnotes: by('privateNote'), students: by('student'), periods: map(by('gradingPeriod'), r => r.id), family: map(by('familyWeek'), r => r.id)
     };
   }
 
   // ---------- routing ----------
   function route() {
-    const m = /^#(day|week|settings)\/(\d{4}-\d{2}-\d{2})$/.exec(location.hash);
+    const m = /^#(day|week|settings|family)\/(\d{4}-\d{2}-\d{2})$/.exec(location.hash);
     return m ? { view: m[1], date: m[2] } : { view: 'day', date: todayIso() };
   }
   const go = (view, date) => { location.hash = `#${view}/${date}`; };
   function step(dir) {
     const r = route();
-    if (r.view === 'week') return go('week', P.addDays(r.date, 7 * dir));
+    if (r.view === 'week' || r.view === 'family') return go(r.view, P.addDays(r.date, 7 * dir));
     let d = P.addDays(r.date, dir);
     while ([0, 6].includes(P.weekday(d))) d = P.addDays(d, dir);
     go('day', d);
@@ -326,7 +327,8 @@
     const list = `<div class="week-days">${dates.map(d => `<section class="wday"><h2><a href="#day/${d}">${esc(longDate(d))}</a></h2>
       ${st[d].school ? on.map(sb => `<div class="wline" style="${colorVars(sb)}"><span class="s">${esc(sb.name)}</span><span>${cell(sb, d)}</span></div>`).join('') : `<p class="muted">${esc(st[d].label)}</p>`}
       </section>`).join('')}</div>`;
-    $('weekView').innerHTML = grid + list;
+    $('weekView').innerHTML = `<div class="week-actions"><button data-famopen="${esc(FAM.defaultWeek(date, todayIso()))}">Family email</button>
+      <span class="small">The coming week in families’ words, ready to edit and paste.</span></div>` + grid + list;
   }
 
   // ---------- settings ----------
@@ -507,6 +509,90 @@
 
   // ---------- render ----------
   let queued = false;
+  // ---------- the family email ----------
+  const FAM = SuiteFamily;
+  let famShown = null, famEdited = false;
+  function renderFamily(date) {
+    const mon = P.weekOf(date)[0];
+    // Once the email has been edited by hand, a change arriving from elsewhere never rebuilds it.
+    if (famShown === mon && famEdited) return;
+    const r = FAM.build(FAM.collect(ALL, REVEAL_DATA, WORDING), mon);
+    const fam = (X.family || {})[r.familyId] || {};
+    famShown = mon; famEdited = false;
+    $('dateLabel').textContent = `${FAM.mdy(r.from)} – ${FAM.mdy(r.to)}`;
+    $('famView').innerHTML = `<div class="fam">
+      <section class="side fam-tools">
+        <p class="small"><a href="#week/${mon}">‹ Back to the week</a></p>
+        ${r.goalOpts.length ? `<h2>Reading goal</h2><p class="small">Pick the one most useful for families to practise at home.</p>
+          <div class="goals" role="radiogroup" aria-label="Reading goal">${r.goalOpts.map(o => `<label class="goal"><input type="radio" name="famgoal" value="${esc(o.src)}"${r.goal && r.goal.src === o.src ? ' checked' : ''}> <span>${esc(o.t)}</span></label>`).join('')}</div>` : ''}
+        <h2>Spelling words</h2>
+        <label class="sf"><span>This week’s list, one per line or with commas</span><textarea id="famSpell" rows="4">${esc(fam.spelling || '')}</textarea></label>
+        <p class="small">${/^bm:/.test(r.spellKey) ? `Kept with Benchmark Unit ${esc(r.spellKey.slice(3).replace('|', ', Week '))}, so it’s here next year too. ` : ''}Built from the planner, Reveal and Benchmark. Your day notes are never included.</p>
+      </section>
+      <section class="side fam-mail"><div class="side-head"><h2>Edit anything before you copy</h2><button id="famCopy" class="compact">Copy the email</button></div>
+        <p class="small" id="famCopied" role="status"></p>
+        <div class="fam-prev" id="famPrev" contenteditable="true" spellcheck="true" aria-label="The family email">${FAM.html(r)}</div></section></div>`;
+    $('famPrev').addEventListener('input', () => { famEdited = true; });
+    $('famView').dataset.familyId = r.familyId; $('famView').dataset.key = r.spellKey;
+  }
+  async function saveFamily(change) {
+    const id = $('famView').dataset.familyId, key = $('famView').dataset.key;
+    const cur = (await store.all()).find(x => x.id === id) || { id, type: 'familyWeek', deletedAt: null, key };
+    const next = Object.assign({}, cur, change, { deletedAt: null });
+    Object.keys(change).forEach(k => { if (!change[k]) delete next[k]; });
+    await store.write([next], 'the family email');
+  }
+  // Put a new goal or spelling list into the email without rebuilding it, so hand edits are kept (as v95 did).
+  function patchFam(sel, text, headId) {
+    const prev = $('famPrev');
+    let li = prev.querySelector(sel);
+    if (li) { if (text) li.textContent = text; else li.remove(); return; }
+    if (!text) return;
+    let head = prev.querySelector(`[data-fam-head="${headId}"]`), ul = head && head.nextElementSibling && head.nextElementSibling.tagName === 'UL' ? head.nextElementSibling : null;
+    if (!ul) {
+      head = document.createElement('p'); head.dataset.famHead = headId; head.innerHTML = `<b>${headId === 'phonics' ? 'Phonics' : 'Reading'}</b>`;
+      ul = document.createElement('ul');
+      const before = prev.querySelector('[data-fam-head="writing"], [data-fam-close]');
+      before ? (prev.insertBefore(head, before), prev.insertBefore(ul, before)) : (prev.appendChild(head), prev.appendChild(ul));
+    }
+    li = document.createElement('li'); li.setAttribute(sel.slice(1, -1), ''); li.textContent = text; ul.appendChild(li);
+  }
+  document.addEventListener('change', async e => {
+    if (!$('famView').contains(e.target)) return;
+    try {
+      if (e.target.name === 'famgoal') {
+        await saveFamily({ goal: e.target.value });
+        patchFam('[data-fam-goal]', e.target.nextElementSibling.textContent.trim(), 'reading');
+      } else if (e.target.id === 'famSpell') {
+        const v = e.target.value;
+        if (v.trim() && (await nameCheck(v)) !== 'live') { problem('Spelling lists sync live; take the name out first.'); return; }
+        await saveFamily({ spelling: v });
+        const words = SuiteFamilyV95.parseSpelling(v);
+        patchFam('[data-fam-spell]', words.length ? SuiteFamilyV95.spellLine(words) : '', 'phonics');
+      }
+      famEdited = true;
+    } catch (err) { problem('Not saved: ' + err.message); }
+  });
+  // Copy as formatted text (so it pastes as a bulleted list) with a plain-text copy beside it.
+  function famText(el) {
+    const t = [];
+    [...el.children].forEach(n => {
+      if (n.tagName === 'UL') [...n.children].forEach(li => t.push('• ' + li.textContent.trim()));
+      else { if (t.length) t.push(''); t.push(n.textContent.trim()); }
+    });
+    return t.join('\n');
+  }
+  async function famCopy() {
+    const el = $('famPrev'), html = el.innerHTML, text = famText(el);
+    try {
+      if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
+        await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([text], { type: 'text/plain' }) })]);
+      } else await navigator.clipboard.writeText(text);
+      $('famCopied').textContent = 'Copied. Paste it into your email.';
+    } catch (e) { $('famCopied').textContent = 'Copying was blocked here; select the email and copy it instead.'; }
+    window.__famLastCopy = { html, text };
+  }
+
   let renderLater = false;
   async function render() {
     if (editing) return;
@@ -518,19 +604,23 @@
     const r = route();
     const isWeek = r.view === 'week', isSet = r.view === 'settings';
     $('tabToday').setAttribute('aria-selected', String(r.view === 'day'));
-    $('tabWeek').setAttribute('aria-selected', String(isWeek));
+    $('tabWeek').setAttribute('aria-selected', String(isWeek || r.view === 'family'));
     $('tabSettings').setAttribute('aria-selected', String(isSet));
     const wk = P.weekOf(r.date);
     const dd = P.parse(r.date);
     $('heading').textContent = isWeek ? `Week of ${MON[P.parse(wk[0]).getMonth()]} ${P.parse(wk[0]).getDate()}` : `${DAY[dd.getDay()]}, ${MON[dd.getMonth()]} ${dd.getDate()}`;
     $('dateLabel').textContent = isWeek ? `${MON[P.parse(wk[0]).getMonth()]} ${P.parse(wk[0]).getDate()} – ${MON[P.parse(wk[4]).getMonth()]} ${P.parse(wk[4]).getDate()}, ${P.parse(wk[4]).getFullYear()}` : String(dd.getFullYear());
+    const isFam = r.view === 'family';
     if (isSet) { $('heading').textContent = 'Settings'; }
+    if (isFam) $('heading').textContent = 'Family email';
+    $('famView').hidden = !isFam;
     document.querySelector('.datenav').hidden = isSet;
     const nothing = !X.subjects.length && !X.blocks.length;
     $('empty').hidden = !nothing;
     $('dayView').hidden = nothing || r.view !== 'day';
     $('weekView').hidden = nothing || !isWeek;
     $('settingsView').hidden = !isSet;
+    if (isFam) { if (!nothing) renderFamily(r.date); renderChip(); return; }
     if (isSet) renderSettings(r.date);
     else if (!nothing) isWeek ? renderWeek(r.date) : renderDay(r.date);
     renderChip();
@@ -557,6 +647,8 @@
   document.addEventListener('click', async e => {
     const el = e.target.closest('button');
     if (el && $('settingsView').contains(el)) { try { await settingsClick(el); } catch (err) { problem('Not saved: ' + err.message); } return; }
+    if (el && el.dataset.famopen) { famShown = null; go('family', el.dataset.famopen); return; }
+    if (el && el.id === 'famCopy') { famCopy(); return; }
     if (!el || !$('dayView').contains(el)) return;
     const date = route().date, d = el.dataset;
     try {

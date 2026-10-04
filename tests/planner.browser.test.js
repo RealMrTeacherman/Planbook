@@ -235,10 +235,10 @@ test('the planner: Day and Week on MacBook and iPhone', { skip, timeout: 240000 
       const ratios = await mac.$$eval('.subj-chip', chips => chips.map(c => {
         const rgb = getComputedStyle(c).backgroundColor.match(/\d+/g).slice(0, 3).map(Number);
         const L = rgb.map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }).reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0);
-        return [c.textContent.trim(), 1.05 / (L + 0.05)];
+        return [c.textContent.trim(), 1.05 / (L + 0.05), getComputedStyle(c).backgroundColor, location.hash];
       }));
       assert.ok(ratios.length >= 6);
-      for (const [name, r] of ratios) assert.ok(r >= 4.5, `${name}: ${r.toFixed(2)}`);
+      for (const [name, r, bg, where] of ratios) assert.ok(r >= 4.5, `${name}: ${r.toFixed(2)} on ${bg} at ${where}`);
     });
 
     await t.test('Assembly / Enrichments / Other: a quick pick becomes the header and reaches the other device', async () => {
@@ -331,6 +331,7 @@ test('the planner: Day and Week on MacBook and iPhone', { skip, timeout: 240000 
 
     await t.test('a subject\'s color and quick picks change everywhere', async () => {
       await mac.click('[data-s="subj_steam"][data-color="#2F7D4E"]');
+      await mac.waitForFunction(() => { const b = document.querySelector('[data-s="subj_steam"][data-color="#2F7D4E"]'); return b && b.getAttribute('aria-checked') === 'true'; });
       await setField(mac, '[data-rec="subj_flex"][data-f="picks"]', 'Assembly, Library, Art');
       await open(phone, '#day/2026-09-16');
       await waitRec(phone, () => [...document.querySelectorAll('[data-card="subj_flex"] .picks button')].map(b => b.textContent).join('|') === 'Assembly|Library|Art');
@@ -378,6 +379,48 @@ test('the planner: Day and Week on MacBook and iPhone', { skip, timeout: 240000 
       assert.equal(await mac.$eval('[data-rec="blk_d1-805"][data-f="note"]', e => e.value), 'Half typed note');
       await mac.$eval('[data-rec="blk_d1-805"][data-f="note"]', e => e.blur());
       await waitRec(mac, () => document.querySelector('[data-rec="blk_d1-1100"][data-f="name"]').value === 'Lunch and recess');
+    });
+
+    // ---------- step 4c: the family email ----------
+    await t.test('the family email opens from Week, in families\' words', async () => {
+      await open(mac, '#week/2026-09-14');
+      await mac.click('[data-famopen]');
+      await mac.waitForFunction(() => /^#family\//.test(location.hash) && document.getElementById('famPrev'));
+      await mac.goto(mac.url().replace(/#.*/, '#family/2026-09-14'), { waitUntil: 'domcontentloaded' });
+      await mac.waitForFunction('window.__ready === true && !!document.getElementById("famPrev")', { timeout: 15000 });
+      const mail = await mac.$eval('#famPrev', e => e.innerText);
+      assert.match(mail, /Math · Unit 1/);
+      assert.match(mail, /Our big question: How do living things get what they need to survive\?/);
+      assert.match(mail, /Spelling words to practice at home: hat, map, sat, cap/);
+      assert.match(mail, /Beginning our informative essay/);
+      assert.doesNotMatch(mail, /Picture forms due|speech/, 'day notes never appear');
+    });
+
+    await t.test('choosing a goal changes that line, keeps hand edits, and reaches the iPhone', async () => {
+      await mac.$eval('#famPrev', e => { e.querySelector('[data-fam-head="math"] + ul li').textContent = 'My own math line'; e.dispatchEvent(new Event('input')); });
+      const pick = await mac.$$eval('input[name="famgoal"]', is => is.find(i => !i.checked).value);
+      await mac.click(`input[name="famgoal"][value="${pick}"]`);
+      await waitRec(mac, async v => (await window.__store.all()).some(r => r.id === 'fam_bm-1-1' && r.goal === v), pick);
+      assert.match(await mac.$eval('#famPrev', e => e.innerText), /My own math line/, 'the hand edit stays');
+      await waitRec(phone, async v => (await window.__store.all()).some(r => r.id === 'fam_bm-1-1' && r.goal === v), pick);
+    });
+
+    await t.test('a spelling list typed on the iPhone is cleaned up into the email and kept for that Benchmark week', async () => {
+      await open(phone, '#family/2026-09-14');
+      await phone.$eval('#famSpell', e => { e.value = ''; e.focus(); });
+      await phone.type('#famSpell', '1. sun\n2. fun, run');
+      await phone.$eval('#famSpell', e => e.blur());
+      await phone.waitForFunction(() => /Spelling words to practice at home: sun, fun, run$/m.test(document.getElementById('famPrev').innerText));
+      await waitRec(mac, async () => (await window.__store.all()).some(r => r.id === 'fam_bm-1-1' && /sun/.test(r.spelling || '')));
+    });
+
+    await t.test('Copy gives a bulleted plain-text version as well as the formatted one', async () => {
+      await phone.click('#famCopy');
+      await phone.waitForFunction(() => window.__famLastCopy);
+      const c = await phone.evaluate(() => window.__famLastCopy);
+      assert.match(c.text, /^Here’s a peek/);
+      assert.match(c.text, /\n• Our big question: /);
+      assert.match(c.html, /<ul>/);
     });
 
     await t.test('the week moves by a week; the day skips weekends', async () => {

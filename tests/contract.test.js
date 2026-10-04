@@ -54,7 +54,8 @@ function sample() {
       env('les_2026-09-21_subj_v95-math', 'lessonPlan', { date: '2026-09-21', subjectId: 'subj_v95-math', pos: { unit: 2, lesson: 4, k: 'probe' }, taught: true }),
       env('les_2026-09-21_subj_v95-science', 'lessonPlan', { date: '2026-09-21', subjectId: 'subj_v95-science', pos: { text: 'Plants, lesson 3' }, taught: false }),
       env('bnote_2026-09-21_blk_d1-1015', 'blockNote', { date: '2026-09-21', blockId: 'blk_d1-1015', text: 'Use the big ten frames' }),
-      env('pnote_a1b2c3d4', 'privateNote', { about: 'standing', weekday: 1, blockId: 'blk_d1-0930', text: 'Mila to speech' })
+      env('pnote_a1b2c3d4', 'privateNote', { about: 'standing', weekday: 1, blockId: 'blk_d1-0930', text: 'Mila to speech' }),
+      env('fam_bm-1-1', 'familyWeek', { key: 'bm:1|1', goal: 'Metacognitive: Create Mental Images', spelling: 'hat, map' })
     ]
   };
 }

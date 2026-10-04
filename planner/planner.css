@@ -222,3 +222,24 @@ table.pace tr.here td { background: var(--accent-soft); }
   .srow { padding: 6px 10px; }
   .srow:not(:first-child) .sf > span { position: absolute; left: -9999px; }
 }
+
+/* ---------- the family email ---------- */
+.week-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.week-actions button { width: auto; }
+.fam { display: flex; flex-direction: column; gap: 14px; }
+.fam h2 { margin-top: 6px; }
+.goals { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 14px; }
+.goal { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; background: var(--paper); font-size: .95rem; cursor: pointer; }
+.goal input { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--ink); flex: none; }
+.fam .sf textarea { min-height: 96px; }
+.fam-prev { min-height: 240px; padding: 16px 18px; border-radius: 14px; background: var(--paper); font-size: 1rem; line-height: 1.55; overflow-wrap: anywhere; }
+.fam-prev:focus { outline: 3px solid var(--link); }
+.fam-prev ul { margin: 4px 0 12px; padding-left: 22px; }
+.fam-prev li { margin-bottom: 4px; }
+.fam-prev p { margin: 0 0 6px; }
+@media (min-width: 900px) {
+  .fam { display: grid; grid-template-columns: 380px minmax(0, 1fr); align-items: start; gap: 24px; }
+  .fam-tools { position: sticky; top: 24px; }
+  .fam-mail { grid-column: 2; grid-row: 1; }
+  .fam-tools { grid-column: 1; grid-row: 1; }
+}

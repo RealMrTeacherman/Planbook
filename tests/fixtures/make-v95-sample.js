@@ -119,7 +119,11 @@ const keys = {
     const d = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'data', 'planner-defaults.json'), 'utf8'));
     const templates = JSON.parse(JSON.stringify(d.schedule));
     templates[2].push({ t: '7:45', l: 'Before-school duty', s: '', n: 'Juniper waits with me' });   // a standing note that names a child
-    return { subjects: d.subjects, templates };
+    const subjects = JSON.parse(JSON.stringify(d.subjects));
+    const rd = subjects.find(s => s.id === 'reading');
+    rd.goal = { 'bm:1|1': 'Metacognitive: Create Mental Images', 'oops': 'not a week key' };
+    rd.spelling = { 'bm:1|1': '1. hat\n2. map, sat\n- cap', 'wk:2026-09-21': 'pig, wig' };
+    return { subjects, templates };
   })(),
   'suite:subplan:v1': { details: {} },
   'suite:win:v1': { v: 1, me: 'teacher1', teachers: {}, lists: {} },

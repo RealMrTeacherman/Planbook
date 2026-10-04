@@ -60,5 +60,10 @@ The rebuild of the v95 suite as two tools on one written data contract: Gradeboo
 - **The look is "Color blocks"** (chosen by the teacher from four directions). `core/look.css` holds the shared tokens; `planner/planner.css` the tiles. A subject's color is deepened in `planner.js` (`deep`) until white text reaches 4.5:1; never hand-pick a chip color without that check.
 - Desktop and phone are equal: each release is checked by screenshot at 1280 px and 390 px. The Week view is a grid from 900 px and a list below.
 
+## The family email
+- `core/family-v95.js` is generated: re-run `node tools/extract-family.js <v95 curriculum.js>` rather than editing it.
+- `core/family.js` builds the email; `data/family-email.json` holds the Writing wording and the closing sentence's rules.
+- The gate test needs the v95 suite on the machine (`V95_DIR`); it is skipped elsewhere.
+
 ## Running the tests
 `npm install` once, then `npm test` and `npm run test:breaks`. The browser test finds Chrome on its own on a Mac; elsewhere set `CHROME` to a Chrome binary.

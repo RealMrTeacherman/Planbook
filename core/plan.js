@@ -188,6 +188,10 @@
   // Every position of the guide in order, for the "jump to a lesson" list.
   const revealSteps = () => FLAT.map(s => ({ pos: posOf(s), unit: s.u, name: s.k === 'L' ? `Lesson ${s.u}-${s.n} · ${s.t}` : s.t }));
   const revealTotal = () => (REVEAL ? REVEAL.total : 0);
+  // The raw curriculum, for the family email.
+  const revealStep = p => find(p);
+  const benchUnit = u => BENCH[Number(u)] || null;
+  const benchWeek = (u, w) => { const U = BENCH[Number(u)]; return U ? U.weeks.find(x => x.w === Number(w)) || null : null; };
 
   const samePos = (a, b) => !!a && !!b && ['unit', 'week', 'day', 'lesson', 'k', 'text'].every(k => (a[k] ?? null) === (b[k] ?? null));
 
@@ -242,7 +246,7 @@
   }
 
   const api = { mins, byTime, iso, parse, addDays, weekday, weekOf, useCurriculum, revealOn, revealNext, revealPrev,
-    advance, retreat, label, title, detail, samePos, mathDays, revealPlan, unitOnDate, revealActuals, revealSteps, revealTotal, lastTaught, suggest, dayStatus, dayLayout, WORD };
+    advance, retreat, label, title, detail, samePos, revealStep, benchUnit, benchWeek, mathDays, revealPlan, unitOnDate, revealActuals, revealSteps, revealTotal, lastTaught, suggest, dayStatus, dayLayout, WORD };
   if (typeof module !== 'undefined') module.exports = api;
   if (typeof window !== 'undefined') window.SuitePlan = api;
 })();

@@ -1,6 +1,6 @@
 {
   "name": "classroom-suite",
-  "version": "0.6.0-step4b",
+  "version": "0.7.0-step4c",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js",

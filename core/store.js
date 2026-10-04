@@ -17,7 +17,9 @@
     // 2: the planner's types were added; no version 1 record changes.
     2: records => records,
     // 3: subjects may carry quick picks; no version 2 record changes.
-    3: records => records
+    3: records => records,
+    // 4: the family email's weekly goal and spelling list; no version 3 record changes.
+    4: records => records
   };
 
   const req = r => new Promise((ok, no) => { r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); });

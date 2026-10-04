@@ -1,0 +1,27 @@
+{
+ "note": "Wording for the family email that v95 did not have: Writing (from Benchmark's writing task) and the closing sentence. Edit freely; the planner reads this file.",
+ "writing": {
+  "Write to a Text-Based Prompt: Informative/Explanatory Essay": "informative essay, using facts from what we read",
+  "Write to a Text-Based Prompt: Opinion Essay": "opinion writing project",
+  "Process Writing: Informative/Explanatory Essay": "informative writing project",
+  "Write to a Text-Based Prompt: Fictional Diary Entry": "fictional diary entry",
+  "Process Writing: Opinion Essay": "opinion writing project",
+  "Process Writing: Narrative Fiction": "story writing project",
+  "Process Writing: Narrative Nonfiction Letter": "true-story letter",
+  "Process Writing: Research Report": "research report",
+  "Multimedia Presentation": "multimedia presentation",
+  "Process Writing: Acrostic Poem": "acrostic poems",
+  "Reflect on Writing": "=Looking back on our writing from this year"
+ },
+ "writingStart": "Beginning our {task}",
+ "writingContinue": "Continuing our {task}",
+ "closing": {
+  "start": "We will also ",
+  "end": ", and much, much more!",
+  "subjects": [
+   { "match": "^Science", "phrase": "explore {topics}" },
+   { "match": "^Health", "phrase": "learn about {topics} in Health" },
+   { "match": "^STEAM", "phrase": "{topics} in STEAM" }
+  ]
+ }
+}

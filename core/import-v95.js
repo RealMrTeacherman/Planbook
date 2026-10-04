@@ -371,6 +371,16 @@
       if (b && b.name !== k.split('|').slice(2).join('|')) blockAt.set(`${wd}|${start}|${b.name}`, id);
     }
 
+    // The family email's choices: Reading's chosen goal and pasted spelling list, per week.
+    const rdV95 = lp && Array.isArray(lp.subjects) ? lp.subjects.find(x => x && x.id === 'reading') : null;
+    if (rdV95) {
+      const fam = {};
+      const keyOk = k => /^(bm:\d{1,2}\|\d{1,2}|wk:\d{4}-\d{2}-\d{2})$/.test(k);
+      Object.entries(rdV95.goal || {}).forEach(([k, v]) => { if (keyOk(k) && cut(v, 200)) (fam[k] = fam[k] || {}).goal = cut(v, 200); });
+      Object.entries(rdV95.spelling || {}).forEach(([k, v]) => { if (keyOk(k) && cut(v, 2000)) (fam[k] = fam[k] || {}).spelling = String(v).slice(0, 2000); });
+      Object.entries(fam).forEach(([k, f]) => records.push(rec('fam_' + k.replace(/[:|]/g, '-'), 'familyWeek', Object.assign({ key: k }, f))));
+    }
+
     let notesMoved = 0;
     for (const [date, d] of Object.entries(lpDays)) {
       if (!isDate(date) || !d || typeof d !== 'object') continue;
