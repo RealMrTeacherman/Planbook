@@ -172,3 +172,21 @@ test('a weekday with no Math block is not a math day; what was taught is counted
     { 1: { from: '2026-09-01', to: '2026-09-02', n: 2 }, 2: { from: '2026-09-08', to: '2026-09-08', n: 1 } });
   assert.equal(P.revealSteps().length, 143);
 });
+
+test('the guide gives each unit exactly its days, in order, and days off are not math days (no v95 needed)', () => {
+  const year = { firstDay: '2026-09-01', lastDay: '2027-06-09' };
+  const days = { '2026-09-02': { kind: 'noSchool' }, '2026-09-03': { kind: 'noSchool', deletedAt: 'x' } };
+  const blocks = [1, 2, 3, 4, 5].map(wd => ({ weekday: wd, subjectId: 'm' }));
+  const list = P.mathDays({ year, days, blocks, subjectId: 'm' });
+  assert.ok(!list.includes('2026-09-02'), 'a day off is not a math day');
+  assert.ok(list.includes('2026-09-03'), 'a removed day off is');
+  const plan = P.revealPlan(list);
+  assert.equal(plan.length, 12);
+  let i = 0;
+  for (const r of plan) {
+    const u = reveal.units.find(x => x.u === r.u);
+    assert.equal(r.from, list[i], `Unit ${r.u} starts on the next math day`);
+    assert.equal(r.to, list[Math.min(i + Math.round(u.total), list.length) - 1], `Unit ${r.u} gets exactly its ${u.total} days`);
+    i += Math.round(u.total);
+  }
+});

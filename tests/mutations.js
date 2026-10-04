@@ -104,7 +104,8 @@ const only = range ? null : arg;
 let missed = 0;
 for (const [i, [file, name, from, to, browser]] of M.entries()) {
   if (range && (i < Number(range[1]) || (range[2] !== undefined && i > Number(range[2])))) continue;
-  if (only && !name.includes(only)) continue;
+  if (only && only !== '--node-only' && !name.includes(only)) continue;
+  if (only === '--node-only' && browser) continue;
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mut-'));
   for (const d of ['contract', 'core', 'import', 'sync', 'planner', 'data', 'icons', 'settings', 'tools', 'tests']) fs.cpSync(path.join(ROOT, d), path.join(dir, d), { recursive: true });
   for (const f of ['index.html', 'sw.js', 'manifest.webmanifest', 'package.json', 'firestore.rules']) fs.copyFileSync(path.join(ROOT, f), path.join(dir, f));

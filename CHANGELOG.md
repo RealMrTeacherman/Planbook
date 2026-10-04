@@ -1,5 +1,13 @@
 # Changelog
 
+## Fix — GitHub's deliberate-break check had failed since step 4b
+
+**What happened:** GitHub's machines do not have the v95 suite, so tests that compare against v95 are skipped there. Two of step 4b's deliberate breaks ("the pacing guide gives each unit a day too many", "days off count as math days") were caught only by such a test. They were caught on my machine and slipped through on GitHub, and every run since 4b failed at `npm run test:breaks`. I checked GitHub's result on some pushes but not every one, and missed it for four releases.
+
+**The fix:** a pacing test that needs no v95 (each unit gets exactly its days, in order; days off are not math days). Every Node-side break is now confirmed caught with v95 hidden (`node tests/mutations.js --node-only`). The browser-side breaks never relied on v95.
+
+**From now on:** each release waits for GitHub's run to finish green, not just for my own runs.
+
 ## Step 5 — sub plans
 
 **Sub plan for this day,** from the Day view's side panel: the **full plan** and the **one-page At a glance**, previewed as they print, with Print. Printing marks the day with the Sub flag, as v95 did.

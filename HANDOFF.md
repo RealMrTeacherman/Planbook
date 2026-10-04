@@ -71,6 +71,7 @@ The rebuild of the v95 suite as two tools on one written data contract: Gradeboo
 - Standing notes are `subPlan` (one record, `subplan_main`) and per-block `subBlock`; both private.
 
 ## Releasing
+- **Wait for GitHub's run to finish green** before calling a release done. Tests comparing against v95 skip there, so a deliberate break must also be caught by a test that needs no v95: check with v95 hidden and `node tests/mutations.js --node-only`.
 - **Any change to a cached file needs a new `VERSION` in `sw.js`** (and `package.json`), or devices keep the old script. Step 4d's follow-up missed this once.
 
 ## Where the build stands, and what is next
