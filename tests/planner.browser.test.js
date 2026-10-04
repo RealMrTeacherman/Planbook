@@ -128,6 +128,15 @@ test('the planner: Day and Week on MacBook and iPhone', { skip, timeout: 240000 
       await waitRec(mac, async () => (await window.__store.all()).find(x => x.id === 'les_2026-09-14_subj_v95-phonics').taught === false);
       assert.equal(await mac.$eval('[data-card="subj_v95-reading"] > .tile-foot .taught', e => e.getAttribute('aria-pressed')), 'true', 'Reading untouched');
       await mac.click('[data-card="subj_v95-phonics"] [data-taught]');
+      // ...and it is a setting: Phonics back on its own card, then inside Reading again.
+      await open(mac, '#settings/2026-09-14');
+      await mac.select('[data-rec="subj_v95-phonics"][data-f="within"]', '');
+      await open(mac, '#day/2026-09-14');
+      await mac.waitForFunction(() => !!document.querySelector('#dayMain > .rows > [data-card="subj_v95-phonics"]'));
+      await open(mac, '#settings/2026-09-14');
+      await mac.select('[data-rec="subj_v95-phonics"][data-f="within"]', 'subj_v95-reading');
+      await open(mac, '#day/2026-09-14');
+      await mac.waitForFunction(() => !!document.querySelector('[data-card="subj_v95-reading"] > .subsec[data-card="subj_v95-phonics"]'));
     });
 
     await t.test('a day off from the district calendar shows on both devices', async () => {

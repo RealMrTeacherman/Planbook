@@ -2,7 +2,7 @@
 
 ## Step 4d — Phonics inside Reading, and the Agenda look
 
-**Phonics inside Reading.** Phonics is shown as a section at the top of the Reading card: its own position, ‹ ›, Taught and note, still tracked on its own (week grid, family email). Reading's chip spans both (8:15–9:30). Any subject can be shown inside another; import sets Phonics inside Reading. **Contract version 5** adds `within` to subjects: **paste the new `firestore.rules`.**
+**Phonics inside Reading.** Phonics is shown as a section at the top of the Reading card: its own position, ‹ ›, Taught and note, still tracked on its own (week grid, family email). Reading's chip spans both (8:15–9:30). Any subject can be shown inside another (Settings → Subjects → Show inside); import sets Phonics inside Reading. *Follow-up:* the first push of 4d had only the import default, not the Settings control, so a device that had already imported could not turn it on. Added, with a test. **Contract version 5** adds `within` to subjects: **paste the new `firestore.rules`.**
 
 **The Agenda look, chosen per device** (Settings → Look on this device). It has a dark header, monospace times, and the day as a compact list: time, subject, position with ‹ ›, title, a Taught box. On the MacBook, tapping a subject shows its full card beside the list; on the iPhone the card opens in place under its row. Phonics keeps its place in time, indented under Reading. Color blocks is unchanged, and each device keeps its own choice.
 
