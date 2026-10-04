@@ -1,5 +1,19 @@
 # Changelog
 
+## Fix — two deliberate breaks GitHub could not catch, and a9fce9c was not green
+
+**What happened:** after a9fce9c, GitHub's `npm test` passed but `npm run test:breaks` still failed. GitHub's log was out of reach, so the whole break check was rerun without v95, as GitHub runs it. All 49 Node-side breaks were caught (a9fce9c's pacing test works). Two browser-side breaks were not, steadily, and neither depends on v95:
+- **"Settings redraws over a field being typed in."** The test checked only that the half-typed text was still there. In current Chrome, removing a focused field fires `change`, so the planner *saves* the half-typed text, and the redrawn field shows it. Without the guard the text is not lost; it is saved unfinished and the cursor leaves the field. The test could not see that.
+- **"The family email rebuilt over hand edits."** The test checked the hand edit as soon as the new goal was *stored*. The redraw runs 50 ms later, so the check always came first. It also never sent a change from the iPhone, which is what the guard is for.
+
+**The fix, in the tests:**
+- The Settings test now waits for the iPhone's change to arrive and the MacBook to redraw. It then checks that the cursor is still in the field and nothing half-typed was saved.
+- The family email test now has the iPhone send a change after the goal is chosen. It waits for the MacBook to redraw, then checks the hand edit.
+- Both breaks are confirmed caught, and both tests pass on correct code.
+- To wait for a redraw instead of guessing a pause, the planner counts its redraws (`window.__renders`, beside the existing test hooks). That one line is the only change to the app. Since `planner/planner.js` is cached, `VERSION` is now 0.8.2-step5.
+
+**Unexplained:** in one full local run, "nothing sent on first connect" ran over 20 minutes without a verdict. Alone, it was caught in 28 seconds. It is not what failed on GitHub, whose break step took its usual time.
+
 ## Fix — GitHub's deliberate-break check had failed since step 4b
 
 **What happened:** GitHub's machines do not have the v95 suite, so tests that compare against v95 are skipped there. Two of step 4b's deliberate breaks ("the pacing guide gives each unit a day too many", "days off count as math days") were caught only by such a test. They were caught on my machine and slipped through on GitHub, and every run since 4b failed at `npm run test:breaks`. I checked GitHub's result on some pushes but not every one, and missed it for four releases.

@@ -753,6 +753,7 @@
 
   let renderLater = false;
   async function render() {
+    window.__renders = (window.__renders || 0) + 1;   // counted for the browser tests
     if (editing) return;
     // Never redraw Settings under a field being typed in; redraw when it is left.
     const a = document.activeElement;

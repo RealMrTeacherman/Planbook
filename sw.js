@@ -2,7 +2,7 @@
 //  - files are cached one by one, so one missing file cannot stop a new version taking over;
 //  - pages are network-first, so a page that changed is never stuck on an old copy.
 // Scripts and data files are cache-first within one version; a new version gets a new cache.
-const VERSION = '0.8.1-step5';
+const VERSION = '0.8.2-step5';
 const CACHE = 'planbook-' + VERSION;
 const FILES = [
   './', 'index.html', 'manifest.webmanifest',

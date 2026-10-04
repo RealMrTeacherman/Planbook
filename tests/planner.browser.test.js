@@ -307,6 +307,11 @@ test('the planner: Day and Week on MacBook and iPhone', { skip, timeout: 240000 
       await page.click(`[data-dow="${n}"]`);
       await page.waitForFunction(n => { const b = document.querySelector(`[data-dow="${n}"]`); return b && b.getAttribute('aria-pressed') === 'true'; }, {}, n);
     };
+    // Wait until a page has redrawn since `before` (read from window.__renders) and nothing more is queued.
+    const redrawnSince = async (page, before) => {
+      await page.waitForFunction(b => window.__renders > b, { timeout: 10000 }, before);
+      await new Promise(r => setTimeout(r, 200));
+    };
     const setField = async (page, sel, value) => {
       await page.click(sel, { clickCount: 3 });
       await page.keyboard.press('Backspace');
@@ -404,9 +409,15 @@ test('the planner: Day and Week on MacBook and iPhone', { skip, timeout: 240000 
       await open(mac, '#settings/2026-09-21'); await open(phone, '#settings/2026-09-21');
       await mac.click('[data-rec="blk_d1-805"][data-f="note"]', { clickCount: 3 });
       await mac.keyboard.type('Half typed note');
+      const before = await mac.evaluate(() => window.__renders);
       await setField(phone, '[data-rec="blk_d1-1100"][data-f="name"]', 'Lunch and recess');
-      await new Promise(r => setTimeout(r, 1500));
+      await waitRec(mac, async () => (await window.__store.all()).some(r => r.id === 'blk_d1-1100' && r.name === 'Lunch and recess'));
+      await redrawnSince(mac, before);
       assert.equal(await mac.$eval('[data-rec="blk_d1-805"][data-f="note"]', e => e.value), 'Half typed note');
+      // Chrome saves a field it removes while focused, so the text alone cannot show a redraw: check the
+      // cursor is still in the field and nothing half typed was saved.
+      assert.ok(await mac.$eval('[data-rec="blk_d1-805"][data-f="note"]', e => e === document.activeElement), 'still typing in the field');
+      assert.notEqual(await mac.evaluate(async () => ((await window.__store.all()).find(r => r.id === 'blk_d1-805') || {}).note), 'Half typed note', 'nothing saved before leaving the field');
       await mac.$eval('[data-rec="blk_d1-805"][data-f="note"]', e => e.blur());
       await waitRec(mac, () => document.querySelector('[data-rec="blk_d1-1100"][data-f="name"]').value === 'Lunch and recess');
     });
@@ -431,8 +442,13 @@ test('the planner: Day and Week on MacBook and iPhone', { skip, timeout: 240000 
       const pick = await mac.$$eval('input[name="famgoal"]', is => is.find(i => !i.checked).value);
       await mac.click(`input[name="famgoal"][value="${pick}"]`);
       await waitRec(mac, async v => (await window.__store.all()).some(r => r.id === 'fam_bm-1-1' && r.goal === v), pick);
-      assert.match(await mac.$eval('#famPrev', e => e.innerText), /My own math line/, 'the hand edit stays');
       await waitRec(phone, async v => (await window.__store.all()).some(r => r.id === 'fam_bm-1-1' && r.goal === v), pick);
+      // Then a change arrives from the iPhone; the MacBook redraws, and the hand edit must survive it.
+      const before = await mac.evaluate(() => window.__renders);
+      await phone.evaluate(async () => { const b = (await window.__store.all()).find(r => r.id === 'blk_d1-1100'); await window.__store.write([Object.assign({}, b, { name: 'Lunch' })], 'a test change'); });
+      await waitRec(mac, async () => (await window.__store.all()).some(r => r.id === 'blk_d1-1100' && r.name === 'Lunch'));
+      await redrawnSince(mac, before);
+      assert.match(await mac.$eval('#famPrev', e => e.innerText), /My own math line/, 'the hand edit stays');
     });
 
     await t.test('a spelling list typed on the iPhone is cleaned up into the email and kept for that Benchmark week', async () => {
