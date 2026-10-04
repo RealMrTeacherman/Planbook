@@ -68,14 +68,14 @@ const M = [
   ['core/plan.js', 'afternoon times sort before the morning', 'if (hh < 7) hh += 12;', '', false],
   ['core/plan.js', 'an untaught day counts as taught', "!l.taught || ", '', false],
   ['core/plan.js', 'days off ignored', "if (sd && sd.kind === 'noSchool') return", 'if (false) return', false],
-  ['core/store.js', 'no upgrade from the version before', '5: records => records', '', 'tests/sync.browser.test.js'],
+  ['core/store.js', 'no upgrade from the version before', '6: records => records', '', 'tests/sync.browser.test.js'],
   ['planner/planner.js', 'Keep it private saves the note live', "if (choice === 'private') {\n      const writes", "if (false) {\n      const writes", 'tests/planner.browser.test.js'],
   ['planner/planner.js', 'notes saved without the name check', "if (!hits.length) return Promise.resolve('live');", "return Promise.resolve('live');", 'tests/planner.browser.test.js'],
   ['planner/planner.js', 'the district calendar not applied', "await applyCalendar(cal);", '', 'tests/planner.browser.test.js'],
   // planner settings (4b)
   ['core/plan.js', 'the pacing guide gives each unit a day too many', 'const n = Math.round(u.total);', 'const n = Math.round(u.total) + 1;', false],
   ['core/plan.js', 'days off count as math days', 'dayStatus(d, { year, days, plan: plans && plans[d] }).school', 'true', false],
-  ['planner/planner.js', 'Settings redraws over a field being typed in', "if (route().view === 'settings' && a && $('settingsView').contains(a) && a.matches('input, select')) { renderLater = true; return; }", '', 'tests/planner.browser.test.js'],
+  ['planner/planner.js', 'Settings redraws over a field being typed in', "if (route().view === 'settings' && a && $('settingsView').contains(a) && a.matches('input, select, textarea')) { renderLater = true; return; }", '', 'tests/planner.browser.test.js'],
   ['planner/planner.js', 'any text accepted as a time', "if (kind === 'time' && !/", "if (false && !/", 'tests/planner.browser.test.js'],
   ['planner/planner.js', 'a private standing note saved live', "if (choice === 'private') {\n        if (f !== 'note'", "if (false) {\n        if (f !== 'note'", 'tests/planner.browser.test.js'],
   // the family email (4c)
@@ -87,6 +87,12 @@ const M = [
   ['core/import-v95.js', 'Phonics not placed inside Reading', "records.find(r => r.id === subjId.get('phonics')).within = subjId.get('reading');", '', false],
   ['planner/planner.js', 'a subject shown inside another gets its own card too', "if (inside(r)) parentRow[r.subject.within].children.push(r);", '', 'tests/planner.browser.test.js'],
   ['planner/planner.js', 'Agenda rows out of time order', '.sort((a, b) => first(a) - first(b))', '', 'tests/planner.browser.test.js'],
+  // sub plans (5)
+  ['core/subplan.js', 'a block\'s sub notes left off the plan', "const x = subBlk[b.id] || {};", "const x = {};", false],
+  ['core/subplan.js', 'unplanned subjects print nothing', "|| (sb && sb.on ? { pos: P.suggest(sb, lessons, iso), note: '' } : null);", ";", false],
+  ['core/subplan.js', 'private day notes left off the plan', "const dayNote = iso => join(plan[iso] && plan[iso].notes, ...priv.filter(n => n.about === 'day' && n.date === iso).map(n => n.text));", "const dayNote = iso => join(plan[iso] && plan[iso].notes);", false],
+  ['core/import-v95.js', 'a gone block\'s note loses its block', "records.push(rec(`bnote_${date}_${gone}`, 'blockNote', { date, blockId: gone, text: cut(text, 500) }));", '', false],
+  ['planner/planner.js', 'printing does not mark the day as a sub day', "if (!flags.has('Sub')) { flags.add('Sub');", "if (false) { flags.add('Sub');", 'tests/planner.browser.test.js'],
   ['sw.js', 'offline copy missing the planner', "'planner/', 'planner/index.html', ", '', false],
   ['sw.js', 'offline copy missing the sync page', "'sync/', 'sync/index.html'", "'sync/'", false]
 ];

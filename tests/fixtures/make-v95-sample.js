@@ -125,7 +125,19 @@ const keys = {
     rd.spelling = { 'bm:1|1': '1. hat\n2. map, sat\n- cap', 'wk:2026-09-21': 'pig, wig' };
     return { subjects, templates };
   })(),
-  'suite:subplan:v1': { details: {} },
+  'suite:subplan:v1': {
+    intro: 'Thank you for being here! The schedule below is the whole day.', contact: 'text me at 555-0100',
+    signal: 'Clap twice; they clap back.', trusted: 'Juniper and Oscar', arrival: 'Unstack chairs, then morning work.',
+    incentives: 'Table points on the board.', consequences: 'A reminder, then a break spot. Send a note home only if needed.',
+    closing: 'Stack chairs. Line up by table.',
+    watch: [{ name: 'Mila', note: 'Needs a movement break after Reading. Sits near the door.' }],
+    specials: { M: ['Library', 'PE'], T: ['Music', 'PE'], R: ['Art', 'Health'], F: ['Library', 'PE'] },
+    details: {
+      '10:15|Math core lesson': { detail: 'Teacher Guide is on my desk, open to the lesson.', emergency: 'Do the Number Corner page instead.' },
+      '9:45|Assembly / Enrichments / Math': { detail: 'Check the hallway calendar for an assembly.' },
+      '9:99|Gone block': { detail: 'Old text with nowhere to go.' }
+    }
+  },
   'suite:win:v1': { v: 1, me: 'teacher1', teachers: {}, lists: {} },
   'suite:migrations': {}
 };

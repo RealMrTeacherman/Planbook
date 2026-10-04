@@ -314,3 +314,24 @@ table.pace tr.here td { background: var(--accent-soft); }
 }
 .apane .cur { grid-template-columns: 1fr !important; }
 .apane .tile, .ainline .tile { overflow-wrap: anywhere; }
+
+/* ---------- sub plans ---------- */
+#subView { display: flex; flex-direction: column; gap: 14px; }
+#subFrame { width: 100%; min-height: 70vh; border: 0; border-radius: var(--radius); background: #fff; }
+a.button { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; min-height: 48px; padding: 0 20px; border-radius: var(--radius-sm); border: 2px solid var(--ink); font: 700 1rem var(--sans); }
+a.button.quiet { background: transparent; color: var(--ink); }
+a.button.compact { min-height: 44px; padding: 0 14px; }
+.sset textarea { width: 100%; }
+.watch { display: flex; flex-direction: column; gap: 6px; }
+.wrow { display: grid; grid-template-columns: 1fr; gap: 6px; padding: 8px; border-radius: 12px; background: var(--paper); }
+.wrow input { background: #fff; }
+.subblks { display: flex; flex-direction: column; gap: 8px; }
+.subblk { padding: 10px; border-radius: 12px; background: var(--paper); }
+.subblk textarea { background: #fff; min-height: 60px; }
+@media (min-width: 900px) {
+  #subView { display: grid; grid-template-columns: 320px minmax(0, 1fr); align-items: start; gap: 24px; }
+  .subtools { position: sticky; top: 24px; }
+  .wrow { grid-template-columns: 12em 1fr auto; align-items: center; }
+  .subblk { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .subblk > b { grid-column: 1 / -1; }
+}

@@ -39,9 +39,10 @@
   }
 
   // ---------- the data, indexed ----------
-  let X = null, ALL = [];
+  let X = null, ALL = [], ALLRAW = [];
   async function index() {
-    const all = (await store.all()).filter(r => !r.deletedAt);
+    ALLRAW = await store.all();
+    const all = ALLRAW.filter(r => !r.deletedAt);
     ALL = all;
     const by = type => all.filter(r => r.type === type);
     const map = (list, key) => Object.fromEntries(list.map(r => [key(r), r]));
@@ -52,13 +53,14 @@
       lesson: map(lessons, r => r.date + '|' + r.subjectId), dayPlan: map(by('dayPlan'), r => r.date),
       bnote: map(by('blockNote'), r => r.date + '|' + r.blockId), days: map(by('schoolDay'), r => r.date),
       year: by('schoolYear').sort((a, b) => a.firstDay < b.firstDay ? 1 : -1)[0] || null,
-      pnotes: by('privateNote'), students: by('student'), periods: map(by('gradingPeriod'), r => r.id), family: map(by('familyWeek'), r => r.id)
+      pnotes: by('privateNote'), students: by('student'), periods: map(by('gradingPeriod'), r => r.id), family: map(by('familyWeek'), r => r.id),
+      subPlan: by('subPlan')[0] || null, subBlocks: map(by('subBlock'), r => r.blockId)
     };
   }
 
   // ---------- routing ----------
   function route() {
-    const m = /^#(day|week|settings|family)\/(\d{4}-\d{2}-\d{2})$/.exec(location.hash);
+    const m = /^#(day|week|settings|family|sub)\/(\d{4}-\d{2}-\d{2})$/.exec(location.hash);
     return m ? { view: m[1], date: m[2] } : { view: 'day', date: todayIso() };
   }
   const go = (view, date) => { location.hash = `#${view}/${date}`; };
@@ -201,6 +203,11 @@
     if (wide() && pick) $('daySide').insertAdjacentHTML('afterbegin', `<div class="apane">${detail(pick)}</div>`);
     if (wide()) document.querySelectorAll('.apane .cur details').forEach(d => { d.open = true; });
   }
+  // A note for a block that is no longer on the schedule: shown with the day's notes, labeled with its block.
+  function goneNotes(date) {
+    return ALLRAW.filter(r => r.type === 'blockNote' && !r.deletedAt && r.date === date).map(n => ({ n, b: ALLRAW.find(x => x.id === n.blockId) }))
+      .filter(x => !x.b || x.b.deletedAt).map(x => ({ name: x.b ? x.b.name : 'A block', start: x.b ? x.b.start : '', text: x.n.text }));
+  }
   let ENDS = {};   // block id -> the time it ends (the next block's start), for the day on screen
   const PICKS = () => Object.fromEntries((D.extraSubjects || []).filter(x => x.picks).map(x => [x.id, x.picks]));
 
@@ -309,9 +316,11 @@
     $('daySide').innerHTML = `<section class="side">
         <div class="side-head"><h2>The day</h2>${tagline ? `<span class="tagline">${esc(tagline)}</span>` : ''}</div>
         <div class="flags" role="group" aria-label="Flags for the day">${FLAGS.map(f => `<button aria-pressed="${flags.has(f)}" data-flag="${esc(f)}">${esc(f)}</button>`).join('')}</div>
-        ${plan && plan.notes ? `<p class="daynotes">${esc(plan.notes)}</p>` : '<p class="small">No notes for this day.</p>'}
+        ${plan && plan.notes ? `<p class="daynotes">${esc(plan.notes)}</p>` : (goneNotes(date).length ? '' : '<p class="small">No notes for this day.</p>')}
+        ${goneNotes(date).map(n => `<p class="daynotes"><b>${esc(n.name)}${n.start ? ` (${esc(n.start)})` : ''}:</b> ${esc(n.text)}</p>`).join('')}
         ${privateList(dayPriv, 'the day')}
         <div id="dayNoteHost"><button class="quiet compact" id="dayNoteBtn">${plan && plan.notes ? 'Edit notes' : 'Add notes'}</button></div>
+        <p style="margin:12px 0 0"><a class="button quiet compact subbtn" href="#sub/${date}">Sub plan for this day</a></p>
       </section>`;
     const main = $('dayMain');
     if (!st.school) { main.innerHTML = `<div class="side"><h2>${esc(st.label)}</h2><p class="small">${st.outside ? 'Outside the school year.' : 'No school this day.'} Use ‹ and › to move to a school day.</p></div>`; return; }
@@ -470,12 +479,44 @@
     const look = `<section class="side sset" aria-labelledby="hLook"><div class="side-head"><h2 id="hLook">Look on this device</h2></div>
       <p class="small">Each device keeps its own. Everything else is the same either way.</p>
       <div class="flags" role="radiogroup" aria-label="Look">${[['blocks', 'Color blocks'], ['agenda', 'Agenda']].map(([v, l]) => `<button role="radio" aria-checked="${LOOK() === v}" aria-pressed="${LOOK() === v}" data-look="${v}">${l}</button>`).join('')}</div></section>`;
-    $('settingsView').innerHTML = `<div class="settings">${look}${sched}${subjects}${cal}${pace}</div>`;
+    // Sub plans: the standing notes and each block's two sub fields. Private: Drive path only.
+    const sp = X.subPlan || { id: 'subplan_main' };
+    const ta = (f, label, rows = 3) => `<label class="sf"><span>${esc(label)}</span><textarea rows="${rows}" data-rec="subplan_main" data-f="${f}" data-kind="sub">${esc(sp[f] || '')}</textarea></label>`;
+    const DL = { M: 'Monday', T: 'Tuesday', W: 'Wednesday', R: 'Thursday', F: 'Friday' };
+    const subs = `<section class="side sset" aria-labelledby="hSub"><div class="side-head"><h2 id="hSub">Sub plans</h2></div>
+      <p class="small">What a sub needs that the planner doesn't know. These name children, so they stay on this device and travel only through the Drive folder.</p>
+      <div class="sgrid">${fld({ id: 'subplan_main' }, 'teacher', 'sub', sp.teacher || '', 'Your name on the plan', 'maxlength="80"')}
+        ${fld({ id: 'subplan_main' }, 'contact', 'sub', sp.contact || '', 'How to reach you', 'maxlength="400"')}</div>
+      ${ta('intro', 'Welcome note')}${ta('signal', 'Attention signal', 2)}${ta('trusted', 'Students who know how things run', 2)}
+      ${ta('arrival', 'Arrival')}${ta('incentives', 'Incentives')}${ta('consequences', 'Consequences')}${ta('closing', 'End of day')}
+      <h3>What helps (by student)</h3>
+      <div class="watch">${(sp.watch || []).map((w, i) => `<div class="wrow"><input type="text" aria-label="Student" data-watch="${i}" data-wf="name" value="${esc(w.name)}" maxlength="60">
+        <input type="text" aria-label="What helps ${esc(w.name)}" data-watch="${i}" data-wf="note" value="${esc(w.note || '')}" maxlength="1000"><button class="quiet compact" data-delwatch="${i}" aria-label="Remove ${esc(w.name)}">Remove</button></div>`).join('')}</div>
+      <div class="tile-foot"><button class="quiet" data-addwatch="1">Add a student</button></div>
+      <h3>Specials</h3>
+      <div class="sgrid three">${'MTWRF'.split('').map(d => [0, 1].map(i => `<label class="sf"><span>${DL[d]} · Specials ${i + 1}</span><input type="text" data-special="${d}" data-i="${i}" value="${esc(((sp.specials || {})[d] || [])[i] || '')}" maxlength="60"></label>`).join('')).join('')}</div>
+      <h3>${WD_NAMES[setDow]}'s blocks, for a sub</h3>
+      <div class="subblks">${X.blocks.filter(b => b.weekday === setDow).sort(P.byTime).map(b => { const x = X.subBlocks[b.id] || {}; return `<div class="subblk"><b>${esc(b.start)} ${esc(b.name)}</b>${b.note ? `<span class="small"> · ${esc(b.note)}</span>` : ''}
+        <label class="sf"><span>What to do</span><textarea rows="2" data-rec="subblk_${esc(b.id)}" data-blk="${esc(b.id)}" data-f="detail" data-kind="sub">${esc(x.detail || '')}</textarea></label>
+        <label class="sf"><span>If you cannot find it</span><textarea rows="2" data-rec="subblk_${esc(b.id)}" data-blk="${esc(b.id)}" data-f="emergency" data-kind="sub">${esc(x.emergency || '')}</textarea></label></div>`; }).join('')}</div>
+      ${(sp.unplaced || []).length ? `<h3>From v95, still to place</h3><p class="small">These matched no block on the schedule. Copy each into the block where it belongs, then remove it.</p>
+        ${sp.unplaced.map((u, i) => `<div class="off"><span>${esc(u)}</span><button class="quiet compact" data-delunplaced="${i}">Remove</button></div>`).join('')}` : ''}
+    </section>`;
+    $('settingsView').innerHTML = `<div class="settings">${look}${sched}${subs}${subjects}${cal}${pace}</div>`;
   }
 
   // Settings edits: one handler for every field, each change written at once (and synced live).
   async function settingsChange(el) {
-    const rec = (await store.all()).find(r => r.id === el.dataset.rec);
+    let rec = (await store.all()).find(r => r.id === el.dataset.rec);
+    if (el.dataset.kind === 'sub') {   // the sub plan's private records, made on first use
+      if (!rec && el.dataset.rec === 'subplan_main') rec = { id: 'subplan_main', type: 'subPlan', deletedAt: null };
+      if (!rec && el.dataset.blk) rec = { id: 'subblk_' + el.dataset.blk, type: 'subBlock', deletedAt: null, blockId: el.dataset.blk };
+      const next = Object.assign({}, rec, { deletedAt: null });
+      const v = el.value.replace(/\s+$/, '');
+      if (v) next[el.dataset.f] = v; else delete next[el.dataset.f];
+      try { await store.write([next], 'sub notes'); } catch (e) { problem('Not saved: ' + e.message); }
+      return;
+    }
     if (!rec) return;
     const f = el.dataset.f, kind = el.dataset.kind;
     let v = el.type === 'checkbox' ? el.checked : el.value.trim();
@@ -500,12 +541,31 @@
     catch (e) { problem('Not saved: ' + e.message); render(); }
   }
   document.addEventListener('change', e => { if ($('settingsView').contains(e.target) && e.target.dataset.rec) settingsChange(e.target); });
+  // The "What helps" list and the specials live inside the one subPlan record.
+  async function subPlanEdit(change) {
+    const cur = (await store.all()).find(r => r.id === 'subplan_main') || { id: 'subplan_main', type: 'subPlan', deletedAt: null };
+    const next = JSON.parse(JSON.stringify(cur));
+    change(next);
+    try { await store.write([next], 'sub notes'); } catch (e) { problem('Not saved: ' + e.message); }
+  }
+  document.addEventListener('change', e => {
+    const el = e.target, d = el.dataset || {};
+    if (!$('settingsView').contains(el)) return;
+    if (d.watch !== undefined) subPlanEdit(sp => { sp.watch = sp.watch || []; const w = sp.watch[Number(d.watch)]; if (!w) return; if (el.value.trim()) w[d.wf] = el.value.trim(); else if (d.wf === 'note') delete w.note; });
+    if (d.special) subPlanEdit(sp => {
+      sp.specials = sp.specials || {}; const p = (sp.specials[d.special] || ['', '']).slice(0, 2); while (p.length < 2) p.push('');
+      p[Number(d.i)] = el.value.trim(); if (p.some(Boolean)) sp.specials[d.special] = p; else delete sp.specials[d.special];
+    });
+  });
   $('settingsView').addEventListener('focusout', () => setTimeout(() => { if (renderLater) render(); }, 0));
 
   async function settingsClick(el) {
     const d = el.dataset, all = await store.all();
     const now = () => new Date().toISOString();
     if (d.dow) { setDow = Number(d.dow); render(); return; }
+    if (d.addwatch) { await subPlanEdit(sp => { (sp.watch = sp.watch || []).push({ name: 'Student' }); }); return; }
+    if (d.delwatch) { await subPlanEdit(sp => { sp.watch.splice(Number(d.delwatch), 1); if (!sp.watch.length) delete sp.watch; }); return; }
+    if (d.delunplaced) { await subPlanEdit(sp => { sp.unplaced.splice(Number(d.delunplaced), 1); if (!sp.unplaced.length) delete sp.unplaced; }); return; }
     if (d.look) {
       try { localStorage.setItem('planbook.look', d.look); } catch (e) { }
       document.documentElement.classList.toggle('look-agenda', d.look === 'agenda');
@@ -664,12 +724,39 @@
     window.__famLastCopy = { html, text };
   }
 
+  // ---------- sub plans (v95's printouts, fed from this planner) ----------
+  let subKind = 'full';
+  function renderSub(date) {
+    const SP = SuiteSub.make(ALLRAW);
+    const st = P.dayStatus(date, { year: X.year, days: X.days, plan: X.dayPlan[date] });
+    const html = subKind === 'glance' ? SP.glance(date) : SP.full(date);
+    const flagged = ((X.dayPlan[date] || {}).flags || []).includes('Sub');
+    $('subView').innerHTML = `<div class="subtools side">
+        <p class="small"><a href="#day/${date}">‹ Back to the day</a></p>
+        <div class="flags" role="radiogroup" aria-label="Which printout"><button role="radio" aria-checked="${subKind === 'full'}" aria-pressed="${subKind === 'full'}" data-subkind="full">Full plan</button><button role="radio" aria-checked="${subKind === 'glance'}" aria-pressed="${subKind === 'glance'}" data-subkind="glance">At a glance</button></div>
+        ${SP.hasContent() ? '' : '<p class="small behind">No standing sub notes on this device yet. Add them in Settings → Sub plans; they travel only through the Drive folder.</p>'}
+        ${st.school ? '' : `<p class="small behind">${esc(st.label)}: there is no school this day.</p>`}
+        <div class="tile-foot"><button id="subPrint">Print the ${subKind === 'glance' ? 'one-pager' : 'full plan'}</button><a class="button quiet" href="#settings/${date}">Edit sub notes</a></div>
+        <p class="small">${flagged ? 'This day is marked as a sub day.' : 'Printing marks this day as a sub day (the Sub flag), as v95 did.'}</p></div>
+      <iframe id="subFrame" title="The ${subKind === 'glance' ? 'one-pager' : 'full plan'} as it will print"></iframe>`;
+    // v95's printout styles are written for #subprint, so the plan sits inside one.
+    $('subFrame').srcdoc = `<!doctype html><html><head><meta charset="utf-8"><style>body{margin:16px}${SP.css}</style></head><body><div id="subprint">${html}</div></body></html>`;
+    window.__subHtml = html;
+  }
+  async function subPrint(date) {
+    const plan = X.dayPlan[date] || { id: 'dayp_' + date, type: 'dayPlan', deletedAt: null, date, saved: true };
+    const flags = new Set(plan.flags || []);
+    if (!flags.has('Sub')) { flags.add('Sub'); await store.write([Object.assign({}, plan, { flags: FLAGS.filter(f => flags.has(f)) })], 'a sub day'); }
+    const f = $('subFrame');
+    try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { problem('Printing was blocked here; open the plan and print from the browser menu.'); }
+  }
+
   let renderLater = false;
   async function render() {
     if (editing) return;
     // Never redraw Settings under a field being typed in; redraw when it is left.
     const a = document.activeElement;
-    if (route().view === 'settings' && a && $('settingsView').contains(a) && a.matches('input, select')) { renderLater = true; return; }
+    if (route().view === 'settings' && a && $('settingsView').contains(a) && a.matches('input, select, textarea')) { renderLater = true; return; }
     renderLater = false;
     await index();
     const r = route();
@@ -685,6 +772,9 @@
     if (isSet) { $('heading').textContent = 'Settings'; }
     if (isFam) $('heading').textContent = 'Family email';
     $('famView').hidden = !isFam;
+    const isSub = r.view === 'sub';
+    $('subView').hidden = !isSub;
+    if (isSub) { $('heading').textContent = 'Sub plan'; $('dayView').hidden = true; $('weekView').hidden = true; $('settingsView').hidden = true; $('empty').hidden = true; renderSub(r.date); renderChip(); return; }
     document.querySelector('.datenav').hidden = isSet;
     const nothing = !X.subjects.length && !X.blocks.length;
     $('empty').hidden = !nothing;
@@ -720,6 +810,8 @@
     if (el && $('settingsView').contains(el)) { try { await settingsClick(el); } catch (err) { problem('Not saved: ' + err.message); } return; }
     if (el && el.dataset.famopen) { famShown = null; go('family', el.dataset.famopen); return; }
     if (el && el.id === 'famCopy') { famCopy(); return; }
+    if (el && el.dataset.subkind) { subKind = el.dataset.subkind; render(); return; }
+    if (el && el.id === 'subPrint') { await subPrint(route().date); return; }
     if (!el || !$('dayView').contains(el)) return;
     const date = route().date, d = el.dataset;
     try {

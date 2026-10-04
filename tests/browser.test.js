@@ -91,11 +91,11 @@ test('the import page and the store, in a real browser', { skip, timeout: 120000
     await t.test('loading writes every record', async () => {
       await page.click('#load');
       await page.waitForFunction("!document.getElementById('result').hidden");
-      assert.match(await text('#resultText'), /165 new, 0 changed, 0 already here/);
+      assert.match(await text('#resultText'), /172 new, 0 changed, 0 already here/);
       assert.deepEqual(await counts(), {
         student: 5, schoolYear: 1, gradingPeriod: 4, schoolDay: 1, orfCheck: 4, orfGoal: 2,
         station: 4, group: 8, placement: 6, visitor: 1, unit: 2,
-        subject: 9, block: 94, dayPlan: 5, lessonPlan: 12, blockNote: 2, privateNote: 3, familyWeek: 2
+        subject: 9, block: 94, dayPlan: 5, lessonPlan: 12, blockNote: 3, privateNote: 3, familyWeek: 2, subBlock: 5, subPlan: 1
       });
       assert.equal(await visible('#undoBox'), true);
       await page.screenshot({ path: path.join(SHOTS, '3-loaded-phone.png'), fullPage: true });

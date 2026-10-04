@@ -65,5 +65,13 @@ The rebuild of the v95 suite as two tools on one written data contract: Gradeboo
 - `core/family.js` builds the email; `data/family-email.json` holds the Writing wording and the closing sentence's rules.
 - The gate test needs the v95 suite on the machine (`V95_DIR`); it is skipped elsewhere.
 
+## Sub plans
+- `core/subplan-v95.js` is generated: re-run `node tools/extract-subplan.js <v95 sub-plans.js>`.
+- `core/subplan.js` supplies the copied builders with the day (blocksFor, lessonFor, notes, math board) from records.
+- Standing notes are `subPlan` (one record, `subplan_main`) and per-block `subBlock`; both private.
+
+## Releasing
+- **Any change to a cached file needs a new `VERSION` in `sw.js`** (and `package.json`), or devices keep the old script. Step 4d's follow-up missed this once.
+
 ## Running the tests
 `npm install` once, then `npm test` and `npm run test:breaks`. The browser test finds Chrome on its own on a Mac; elsewhere set `CHROME` to a Chrome binary.

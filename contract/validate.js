@@ -95,6 +95,8 @@ function expectedId(rec, typeSpec) {
     case 'dayp_<date>': return `dayp_${rec.date}`;
     case 'les_<date>_<subjectId>': return `les_${rec.date}_${rec.subjectId}`;
     case 'bnote_<date>_<blockId>': return `bnote_${rec.date}_${rec.blockId}`;
+    case 'subplan_main': return 'subplan_main';
+    case 'subblk_<blockId>': return `subblk_${rec.blockId}`;
     case 'fam_<key>': return rec.key ? 'fam_' + String(rec.key).replace(/[:|]/g, '-') : null;
     case 'plc_<groupKind>_<unitId>_<studentId> for reading, plc_<groupKind>_<studentId> otherwise':
       return rec.groupKind === 'reading' ? `plc_reading_${rec.unitId}_${rec.studentId}` : `plc_${rec.groupKind}_${rec.studentId}`;

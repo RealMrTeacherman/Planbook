@@ -1,6 +1,6 @@
 {
   "contract": "classroom-suite",
-  "version": 5,
+  "version": 6,
   "notes": [
     "Every record in every tool carries the envelope. Only the owner tool writes a type; readers never write it.",
     "Space: 'live' types can never name a child and may sync through Firebase on the teacher's personal account. 'private' types can name a child and travel only through the district Drive folder. A live type may not point at a private one. Text fields marked nameCheck are checked against the class list before a live record is saved.",
@@ -12,7 +12,8 @@
     "Version 2 adds the planner: subjects, schedule blocks, day plans, lesson plans and block notes (all live), and private notes. Version 1 records are unchanged, so the upgrade from 1 to 2 changes nothing.",
     "Version 3 adds picks to a subject: the quick choices a free-text subject offers (e.g. Assembly, Enrichment, More math). No version 2 record changes.",
     "Version 4 adds familyWeek: the reading goal chosen for the family email and the week's spelling list, kept per Benchmark week (key bm:<unit>|<week>) or per calendar week (wk:<Monday>). No version 3 record changes.",
-    "Version 5 adds within to a subject: shown inside another subject's card on the Day view (Phonics inside Reading), while still tracked on its own. No version 4 record changes."
+    "Version 5 adds within to a subject: shown inside another subject's card on the Day view (Phonics inside Reading), while still tracked on its own. No version 4 record changes.",
+    "Version 6 adds the sub plan's private records: subPlan (the standing notes, one record) and subBlock (a schedule block's What to do and If you cannot find it). Both name children, so both are private. No version 5 record changes."
   ],
   "file": {
     "fields": {
@@ -945,6 +946,148 @@
           "max": 2000,
           "nameCheck": true,
           "note": "the list as pasted"
+        }
+      }
+    },
+    "subPlan": {
+      "owner": "subplans",
+      "space": "private",
+      "readers": [],
+      "idPrefix": "subplan",
+      "idRule": "subplan_main",
+      "fromV95": "suite:subplan:v1 (the standing notes)",
+      "fields": {
+        "teacher": {
+          "type": "string",
+          "max": 80
+        },
+        "intro": {
+          "type": "string",
+          "max": 4000
+        },
+        "contact": {
+          "type": "string",
+          "max": 400
+        },
+        "signal": {
+          "type": "string",
+          "max": 4000
+        },
+        "trusted": {
+          "type": "string",
+          "max": 1000
+        },
+        "incentives": {
+          "type": "string",
+          "max": 4000
+        },
+        "consequences": {
+          "type": "string",
+          "max": 4000
+        },
+        "arrival": {
+          "type": "string",
+          "max": 4000
+        },
+        "closing": {
+          "type": "string",
+          "max": 4000
+        },
+        "watch": {
+          "type": "array",
+          "max": 60,
+          "of": {
+            "type": "object",
+            "fields": {
+              "name": {
+                "type": "string",
+                "required": true,
+                "max": 60
+              },
+              "note": {
+                "type": "string",
+                "max": 1000
+              }
+            }
+          }
+        },
+        "specials": {
+          "type": "object",
+          "nullable": true,
+          "fields": {
+            "M": {
+              "type": "array",
+              "max": 2,
+              "of": {
+                "type": "string",
+                "max": 60
+              }
+            },
+            "T": {
+              "type": "array",
+              "max": 2,
+              "of": {
+                "type": "string",
+                "max": 60
+              }
+            },
+            "W": {
+              "type": "array",
+              "max": 2,
+              "of": {
+                "type": "string",
+                "max": 60
+              }
+            },
+            "R": {
+              "type": "array",
+              "max": 2,
+              "of": {
+                "type": "string",
+                "max": 60
+              }
+            },
+            "F": {
+              "type": "array",
+              "max": 2,
+              "of": {
+                "type": "string",
+                "max": 60
+              }
+            }
+          }
+        },
+        "unplaced": {
+          "type": "array",
+          "max": 100,
+          "of": {
+            "type": "string",
+            "max": 4000
+          },
+          "note": "text from v95 that matched no block, for the teacher to place"
+        }
+      }
+    },
+    "subBlock": {
+      "owner": "subplans",
+      "space": "private",
+      "readers": [],
+      "idPrefix": "subblk",
+      "idRule": "subblk_<blockId>",
+      "fromV95": "suite:subplan:v1 details, by block",
+      "fields": {
+        "blockId": {
+          "type": "ref",
+          "required": true,
+          "to": "block"
+        },
+        "detail": {
+          "type": "string",
+          "max": 4000
+        },
+        "emergency": {
+          "type": "string",
+          "max": 4000
         }
       }
     }

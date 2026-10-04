@@ -30,7 +30,7 @@ test('every kind of record comes in, in the expected numbers', () => {
   assert.deepEqual(out().counts, {
     student: 5, schoolYear: 1, gradingPeriod: 4, schoolDay: 1, orfCheck: 4, orfGoal: 2,
     station: 4, group: 8, placement: 6, visitor: 1, unit: 2,
-    subject: 9, block: 94, dayPlan: 5, lessonPlan: 12, blockNote: 2, privateNote: 3, familyWeek: 2
+    subject: 9, block: 95, dayPlan: 5, lessonPlan: 12, blockNote: 3, privateNote: 3, familyWeek: 2, subBlock: 5, subPlan: 1
   });
 });
 
@@ -202,10 +202,10 @@ test('a v95 file with empty or broken keys still converts what it can', () => {
 test('the planner comes in: subjects, every weekday\'s schedule, days, lessons, block notes', () => {
   const c = out().counts;
   assert.equal(c.subject, 9);
-  assert.equal(c.block, 94);
+  assert.equal(c.block, 95, '94 on the schedule, and one kept (deleted) for a note');
   assert.equal(c.dayPlan, 5);
   assert.equal(c.lessonPlan, 12);
-  assert.equal(c.blockNote, 2);
+  assert.equal(c.blockNote, 3);
 });
 
 test('Reveal positions keep their kind, free text stays as typed, untaught days stay untaught', () => {
@@ -236,9 +236,12 @@ test('schedule blocks keep their times, names, subjects and standing notes', () 
 test('flags keep only real flags; a block note for a block that is gone joins the day\'s notes', () => {
   const o = out();
   assert.deepEqual(byId(o, 'dayp_2026-09-17').flags, ['Fire drill']);
-  assert.match(byId(o, 'dayp_2026-09-15').notes, /9:00 Old block: Gone from the schedule/);
+  const gone = o.records.find(r => r.type === 'blockNote' && r.text === 'Gone from the schedule');
+  const blk = byId(o, gone.blockId);
+  assert.deepEqual([blk.name, blk.start, !!blk.deletedAt], ['Old block', '9:00', true], 'kept with its block, which is marked deleted');
   assert.equal(byId(o, 'bnote_2026-09-15_blk_d2-1015').text, 'Use the big ten frames');
   assert.ok(o.notes.some(n => /block no longer on the schedule/.test(n)));
+  assert.equal(byId(o, 'dayp_2026-09-15').notes, undefined, 'the day\'s own notes are untouched');
 });
 
 test('planner notes that name a child become private notes, and leave the live records', () => {
@@ -287,4 +290,16 @@ test('Phonics comes in shown inside Reading, still its own subject', () => {
   const o = out();
   assert.equal(byId(o, 'subj_v95-phonics').within, 'subj_v95-reading');
   assert.equal(byId(o, 'subj_v95-reading').within, undefined);
+});
+
+test('the sub notes come across: standing notes, specials, block details on every day the block runs, leftovers', () => {
+  const o = out();
+  const sp = byId(o, 'subplan_main');
+  assert.equal(sp.signal, 'Clap twice; they clap back.');
+  assert.deepEqual(sp.watch, [{ name: 'Mila', note: 'Needs a movement break after Reading. Sits near the door.' }]);
+  assert.deepEqual(sp.specials.M, ['Library', 'PE']);
+  assert.equal(byId(o, 'subblk_blk_d1-1015').emergency, 'Do the Number Corner page instead.');
+  assert.equal(o.records.filter(r => r.type === 'subBlock' && /Teacher Guide/.test(r.detail || '')).length, 4, 'the 10:15 block runs Monday, Tuesday, Thursday and Friday');
+  assert.equal(byId(o, 'subblk_blk_d3-945').detail, 'Check the hallway calendar for an assembly.', 'follows the renamed 9:45 block');
+  assert.deepEqual(sp.unplaced, ['9:99 Gone block: Old text with nowhere to go.']);
 });

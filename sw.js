@@ -2,13 +2,13 @@
 //  - files are cached one by one, so one missing file cannot stop a new version taking over;
 //  - pages are network-first, so a page that changed is never stuck on an old copy.
 // Scripts and data files are cache-first within one version; a new version gets a new cache.
-const VERSION = '0.7.2-step4d';
+const VERSION = '0.8.1-step5';
 const CACHE = 'planbook-' + VERSION;
 const FILES = [
   './', 'index.html', 'manifest.webmanifest',
   'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png',
   'core/look.css', 'core/boot.js', 'core/merge.js', 'core/store.js', 'core/transport.js', 'core/import-v95.js',
-  'core/names.js', 'core/live.js', 'core/live-firebase.js', 'settings/firebase.js', 'core/family-v95.js', 'core/family.js',
+  'core/names.js', 'core/live.js', 'core/live-firebase.js', 'settings/firebase.js', 'core/family-v95.js', 'core/family.js', 'core/subplan-v95.js', 'core/subplan.js',
   'contract/contract.json', 'contract/validate.js',
   'core/plan.js', 'import/', 'import/index.html', 'sync/', 'sync/index.html',
   'planner/', 'planner/index.html', 'planner/planner.js', 'planner/planner.css',

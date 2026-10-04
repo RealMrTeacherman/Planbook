@@ -166,6 +166,10 @@ test('MacBook and iPhone stay in step through the Drive folder', { skip, timeout
     });
 
     await t.test('a name being typed survives the MacBook\'s background check', async () => {
+      await mac.waitForFunction(async () => {   // the list on screen matches the data before tapping, as in rename()
+        const gs = (await window.__store.all()).filter(r => r.type === 'group' && r.kind === 'math' && !r.deletedAt).sort((a, b) => a.order - b.order);
+        return document.getElementById('groups').dataset.sig === JSON.stringify(gs.map(g => [g.id, g.name, g.order]));
+      }, { timeout: 5000 });
       await mac.click('input[data-id="grp_math_lion"]', { clickCount: 3 });
       await mac.keyboard.press('Backspace');
       await mac.type('input[data-id="grp_math_lion"]', 'Half typed');
@@ -196,7 +200,7 @@ test('MacBook and iPhone stay in step through the Drive folder', { skip, timeout
     await t.test('a file from the version before is upgraded and loads', async () => {
       const hub = JSON.parse((await folderFiles(mac))['classroom-suite.json']);
       hub.version = hub.version - 1;
-      hub.records = hub.records.filter(r => !['subject', 'block', 'dayPlan', 'lessonPlan', 'blockNote', 'privateNote'].includes(r.type));
+      hub.records = hub.records.filter(r => !['subPlan', 'subBlock'].includes(r.type));   // the types new in this version
       const p = path.join(os.tmpdir(), 'prev-suite.json'); fs.writeFileSync(p, JSON.stringify(hub));
       await phone.$eval('#result', e => { e.hidden = true; });
       await (await phone.$('#file')).uploadFile(p);

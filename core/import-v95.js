@@ -383,6 +383,35 @@
       Object.entries(fam).forEach(([k, f]) => records.push(rec('fam_' + k.replace(/[:|]/g, '-'), 'familyWeek', Object.assign({ key: k }, f))));
     }
 
+    // The sub plan's standing notes, and each block's What to do / If you cannot find it.
+    const sp = parseKey(keys, 'suite:subplan:v1');
+    if (sp && typeof sp === 'object') {
+      const t4 = v => cut(v, 4000);
+      const f = {};
+      ['intro', 'signal', 'incentives', 'consequences', 'arrival', 'closing'].forEach(k => { if (t4(sp[k])) f[k] = String(sp[k]).slice(0, 4000); });
+      if (cut(sp.contact, 400)) f.contact = String(sp.contact).slice(0, 400);
+      if (cut(sp.trusted, 1000)) f.trusted = String(sp.trusted).slice(0, 1000);
+      if (gb.settings && cut(gb.settings.teacher, 80)) f.teacher = cut(gb.settings.teacher, 80);
+      const watch = (Array.isArray(sp.watch) ? sp.watch : []).filter(w => w && cut(w.name, 60)).slice(0, 60)
+        .map(w => Object.assign({ name: cut(w.name, 60) }, cut(w.note, 1000) ? { note: String(w.note).slice(0, 1000) } : {}));
+      if (watch.length) f.watch = watch;
+      const spec = {};
+      'MTWRF'.split('').forEach(d => { const p = sp.specials && sp.specials[d]; if (Array.isArray(p) && p.some(x => cut(x, 60))) spec[d] = p.slice(0, 2).map(x => cut(x, 60)); });
+      if (Object.keys(spec).length) f.specials = spec;
+      // Details were kept by "<start>|<block name>", on every weekday that block runs.
+      const unplaced = [];
+      Object.entries(sp.details || {}).forEach(([k, x]) => {
+        if (!x || !(cut(x.detail, 4000) || cut(x.emergency, 4000))) return;
+        const [start, ...rest] = k.split('|'), name = rest.join('|');
+        const hits = records.filter(r => r.type === 'block' && r.start === start && (r.name === cut(name, 60) || (/^Assembly \/ Enrichments/.test(name) && r.name === 'Assembly / Enrichments / Other')));
+        if (!hits.length) { unplaced.push(`${start} ${name}: ${[x.detail, x.emergency && 'If you cannot find it: ' + x.emergency].filter(Boolean).join(' · ')}`.slice(0, 4000)); return; }
+        hits.forEach(b => records.push(rec('subblk_' + b.id, 'subBlock', Object.assign({ blockId: b.id },
+          cut(x.detail, 4000) ? { detail: String(x.detail).slice(0, 4000) } : {}, cut(x.emergency, 4000) ? { emergency: String(x.emergency).slice(0, 4000) } : {}))));
+      });
+      if (unplaced.length) { f.unplaced = unplaced.slice(0, 100); notes.push(`${plural(unplaced.length, 'sub plan note was', 'sub plan notes were')} for a block no longer on the schedule; Settings → Sub plans lists ${unplaced.length === 1 ? 'it' : 'them'} to place.`); }
+      if (Object.keys(f).length) records.push(rec('subplan_main', 'subPlan', f));
+    }
+
     let notesMoved = 0;
     for (const [date, d] of Object.entries(lpDays)) {
       if (!isDate(date) || !d || typeof d !== 'object') continue;
@@ -392,8 +421,13 @@
         if (!cut(text, 500)) continue;
         const [start, ...rest] = String(bk).split('|');
         const bid = blockAt.get(`${wd}|${start}|${cut(rest.join('|'), 60)}`);
-        if (bid) records.push(rec(`bnote_${date}_${bid}`, 'blockNote', { date, blockId: bid, text: cut(text, 500) }));
-        else { notes = cut([notes, `${start} ${rest.join('|')}: ${text}`].filter(Boolean).join('\n'), 2000); notesMoved++; }
+        if (bid) { records.push(rec(`bnote_${date}_${bid}`, 'blockNote', { date, blockId: bid, text: cut(text, 500) })); continue; }
+        // A note for a block no longer on the schedule stays with that block (kept as a deleted block),
+        // so the day and the sub plan can still say which block it was for, as v95 did.
+        const name = cut(rest.join('|'), 60) || 'Block', gone = `blk_gone-${wd}-${safe(start + '-' + name, 1)}`.slice(0, 100);
+        if (!records.some(r => r.id === gone)) records.push(Object.assign(rec(gone, 'block', { weekday: wd, start: /^([01]?\d|2[0-3]):[0-5]\d$/.test(start) ? start : '0:00', name, subjectId: null }), { deletedAt: T }));
+        records.push(rec(`bnote_${date}_${gone}`, 'blockNote', { date, blockId: gone, text: cut(text, 500) }));
+        notesMoved++;
       }
       const flags = (Array.isArray(d.flags) ? d.flags : []).filter(x => FLAGS.includes(x));
       if (notes || flags.length || d.saved) {
@@ -411,7 +445,7 @@
         records.push(rec(`les_${date}_${sj}`, 'lessonPlan', f));
       }
     }
-    if (notesMoved) notes.push(`${plural(notesMoved, 'block note was', 'block notes were')} for a block no longer on the schedule, so ${notesMoved === 1 ? 'it was' : 'they were'} added to that day's notes.`);
+    if (notesMoved) notes.push(`${plural(notesMoved, 'block note was', 'block notes were')} for a block no longer on the schedule; ${notesMoved === 1 ? 'it shows' : 'they show'} with that day's notes, labeled with the block.`);
 
     // Planner text that names a child must not go to live sync: move it to a private note.
     // Without the name check, planner notes could carry names to live sync, so stop instead of skipping it.

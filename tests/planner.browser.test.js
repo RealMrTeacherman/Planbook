@@ -94,7 +94,7 @@ test('the planner: Day and Week on MacBook and iPhone', { skip, timeout: 240000 
       for (const p of [mac, phone]) {
         assert.match(await p.$eval('#dayMain', e => e.innerText), /Use the big ten frames/);
         assert.match(await p.$eval('#dayMain', e => e.innerText), /Reveal Teacher/);
-        assert.match(await p.$eval('#daySide', e => e.innerText), /9:00 Old block: Gone from the schedule/);
+        assert.match(await p.$eval('#daySide', e => e.innerText), /Old block \(9:00\): Gone from the schedule/);
       }
       await open(mac, '#day/2026-09-16'); await open(phone, '#day/2026-09-16');
       assert.match(await mac.$eval('#daySide', e => e.innerText), /PRIVATE · DRIVE ONLY\s*Mila to speech/i);
@@ -485,6 +485,55 @@ test('the planner: Day and Week on MacBook and iPhone', { skip, timeout: 240000 
       await open(mac, '#settings/2026-09-14');
       await mac.click('[data-look="blocks"]');
       await mac.waitForFunction(() => !document.documentElement.classList.contains('look-agenda'));
+    });
+
+    // ---------- step 5: sub plans ----------
+    await t.test('the Day view opens the day\'s sub plan: the full plan, built from the planner and the sub notes', async () => {
+      await open(mac, '#day/2026-09-14');
+      await mac.click('.subbtn');
+      await mac.waitForFunction(() => location.hash === '#sub/2026-09-14' && /Monday, 14 September/.test(window.__subHtml || ''));
+      const h = await mac.evaluate(() => window.__subHtml);
+      assert.match(h, /The day, block by block/);
+      assert.match(h, /Teacher Guide is on my desk/, 'a block\'s What to do');
+      assert.match(h, /If you cannot find it:<\/b> Do the Number Corner page instead/);
+      assert.match(h, /Mila<\/b><\/td><td>Needs a movement break/, 'What helps');
+      // Tuesday's schedule was replaced by an earlier test, so its block notes now print under Just for this day.
+      await open(mac, '#sub/2026-09-15');
+      await mac.waitForFunction(() => /Tuesday, 15 September/.test(window.__subHtml || ''));
+      const tue = await mac.evaluate(() => window.__subHtml);
+      assert.match(tue, /Old block \(9:00\):<\/b> Gone from the schedule/);
+      assert.match(tue, /Math core lesson \(10:15\):<\/b> Use the big ten frames/, 'a deleted block keeps its note, labeled');
+      assert.equal(await mac.$eval('#subFrame', f => f.contentDocument.body.innerHTML.length > 500), true, 'the preview shows it');
+      assert.equal(await mac.$eval('#subFrame', f => f.contentWindow.getComputedStyle(f.contentDocument.querySelector('h2')).textTransform), 'uppercase', 'with v95\'s printout styles');
+    });
+
+    await t.test('At a glance is one table of the day; printing marks the day as a sub day on both devices', async () => {
+      await mac.click('[data-subkind="glance"]');
+      await mac.waitForFunction(() => /At a glance/.test(window.__subHtml));
+      await mac.waitForSelector('#subFrame');
+      await mac.evaluate(() => { document.getElementById('subFrame').contentWindow.print = () => { window.__printed = true; }; });
+      await mac.click('#subPrint');
+      await mac.waitForFunction(() => window.__printed === true);
+      await waitRec(phone, async () => ((await window.__store.all()).find(r => r.id === 'dayp_2026-09-15') || {}).flags?.includes('Sub'));
+    });
+
+    await t.test('a device without the sub notes says where they live', async () => {
+      await open(phone, '#sub/2026-09-15');
+      assert.match(await phone.$eval('#subView', e => e.innerText), /No standing sub notes on this device yet/);
+    });
+
+    await t.test('sub notes are edited in Settings, show in the plan, and never reach the server', async () => {
+      await open(mac, '#settings/2026-09-15');
+      await mac.$eval('[data-rec="subplan_main"][data-f="intro"]', e => { e.value = 'Welcome! Lunch count is on the clipboard.'; e.dispatchEvent(new Event('change', { bubbles: true })); });
+      await pickDay(mac, 1);
+      await mac.$eval('[data-blk="blk_d1-930"][data-f="detail"]', e => { e.value = 'Recess duty is on the playground map.'; e.dispatchEvent(new Event('change', { bubbles: true })); });
+      await mac.$eval('[data-special="T"][data-i="0"]', e => { e.value = 'Music'; e.dispatchEvent(new Event('change', { bubbles: true })); });
+      await waitRec(mac, async () => (await window.__store.all()).some(r => r.id === 'subblk_blk_d1-930'));
+      await open(mac, '#sub/2026-09-14');
+      await mac.click('[data-subkind="full"]');
+      await mac.waitForFunction(() => /Welcome! Lunch count/.test(window.__subHtml) && /Recess duty is on the playground map/.test(window.__subHtml));
+      await new Promise(r => setTimeout(r, 600));
+      assert.equal(fb.allDocs().some(r => /^sub(Plan|Block)$/.test(r.type) || JSON.stringify(r).includes("Lunch count")), false);
     });
 
     await t.test('both devices end with the same live records as the server', async () => {

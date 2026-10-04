@@ -1,5 +1,33 @@
 # Changelog
 
+## Step 5 — sub plans
+
+**Sub plan for this day,** from the Day view's side panel: the **full plan** and the **one-page At a glance**, previewed as they print, with Print. Printing marks the day with the Sub flag, as v95 did.
+- **v95's printouts, copied out of its source** by `tools/extract-subplan.js` into `core/subplan-v95.js`, not retyped. `core/subplan.js` feeds them from the new planner: schedule blocks, lessons with Reveal targets and materials and Benchmark's focus and texts, your day and block notes, the math board, and your standing sub notes.
+- **The gate:** v95's own sub-plan panel runs in Chrome on the invented class and prints both, and the new builder's HTML is the same, character for character, for two days (`tests/subplan-v95.browser.test.js`). The comparison sets aside the groups table, which v95 shows only when its Small Groups code has loaded. It uses what v95 stores after its own upgrades run, as a real export would.
+- **Three deliberate differences**, each following how the new planner works:
+  - a lesson planned but not yet taught prints as the plan (v95: "Not happening today")
+  - a subject with nothing set prints the planner's suggestion on any day (v95: only on the day the planner had open)
+  - private notes print in place, since the plan is private
+
+**Settings → Sub plans:** your name, contact, welcome, signal, trusted students, arrival, incentives, consequences, end of day; the What helps list; each weekday's specials; each block's What to do and If you cannot find it, weekday by weekday; and anything from v95 that matched no block, to place.
+
+**Contract version 6:** `subPlan` and `subBlock`, both **private** (Drive path only). The Firebase rules do not change; only the version in their header comment does.
+
+**Import:** your sub notes come across. Block details go onto every weekday their block runs, including the renamed Assembly / Enrichments / Other block, and any that match no block are kept to place.
+
+**Changed from 4a:** a day note for a block no longer on the schedule now stays with that block (kept as a deleted block), so the Day view and the sub plan say "Old block (9:00): …" as v95 did, instead of folding it into the day's notes.
+
+**Not yet:** the Walk to WIN table. Its lists come across with step 8.
+
+**Mistakes found and fixed before release.**
+- The extraction tool first cut one-line functions short and missed `dayKeyOf`, `DAYKEY` and the printout styles (`DOC_CSS`).
+- The preview first showed the plan unstyled: v95's styles are written for `#subprint`.
+- "Your name on the plan" could not have saved (a stray text replacement removed its marker). Text areas were not protected from a redraw while typing.
+- In my tests: the browser's own way of writing `&middot;`, a check that matched `subject` when it meant `subPlan`, an older-version test still shaped for version 1, earlier tests that had replaced Tuesday's schedule, and a click racing a redraw on the Sync page.
+
+**Tests.** 238 tests (237 pass, 1 skipped). Deliberate breaks: 87.
+
 ## Step 4d — Phonics inside Reading, and the Agenda look
 
 **Phonics inside Reading.** Phonics is shown as a section at the top of the Reading card: its own position, ‹ ›, Taught and note, still tracked on its own (week grid, family email). Reading's chip spans both (8:15–9:30). Any subject can be shown inside another (Settings → Subjects → Show inside); import sets Phonics inside Reading. *Follow-up:* the first push of 4d had only the import default, not the Settings control, so a device that had already imported could not turn it on. Added, with a test. **Contract version 5** adds `within` to subjects: **paste the new `firestore.rules`.**
