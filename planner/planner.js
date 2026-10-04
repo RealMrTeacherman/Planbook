@@ -158,6 +158,49 @@
     if (!expect) return '';
     return Number(pos.unit) === expect ? ' · on pace with the guide' : ` · the guide has you in Unit ${expect} by now`;
   }
+  // ---------- the Agenda look (chosen per device) ----------
+  const LOOK = () => { try { return localStorage.getItem('planbook.look') === 'agenda' ? 'agenda' : 'blocks'; } catch (e) { return 'blocks'; } };
+  let selSubj = null;
+  const wide = () => matchMedia('(min-width: 900px)').matches;
+  matchMedia('(min-width: 900px)').addEventListener('change', () => { if (LOOK() === 'agenda') render(); });
+  function agendaRow(r, date, nested) {
+    const sb = r.subject, rec = X.lesson[date + '|' + sb.id];
+    const pos = rec ? rec.pos : P.suggest(sb, X.lessons, date);
+    const t = P.title(sb, pos);   // free text already shows in the position slot
+    const sel = selSubj === sb.id;
+    const stepUI = sb.schema === 'free'
+      ? `<span class="apos">${esc(pos.text || '—')}</span>`
+      : `<span class="asteps"><button class="ast" data-step="-1" data-s="${esc(sb.id)}" aria-label="${esc(sb.name)}: previous">${SVG.prev}</button><span class="apos">${esc(P.label(sb, pos))}</span><button class="ast" data-step="1" data-s="${esc(sb.id)}" aria-label="${esc(sb.name)}: next">${SVG.next}</button></span>`;
+    const time = r.blocks && r.blocks.length ? r.blocks[0].start : '';
+    return `<div class="arow${sel ? ' sel' : ''}${nested ? ' nested' : ''}" style="${colorVars(sb)}" data-arow="${esc(sb.id)}">
+      <span class="atime">${esc(time)}</span><span class="adot"></span>
+      <button class="aname" data-sel="${esc(sb.id)}" aria-expanded="${sel}" aria-label="${esc(sb.name)}: ${sel ? 'hide' : 'show'} details">${esc(sb.name)}</button>
+      ${stepUI}<span class="atitle">${esc(rec ? '' : (sb.schema === 'free' ? '' : 'Suggested · '))}${esc(t)}</span>
+      <button class="acheck" aria-pressed="${rec && rec.taught ? 'true' : 'false'}" data-taught="${esc(sb.id)}" aria-label="${esc(sb.name)}: ${rec && rec.taught ? 'taught' : 'mark taught'}">${rec && rec.taught ? SVG.check : ''}</button></div>`;
+  }
+  function renderAgenda(date, sched, un) {
+    const lessons = sched.filter(r => r.kind === 'lesson');
+    const all = [...lessons, ...lessons.flatMap(r => r.children || []), ...un];
+    if (!all.some(r => r.subject.id === selSubj)) selSubj = wide() && lessons[0] ? lessons[0].subject.id : (all.some(r => r.subject.id === selSubj) ? selSubj : null);
+    const detail = r => lessonCard(Object.assign({}, r, { children: [] }), date);
+    const findRow = id => all.find(r => r.subject.id === id);
+    const line = r => {
+      if (r.kind !== 'lesson') return `<div class="aplain"><span class="atime">${esc(r.block.start)}</span><span class="aname-plain">${esc(r.block.name)}</span>${r.block.note ? `<span class="anote">${esc(r.block.note)}</span>` : ''}</div>`;
+      // A subject shown inside this one (Phonics in Reading) keeps its place in time, indented.
+      const first = x => (x.blocks && x.blocks[0] ? P.mins(x.blocks[0].start) : 1e9);
+      const rowsHtml = [r, ...(r.children || [])].sort((a, b) => first(a) - first(b)).map(x => agendaRow(x, date, x !== r)).join('');
+      // On the phone the chosen lesson opens in place, under its row.
+      const open = !wide() && [r, ...(r.children || [])].find(x => x.subject.id === selSubj);
+      return rowsHtml + (open ? `<div class="ainline">${detail(open)}</div>` : '');
+    };
+    $('dayMain').innerHTML = `<div class="agenda">${sched.map(line).join('')}</div>
+      ${un.length ? `<details class="unsched"><summary><span class="unsched-title">Not on ${DAY[P.weekday(date)]}'s schedule</span>
+        <span class="unsched-names">${un.map(r => esc(r.subject.name)).join(' · ')}</span></summary><div class="agenda">${un.map(line).join('')}</div></details>` : ''}`;
+    // On the MacBook the chosen lesson's full card sits beside the list, above the day.
+    const pick = selSubj && findRow(selSubj);
+    if (wide() && pick) $('daySide').insertAdjacentHTML('afterbegin', `<div class="apane">${detail(pick)}</div>`);
+    if (wide()) document.querySelectorAll('.apane .cur details').forEach(d => { d.open = true; });
+  }
   let ENDS = {};   // block id -> the time it ends (the next block's start), for the day on screen
   const PICKS = () => Object.fromEntries((D.extraSubjects || []).filter(x => x.picks).map(x => [x.id, x.picks]));
 
@@ -195,14 +238,16 @@
     </div>`;
   }
 
-  function lessonCard(row, date) {
+  function lessonCard(row, date, nested) {
     const sb = row.subject;
     const rec = X.lesson[date + '|' + sb.id];
     const pos = rec ? rec.pos : P.suggest(sb, X.lessons, date);
     const last = P.lastTaught(X.lessons, sb.id, date);
     const bl = row.blocks || [];
-    const lastEnd = bl.length ? (ENDS[bl[bl.length - 1].id] || '') : '';
-    const when = bl.length ? (lastEnd ? `${bl[0].start}–${lastEnd}` : bl[0].start) : '';
+    // With a subject shown inside it (Phonics in Reading), the chip spans both.
+    const span = [...bl, ...(row.children || []).flatMap(c => c.blocks || [])].sort(P.byTime);
+    const lastEnd = span.length ? span.map(b => ENDS[b.id] || '').filter(Boolean).sort((a, b) => P.mins(a) - P.mins(b)).pop() || '' : '';
+    const when = span.length ? (lastEnd ? `${span[0].start}–${lastEnd}` : span[0].start) : '';
     const notes = X.pnotes.filter(n => n.about === 'lesson' && n.date === date && n.subjectId === sb.id);
     const free = sb.schema === 'free';
     const picks = (sb.picks && sb.picks.length ? sb.picks : null) || PICKS()[sb.id];
@@ -224,8 +269,11 @@
           <button class="next" data-step="1" data-s="${esc(sb.id)}" aria-label="${esc(sb.name)}: next">${SVG.next}</button></div>`;
     const title = P.title(sb, pos);
     const d = P.detail(sb, pos);
-    return `<article class="tile" style="${colorVars(sb)}" data-card="${esc(sb.id)}">
+    const kids = (row.children || []).map(c => lessonCard(c, date, true)).join('');
+    const tag = nested ? 'section class="subsec"' : 'article class="tile"';
+    return `<${tag} style="${colorVars(sb)}" data-card="${esc(sb.id)}"${nested ? ` aria-label="${esc(sb.name)}"` : ''}>
       <div class="tile-head"><span class="subj-chip">${when ? `<span class="t">${esc(when)}</span>` : ''}${esc(sb.name)}</span>${rec || free ? '' : '<span class="tag">Suggested</span>'}</div>
+      ${kids}
       ${head}
       ${picks ? `<div class="picks" role="group" aria-label="What ${esc(sb.name)} is today">${picks.map(p => `<button aria-pressed="${pos.text === p}" data-pick="${esc(sb.id)}" data-text="${esc(p)}">${esc(p)}</button>`).join('')}</div>` : ''}
       ${title && !(d && d.kind === 'benchmark') ? `<div class="ttl">${esc(title)}</div>` : ''}
@@ -238,7 +286,7 @@
       <div class="tile-foot">
         <button class="taught" aria-pressed="${rec && rec.taught ? 'true' : 'false'}" data-taught="${esc(sb.id)}">${rec && rec.taught ? SVG.check + ' Taught' : 'Mark taught'}</button>
         <button class="soft" data-lnote="${esc(sb.id)}">${rec && rec.note ? 'Edit note' : 'Add note'}</button>
-      </div><div data-lnote-host="${esc(sb.id)}"></div></article>`;
+      </div><div data-lnote-host="${esc(sb.id)}"></div></${nested ? 'section' : 'article'}>`;
   }
   function plainRow(row, date, continued) {
     const b = row.block;
@@ -271,7 +319,21 @@
     if (!rows.length) { main.innerHTML = `<div class="side"><p class="small">There is no schedule for ${DAY[P.weekday(date)]}days yet. The schedule editor arrives in the next release.</p></div>`; return; }
     // A subject's later blocks live inside its card, so they get no row of their own.
     ENDS = Object.fromEntries(rows.filter(r => r.block).map(r => [r.block.id, r.end]));
-    const sched = rows.filter(r => !r.unscheduled && r.kind !== 'continued'), un = rows.filter(r => r.unscheduled);
+    // A subject shown inside another (Phonics inside Reading) joins that card, which sits at the earlier of the two.
+    const parentRow = {};
+    rows.forEach(r => { if (r.kind === 'lesson' && !r.unscheduled) parentRow[r.subject.id] = r; });
+    const inside = r => r.kind === 'lesson' && r.subject.within && parentRow[r.subject.within] && parentRow[r.subject.within] !== r;
+    rows.forEach(r => { r.children = []; });
+    rows.forEach(r => { if (inside(r)) parentRow[r.subject.within].children.push(r); });
+    const placed = new Set(), ordered = [];
+    rows.forEach(r => {
+      if (r.kind === 'continued' || r.unscheduled) return;
+      const p = inside(r) ? parentRow[r.subject.within] : r;
+      if (p.kind === 'lesson') { if (!placed.has(p)) { placed.add(p); ordered.push(p); } }
+      else ordered.push(p);
+    });
+    const sched = ordered, un = rows.filter(r => r.unscheduled && !inside(r));
+    if (LOOK() === 'agenda') { renderAgenda(date, sched, un); $('daySide').insertAdjacentHTML('beforeend', miniWeek(date)); return; }
     // Lessons for subjects with no block today stay out of the way until asked for.
     main.innerHTML = `<div class="rows">${sched.map(r => r.kind === 'lesson' ? lessonCard(r, date) : plainRow(r, date, r.kind === 'continued')).join('')}</div>
       ${un.length ? `<details class="unsched"><summary><span class="unsched-title">Not on ${DAY[P.weekday(date)]}'s schedule</span>
@@ -404,7 +466,10 @@
           <td>${r.from ? `${fmtD(r.from)}–${fmtD(r.to)}${r.short ? ' (runs out)' : ''}` : 'not on the calendar'}</td>
           <td>${a ? `${fmtD(a.from)}–${fmtD(a.to)} · ${a.n} ${a.n === 1 ? 'day' : 'days'}` : '—'}</td></tr>`; }).join('')}</tbody></table></div></section>`;
     }
-    $('settingsView').innerHTML = `<div class="settings">${sched}${subjects}${cal}${pace}</div>`;
+    const look = `<section class="side sset" aria-labelledby="hLook"><div class="side-head"><h2 id="hLook">Look on this device</h2></div>
+      <p class="small">Each device keeps its own. Everything else is the same either way.</p>
+      <div class="flags" role="radiogroup" aria-label="Look">${[['blocks', 'Color blocks'], ['agenda', 'Agenda']].map(([v, l]) => `<button role="radio" aria-checked="${LOOK() === v}" aria-pressed="${LOOK() === v}" data-look="${v}">${l}</button>`).join('')}</div></section>`;
+    $('settingsView').innerHTML = `<div class="settings">${look}${sched}${subjects}${cal}${pace}</div>`;
   }
 
   // Settings edits: one handler for every field, each change written at once (and synced live).
@@ -440,6 +505,11 @@
     const d = el.dataset, all = await store.all();
     const now = () => new Date().toISOString();
     if (d.dow) { setDow = Number(d.dow); render(); return; }
+    if (d.look) {
+      try { localStorage.setItem('planbook.look', d.look); } catch (e) { }
+      document.documentElement.classList.toggle('look-agenda', d.look === 'agenda');
+      render(); return;
+    }
     if (d.addblk) {
       const mine = X.blocks.filter(b => b.weekday === setDow).sort(P.byTime);
       const last = mine[mine.length - 1];
@@ -655,6 +725,7 @@
       if (d.step) await setLesson(d.s, date, r => ({ pos: Number(d.step) > 0 ? P.advance(X.subj[d.s], r.pos) : P.retreat(X.subj[d.s], r.pos) }));
       else if (d.taught) await setLesson(d.taught, date, r => ({ taught: !r.taught }));
       else if (d.pick) await setLesson(d.pick, date, () => ({ pos: { text: d.text } }));
+      else if (d.sel) { selSubj = selSubj === d.sel && !wide() ? null : d.sel; render(); }
       else if (d.jump) await jump(d.jump, date);
       else if (d.focus) { const i = document.querySelector(`[data-free="${CSS.escape(d.focus)}"]`); if (i) { i.focus(); i.select(); } }
       else if (d.flag) {

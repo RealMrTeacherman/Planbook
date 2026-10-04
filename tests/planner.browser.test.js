@@ -38,8 +38,12 @@ test('the planner: Day and Week on MacBook and iPhone', { skip, timeout: 240000 
     await page.type('#liveEmail', EMAIL); await page.type('#livePw', PW); await page.click('#liveGo');
     await page.waitForFunction(() => /up to date/.test(document.getElementById('liveStatus').innerText), { timeout: 10000 });
   };
-  const labels = page => page.$$eval('[data-card]', cs => cs.map(c => [c.dataset.card, (c.querySelector('.label') || c.querySelector('input')).textContent || c.querySelector('input').value,
-    c.querySelector('.taught').getAttribute('aria-pressed')]));
+  // Each card's own position and Taught, not those of a subject shown inside it.
+  const labels = page => page.$$eval('[data-card]', cs => cs.map(c => {
+    const own = sel => c.querySelector(`:scope > ${sel}`);
+    const l = own('.pos .label'), i = own('.pos input');
+    return [c.dataset.card, l ? l.textContent : i.value, own('.tile-foot .taught').getAttribute('aria-pressed')];
+  }));
   const liveRecs = page => page.evaluate(async types => (await window.__store.all()).filter(r => types.includes(r.type)).sort((a, b) => a.id < b.id ? -1 : 1), LIVE_TYPES);
   const rec = (page, id) => page.evaluate(async id => (await window.__store.all()).find(r => r.id === id) || null, id);
   const waitRec = (page, fn, arg) => page.waitForFunction(fn, { timeout: 10000 }, arg);
@@ -102,12 +106,28 @@ test('the planner: Day and Week on MacBook and iPhone', { skip, timeout: 240000 
     await t.test('a subject\'s later blocks fold into its card as small text, with no rows of their own', async () => {
       await open(mac, '#day/2026-09-14');
       assert.equal(await mac.$$eval('#dayMain .slim.continued', e => e.length), 0);
-      const blk = await mac.$eval('[data-card="subj_v95-reading"] .blk', e => e.innerText);
+      const blk = await mac.$eval('[data-card="subj_v95-reading"] > .blk', e => e.innerText);
       assert.match(blk, /8:50 Whole-group comprehension/);
       assert.match(blk, /9:10 Reading small groups · Colors shift one slot down/);
-      assert.match(await mac.$eval('[data-card="subj_v95-reading"] .subj-chip', e => e.textContent), /8:30–9:30/);
+      assert.match(await mac.$eval('[data-card="subj_v95-reading"] > .tile-head .subj-chip', e => e.textContent), /8:15–9:30/, 'Phonics inside, so the chip spans both');
       const times = await mac.$$eval('#dayMain > .rows > *', els => els.map(e => (e.querySelector('.time, .subj-chip .t') || {}).textContent));
       assert.ok(!times.includes('8:50') && !times.includes('9:10'), 'no rows for the later reading blocks');
+    });
+
+    await t.test('Phonics sits inside the Reading card, first, still tracked on its own', async () => {
+      await open(mac, '#day/2026-09-14');
+      const r = await mac.$eval('[data-card="subj_v95-reading"]', c => ({
+        nested: !!c.querySelector(':scope > .subsec[data-card="subj_v95-phonics"]'),
+        firstChild: c.children[1].dataset.card,
+        phonicsTaught: c.querySelector('[data-card="subj_v95-phonics"] .taught').getAttribute('aria-pressed') }));
+      assert.deepEqual(r, { nested: true, firstChild: 'subj_v95-phonics', phonicsTaught: 'true' });
+      assert.equal(await mac.$$eval('#dayMain > .rows > [data-card="subj_v95-phonics"]', e => e.length), 0, 'no Phonics card of its own');
+      const lefts = await mac.$$eval('[data-card="subj_v95-reading"] .pos .label', ls => ls.map(l => Math.round(l.getBoundingClientRect().left - l.closest('.pos').getBoundingClientRect().left)));
+      assert.ok(lefts.every(x => x <= 2), `positions sit at the left of their row, not centered: ${lefts}`);
+      await mac.click('[data-card="subj_v95-phonics"] [data-taught]');
+      await waitRec(mac, async () => (await window.__store.all()).find(x => x.id === 'les_2026-09-14_subj_v95-phonics').taught === false);
+      assert.equal(await mac.$eval('[data-card="subj_v95-reading"] > .tile-foot .taught', e => e.getAttribute('aria-pressed')), 'true', 'Reading untouched');
+      await mac.click('[data-card="subj_v95-phonics"] [data-taught]');
     });
 
     await t.test('a day off from the district calendar shows on both devices', async () => {
@@ -232,6 +252,7 @@ test('the planner: Day and Week on MacBook and iPhone', { skip, timeout: 240000 
     });
 
     await t.test('every subject chip meets 4.5:1 contrast with its white text', async () => {
+      await open(mac, '#day/2026-09-16');   // a settled page of its own, not one still switching days
       const ratios = await mac.$$eval('.subj-chip', chips => chips.map(c => {
         const rgb = getComputedStyle(c).backgroundColor.match(/\d+/g).slice(0, 3).map(Number);
         const L = rgb.map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }).reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0);
@@ -363,11 +384,11 @@ test('the planner: Day and Week on MacBook and iPhone', { skip, timeout: 240000 
       await mac.select('#jumpSel', JSON.stringify({ unit: 2, lesson: 3 }));
       await mac.click('#jumpDialog button[value="go"]');
       await waitRec(mac, () => document.querySelector('[data-card="subj_v95-math"] .label').textContent === 'U2 · L3');
-      await mac.click('[data-card="subj_v95-reading"] [data-jump]');
+      await mac.click('[data-card="subj_v95-reading"] > .pos [data-jump]');
       await mac.waitForFunction(() => document.getElementById('jumpDialog').open);
       await setField(mac, '#jumpBody [data-j="week"]', '2');
       await mac.click('#jumpDialog button[value="go"]');
-      await waitRec(mac, () => /^U\d+ · W2 · D\d+$/.test(document.querySelector('[data-card="subj_v95-reading"] .label').textContent));
+      await waitRec(mac, () => /^U\d+ · W2 · D\d+$/.test(document.querySelector('[data-card="subj_v95-reading"] > .pos .label').textContent));
     });
 
     await t.test('a change arriving from the other device never wipes a Settings field being typed in', async () => {
@@ -430,6 +451,31 @@ test('the planner: Day and Week on MacBook and iPhone', { skip, timeout: 240000 
       await open(mac, '#day/2026-09-18');
       await mac.click('#next');
       await mac.waitForFunction(() => location.hash === '#day/2026-09-21');
+    });
+
+    await t.test('the Agenda look: chosen on the MacBook only, a compact list with the lesson beside it', async () => {
+      await open(mac, '#settings/2026-09-14');
+      await mac.click('[data-look="agenda"]');
+      await mac.waitForFunction(() => document.documentElement.classList.contains('look-agenda'));
+      await open(mac, '#day/2026-09-14');
+      assert.equal(await mac.evaluate(() => document.documentElement.classList.contains('look-agenda')), true, 'kept after reload');
+      await open(phone, '#day/2026-09-14');
+      assert.equal(await phone.evaluate(() => document.documentElement.classList.contains('look-agenda')), false, 'the iPhone keeps its own look');
+      assert.ok(await mac.$$eval('.agenda .arow', r => r.length) >= 4);
+      const order = await mac.$$eval('.agenda .arow', r => r.map(x => x.dataset.arow));
+      assert.ok(order.indexOf('subj_v95-phonics') < order.indexOf('subj_v95-reading'), 'Phonics (8:15) before Reading (8:30)');
+      assert.ok(await mac.$('.apane [data-card]'), 'a lesson open beside the list');
+      await mac.click('[data-sel="subj_v95-math"]');
+      await mac.waitForFunction(() => document.querySelector('.apane [data-card]').dataset.card === 'subj_v95-math');
+      assert.match(await mac.$eval('.apane', e => e.innerText), /Learning targets|Course Diagnostic/);
+      await mac.click('[data-arow="subj_v95-math"] [data-step="1"]');
+      await waitRec(phone, () => document.querySelector('[data-card="subj_v95-math"] > .pos .label').textContent === 'U1 · Opener');
+      const wide = await mac.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
+      assert.ok(wide, 'nothing runs off the side');
+      await mac.click('[data-arow="subj_v95-math"] [data-step="-1"]');
+      await open(mac, '#settings/2026-09-14');
+      await mac.click('[data-look="blocks"]');
+      await mac.waitForFunction(() => !document.documentElement.classList.contains('look-agenda'));
     });
 
     await t.test('both devices end with the same live records as the server', async () => {

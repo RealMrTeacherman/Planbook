@@ -1,6 +1,6 @@
 /* The suite's look: "Color blocks" (chosen Oct 2026). Figtree for reading, Bricolage Grotesque
    for headings and lesson positions, JetBrains Mono for codes. Subjects carry their own colors. */
-@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Figtree:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Figtree:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&family=Barlow:wght@400;500;600;700&display=swap");
 
 :root {
   --paper: #F2F3F5;

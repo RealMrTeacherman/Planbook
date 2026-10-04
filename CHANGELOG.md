@@ -1,5 +1,19 @@
 # Changelog
 
+## Step 4d — Phonics inside Reading, and the Agenda look
+
+**Phonics inside Reading.** Phonics is shown as a section at the top of the Reading card: its own position, ‹ ›, Taught and note, still tracked on its own (week grid, family email). Reading's chip spans both (8:15–9:30). Any subject can be shown inside another; import sets Phonics inside Reading. **Contract version 5** adds `within` to subjects: **paste the new `firestore.rules`.**
+
+**The Agenda look, chosen per device** (Settings → Look on this device). It has a dark header, monospace times, and the day as a compact list: time, subject, position with ‹ ›, title, a Taught box. On the MacBook, tapping a subject shows its full card beside the list; on the iPhone the card opens in place under its row. Phonics keeps its place in time, indented under Reading. Color blocks is unchanged, and each device keeps its own choice.
+
+**Mistakes found and fixed before release.**
+- Since 4b, a lesson's big position was centered in its card. The ‹ › icon rule ("center the contents") also applied to the position, which became a button in 4b, and current Chrome honors that inside ordinary blocks. A test now checks the position sits at the left.
+- In Agenda: the detail pane's curriculum ran off the side (three across in a narrow pane), free-text subjects showed their text twice, Phonics was listed after Reading, and on the iPhone the Taught box wrapped to its own line.
+- My first draft of the breaks included one ("the Agenda look shared across devices") that changed nothing a test could see. It was replaced with a real one.
+- **The contrast test failed again,** once in two runs, and three reruns did not reproduce it. The likely cause is in the test: the test before it moves to another day and continues as soon as the address changes, so the check could measure mid-redraw. It now opens a settled page of its own and still reports the color and page it measured, so if the cause is something else, the next failure will say so.
+
+**Tests.** 227 tests (226 pass, 1 skipped); 41 checks in the planner test.
+
 ## Step 4c — the family email
 
 **A Family email button on the Week view** opens the coming week in families' words, ready to edit and paste. It defaults to next week from Friday on, and ‹ › moves by week. On the MacBook the email sits on the right and the controls on the left; on the iPhone the controls come first. Copy puts a formatted version (bullets) and a plain-text version on the clipboard.

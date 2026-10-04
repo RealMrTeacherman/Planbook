@@ -333,6 +333,8 @@
       const yr = records.find(r => r.type === 'schoolYear');
       if (yr) yr.earlyReleaseWeekday = 'wed';
     }
+    // Phonics is part of reading instruction: shown inside Reading's card, still tracked on its own.
+    if (subjId.has('phonics') && subjId.has('reading')) records.find(r => r.id === subjId.get('phonics')).within = subjId.get('reading');
     const blockAt = new Map();     // "<weekday>|<start>|<name>" -> block id
     if (lp && lp.templates && typeof lp.templates === 'object') {
       for (const [dow, list] of Object.entries(lp.templates)) {

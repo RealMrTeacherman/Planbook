@@ -68,7 +68,7 @@ const M = [
   ['core/plan.js', 'afternoon times sort before the morning', 'if (hh < 7) hh += 12;', '', false],
   ['core/plan.js', 'an untaught day counts as taught', "!l.taught || ", '', false],
   ['core/plan.js', 'days off ignored', "if (sd && sd.kind === 'noSchool') return", 'if (false) return', false],
-  ['core/store.js', 'no upgrade from the version before', '4: records => records', '', 'tests/sync.browser.test.js'],
+  ['core/store.js', 'no upgrade from the version before', '5: records => records', '', 'tests/sync.browser.test.js'],
   ['planner/planner.js', 'Keep it private saves the note live', "if (choice === 'private') {\n      const writes", "if (false) {\n      const writes", 'tests/planner.browser.test.js'],
   ['planner/planner.js', 'notes saved without the name check', "if (!hits.length) return Promise.resolve('live');", "return Promise.resolve('live');", 'tests/planner.browser.test.js'],
   ['planner/planner.js', 'the district calendar not applied', "await applyCalendar(cal);", '', 'tests/planner.browser.test.js'],
@@ -83,6 +83,10 @@ const M = [
   ['core/family.js', 'a unit\'s first writing week says "Continuing"', 'Number(p.week) === 1 ?', 'false ?', false],
   ['core/import-v95.js', 'v95 goal keys taken without checking', 'if (keyOk(k) && cut(v, 200))', 'if (cut(v, 200))', false],
   ['planner/planner.js', 'the family email rebuilt over hand edits', 'if (famShown === mon && famEdited) return;', '', 'tests/planner.browser.test.js'],
+  // 4d
+  ['core/import-v95.js', 'Phonics not placed inside Reading', "records.find(r => r.id === subjId.get('phonics')).within = subjId.get('reading');", '', false],
+  ['planner/planner.js', 'a subject shown inside another gets its own card too', "if (inside(r)) parentRow[r.subject.within].children.push(r);", '', 'tests/planner.browser.test.js'],
+  ['planner/planner.js', 'Agenda rows out of time order', '.sort((a, b) => first(a) - first(b))', '', 'tests/planner.browser.test.js'],
   ['sw.js', 'offline copy missing the planner', "'planner/', 'planner/index.html', ", '', false],
   ['sw.js', 'offline copy missing the sync page', "'sync/', 'sync/index.html'", "'sync/'", false]
 ];

@@ -19,7 +19,9 @@
     // 3: subjects may carry quick picks; no version 2 record changes.
     3: records => records,
     // 4: the family email's weekly goal and spelling list; no version 3 record changes.
-    4: records => records
+    4: records => records,
+    // 5: a subject may be shown inside another's card; no version 4 record changes.
+    5: records => records
   };
 
   const req = r => new Promise((ok, no) => { r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); });

@@ -243,3 +243,74 @@ table.pace tr.here td { background: var(--accent-soft); }
   .fam-mail { grid-column: 2; grid-row: 1; }
   .fam-tools { grid-column: 1; grid-row: 1; }
 }
+
+/* A subject shown inside another's card (Phonics inside Reading) */
+.subsec { margin: 10px 0 4px; padding: 12px; border-radius: 14px; background: rgba(255,255,255,.62); }
+.subsec .subj-chip { font-size: .8rem; }
+.subsec .pos .label { font-size: 1.4rem; }
+.subsec .pos button { width: 44px; min-width: 44px; height: 44px; }
+.subsec .tile-foot { margin-top: 8px; }
+.subsec .tile-foot button { min-height: 44px; }
+@media (min-width: 900px) { .subsec .pos .label { font-size: 1.6rem; } }
+/* The position is a button (it opens "jump to a lesson"), but it reads as a heading: left-aligned, not centered like the ‹ › icons */
+.pos .labelbtn { display: block; height: auto; text-align: left; place-items: normal; }
+@media (min-width: 900px) { .settings > .sset:nth-child(2) { grid-column: 1 / -1; } }
+
+/* ================= The Agenda look (html.look-agenda), chosen per device ================= */
+.look-agenda body { font-family: 'Barlow', var(--sans); background: #F5F6F8; }
+.look-agenda .top { background: #1E2A33; color: #fff; margin: -16px -16px 18px; padding: 14px 16px 12px; }
+.look-agenda .top h1 { font-family: 'Barlow', var(--sans); font-weight: 600; letter-spacing: 0; font-size: 1.5rem; }
+.look-agenda .home, .look-agenda .top a { color: #B8C4CE; }
+.look-agenda .chip { background: transparent; border: 1px solid #3A4A56; color: #DDE3E8; }
+.look-agenda .chip.ok { color: #9FE0D2; }
+.look-agenda .tabs { background: #2B3943; border-radius: 10px; }
+.look-agenda .tabs button { color: #fff; border-radius: 8px; }
+.look-agenda .tabs button[aria-selected="true"] { background: #fff; color: #1E2A33; }
+.look-agenda .datenav button { background: transparent; border: 1px solid #3A4A56; color: #fff; border-radius: 8px; min-height: 40px; }
+.look-agenda #dateLabel { font-family: var(--mono); font-weight: 600; font-size: .95rem; color: #FFD38A; }
+.look-agenda .side, .look-agenda .wday { border-radius: 10px; border: 1px solid #E3E6EA; }
+.look-agenda h2, .look-agenda .side-head h2 { font-family: 'Barlow', var(--sans); font-weight: 700; }
+
+.agenda { border: 1px solid #E3E6EA; border-radius: 10px; overflow: hidden; background: #fff; }
+.arow, .aplain { display: grid; align-items: center; gap: 10px; padding: 7px 12px; border-bottom: 1px solid #E3E6EA; }
+.arow { grid-template-columns: 3.4em 10px minmax(6em, 9em) auto minmax(0, 1fr) 44px; background: #fff; }
+.arow.sel { background: #EAF4F8; box-shadow: inset 3px 0 0 var(--subj); }
+.arow.nested { padding-left: 28px; }
+.aplain { grid-template-columns: 3.4em 1fr; font-size: .92rem; }
+.aplain .anote { grid-column: 2; font-size: .82rem; color: var(--ink-soft); }
+.atime { font: 500 .8rem var(--mono); color: var(--ink-soft); }
+.adot { width: 9px; height: 9px; border-radius: 50%; background: var(--subj); }
+.aname { width: auto !important; min-height: 44px; padding: 0 !important; border: 0 !important; background: none !important; color: var(--ink) !important;
+  font: 600 1rem 'Barlow', var(--sans); text-align: left; margin: 0 !important; text-decoration: underline; text-decoration-color: transparent; }
+.aname:hover { text-decoration-color: currentColor; }
+.asteps { display: inline-flex; align-items: center; gap: 4px; }
+.ast { width: 36px !important; min-width: 36px; height: 36px; min-height: 36px; padding: 0 !important; border: 1px solid #E3E6EA !important; border-radius: 8px;
+  background: #fff !important; color: var(--ink) !important; display: grid; place-items: center; margin: 0 !important; }
+.apos { font: 600 .9rem var(--mono); min-width: 7.5em; text-align: center; }
+.atitle { font-size: .85rem; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.acheck { width: 44px !important; min-width: 44px; height: 44px; padding: 0 !important; border-radius: 10px; border: 2px solid #E3E6EA !important; background: #fff !important;
+  color: #fff !important; display: grid; place-items: center; margin: 0 !important; }
+.acheck[aria-pressed="true"] { background: #0F6E8C !important; border-color: #0F6E8C !important; }
+.ainline { padding: 8px; background: #F5F6F8; border-bottom: 1px solid #E3E6EA; }
+.apane { margin-bottom: 14px; }
+.look-agenda .tile { border-radius: 10px; }
+.look-agenda .pos .label, .look-agenda .pos input.freehead { font-family: var(--mono); font-weight: 600; font-size: 1.4rem; letter-spacing: 0; }
+.look-agenda .day-side { position: static; }
+@media (max-width: 899px) {
+  /* time · dot · subject · Taught on the first line; the position under the subject; then the title */
+  .arow { grid-template-columns: 3.4em 10px 1fr 44px; row-gap: 4px; }
+  .arow .atime { grid-column: 1; grid-row: 1; }
+  .arow .adot { grid-column: 2; grid-row: 1; }
+  .arow .aname { grid-column: 3; grid-row: 1; }
+  .arow .acheck { grid-column: 4; grid-row: 1; }
+  .arow .asteps, .arow > .apos { grid-column: 3 / 5; grid-row: 2; justify-self: start; }
+  .arow .atitle { grid-column: 3 / 5; grid-row: 3; white-space: normal; }
+  .arow .atitle:empty { display: none; }
+  .look-agenda .pos .label, .look-agenda .pos input.freehead { font-size: 1.15rem; }
+}
+@media (min-width: 900px) {
+  .look-agenda .day { grid-template-columns: minmax(0, 1fr) 440px; }
+  .look-agenda .top { margin: -40px -16px 22px; padding: 18px 28px 14px; }
+}
+.apane .cur { grid-template-columns: 1fr !important; }
+.apane .tile, .ainline .tile { overflow-wrap: anywhere; }

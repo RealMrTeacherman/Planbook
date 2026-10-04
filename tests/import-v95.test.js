@@ -282,3 +282,9 @@ test('STEAM, Health/SEL and Assembly / Enrichments / Other become subjects, link
   assert.equal(byId(o, 'blk_d3-915').subjectId, 'subj_v95-math', 'the 9:15 Math block stays Math');
   assert.equal(byId(o, 'subj_flex').color, '#3D4FB0');
 });
+
+test('Phonics comes in shown inside Reading, still its own subject', () => {
+  const o = out();
+  assert.equal(byId(o, 'subj_v95-phonics').within, 'subj_v95-reading');
+  assert.equal(byId(o, 'subj_v95-reading').within, undefined);
+});
