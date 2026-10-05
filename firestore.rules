@@ -1,5 +1,5 @@
 rules_version = '2';
-// Made by tools/make-rules.js from contract/contract.json (version 8). Do not edit by hand.
+// Made by tools/make-rules.js from contract/contract.json (version 9). Do not edit by hand.
 // Only you can read or write, only under your own sign-in, and only live record types:
 // the ones the contract says can never name a child. Records are never deleted, only marked deleted.
 service cloud.firestore {

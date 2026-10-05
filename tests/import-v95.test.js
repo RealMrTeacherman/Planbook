@@ -271,6 +271,18 @@ test('a mark set by hand on a line of one standard becomes that standard\'s; on 
   assert.deepEqual(validateFile(file, contract).errors, []);
 });
 
+test('children moved into skill groups come in, per subject and standard', () => {
+  const f = sample(), g = JSON.parse(f.keys.gb2_standards_v1);
+  g.groupPins = { 'Math|2.NBT.B.5': { k3j9x2a: 0, ab: -1 }, 'ELA|__all': { z1y2x3w: 2, gone99: 1 }, 'Science|2.L.4': { k3j9x2a: 1 } };
+  f.keys.gb2_standards_v1 = JSON.stringify(g);
+  const o = imp.convert(f);
+  assert.deepEqual(o.records.filter(r => r.type === 'groupPin').map(r => [r.id, r.subject, r.standard, r.studentId, r.group]), [
+    ['pin_Math_2-NBT-B-5_stu_k3j9x2a', 'Math', '2.NBT.B.5', 'stu_k3j9x2a', 0],
+    ['pin_Math_2-NBT-B-5_stu_ab-2e9', 'Math', '2.NBT.B.5', 'stu_ab-2e9', -1],
+    ['pin_ELA_all_stu_z1y2x3w', 'ELA', null, 'stu_z1y2x3w', 2]]);
+  assert.ok(o.heldBack.some(h => h.what === '2 skill group moves'), 'a gone child and an unknown subject');
+});
+
 test('the imported gradebook passes the contract', () => {
   const o = out();
   const file = { contract: 'classroom-suite', version: contract.version, exportedAt: '2026-10-01T22:04:05.000Z', device: 'v95', records: o.records };

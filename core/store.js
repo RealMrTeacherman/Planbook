@@ -27,7 +27,9 @@
     // 7: the gradebook's marks, work not turned in and settings; no version 6 record changes.
     7: records => records,
     // 8: markOverride and optional Synergy-mark settings; no version 7 record changes.
-    8: records => records
+    8: records => records,
+    // 9: groupPin; no version 8 record changes.
+    9: records => records
   };
 
   const req = r => new Promise((ok, no) => { r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); });

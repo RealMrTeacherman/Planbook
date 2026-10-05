@@ -134,7 +134,22 @@ const M = [
   ['gradebook/gradebook.js', 'the grid shows a standard with no marks', 'const shown = codes.filter(code => [...grid.get(code).values()].some(f => f.v));', 'const shown = codes.slice();', 'tests/synergy.browser.test.js'],
   ['gradebook/gradebook.js', 'carried marks look like this quarter\'s', '${f.carried ? \' carried\' : \'\'}" data-cell=', '" data-cell=', 'tests/synergy.browser.test.js'],
   ['gradebook/gradebook.js', 'Go back does not remove a mark you set', 'else if (before && !before.deletedAt) after = Object.assign({}, before, { deletedAt: nowIso() });', 'else if (before && !before.deletedAt) after = Object.assign({}, before);', 'tests/synergy.browser.test.js'],
-  ['gradebook/gradebook.js', 'a reading ticked off still counts', '      if (!el.checked) left.push(d.orfcount);\n', '', 'tests/synergy.browser.test.js']
+  ['gradebook/gradebook.js', 'a reading ticked off still counts', '      if (!el.checked) left.push(d.orfcount);\n', '', 'tests/synergy.browser.test.js'],
+  // step 6c: groups & patterns
+  ['core/groups.js', 'older marks count as much as newer ones', 'const w = Math.pow(GROUP_DECAY, a.length - 1 - i);', 'const w = 1;', false],
+  ['core/groups.js', 'one heavily marked standard swamps the picture', 'parts.push(r.v); n += r.n;', 'for (let i = 0; i < r.n; i++) parts.push(r.v); n += r.n;', false],
+  ['core/groups.js', 'the highest group is kept smallest', 'cap.push(base + (i >= kk - rem ? 1 : 0));', 'cap.push(base + (i < rem ? 1 : 0));', false],
+  ['core/groups.js', 'a child moved by hand is regrouped by the marks', 'if (r.pinned) groups[Math.max(0, Math.min(kk - 1, pins[r.sid]))].push(r); else free.push(r);', 'free.push(r);', false],
+  ['core/groups.js', 'a child with no marks is guessed into a group', 'else if (pin != null || r) seated.push(row);', 'else if (true) seated.push(row);', false],
+  ['core/groups.js', 'ties are not broken by the broader picture', '(av - bv) || (ab - bb) ||', '(av - bv) ||', false],
+  ['core/groups.js', 'a shared need merges children who do not share it', 'if (jac >= 0.5 && union.length <= 7)', 'if (jac >= 0 && union.length <= 7)', false],
+  ['core/groups.js', 'a 3 counts as a need', 'lo ? m[sid] <= 2 : m[sid] === 4', 'lo ? m[sid] <= 3 : m[sid] === 4', false],
+  ['core/groups.js', 'looking back ignores the window', 'if (!days || days === \'0\' || days === 0) return true;', 'return true;', false],
+  ['core/groups.js', 'slipping flags a rise too', 'a[a.length - 1].value < a[a.length - 2].value', 'a[a.length - 1].value !== a[a.length - 2].value', false],
+  ['core/import-v95.js', 'skill-group moves are not brought in', '        records.push(rec(`pin_${subject}_${standard ? stdKey(standard) : \'all\'}_${sid}`, \'groupPin\', { subject, standard, studentId: sid, group }));\n', '', false],
+  ['gradebook/gradebook.js', 'Undo my moves leaves the moves', 'const writes = live.map(p => Object.assign({}, p, { deletedAt: now }));', 'const writes = live.map(p => Object.assign({}, p));', 'tests/groups.browser.test.js'],
+  ['gradebook/gradebook.js', 'a dragged child does not move', '    if (sid) { await movePin(sid, Number(box.dataset.gdrop)); render(); }\n', '', 'tests/groups.browser.test.js'],
+  ['gradebook/gradebook.css', 'the groups card wider than the iPhone', '.g-cols > *, .g-rail { min-width: 0; }', '.g-cols > *, .g-rail { min-width: 420px; }', 'tests/groups.browser.test.js']
 ];
 
 // node tests/mutations.js [name filter]   or   node tests/mutations.js --from=N --to=M (by position)

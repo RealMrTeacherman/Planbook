@@ -24,6 +24,7 @@
       <h1 id="heading">Gradebook</h1>
       <nav class="tabs" role="tablist" aria-label="View">
         <button role="tab" id="tabEnter" data-view="enter">Enter scores</button>
+        <button role="tab" id="tabGroups" data-view="groups">Groups</button>
         <button role="tab" id="tabSynergy" data-view="synergy">For Synergy</button>
         <button role="tab" id="tabSettings" data-view="settings">Settings</button>
       </nav>
@@ -38,7 +39,9 @@
   </section>
 
   <section id="enterView" hidden></section>
+  <section id="groupsView" hidden></section>
   <section id="synergyView" hidden></section>
+  <section id="printSheet" class="print-only" aria-hidden="true"></section>
   <section id="settingsView" hidden></section>
 </main>
 
@@ -54,6 +57,7 @@
 <script src="../core/colors.js"></script>
 <script src="../core/grade.js"></script>
 <script src="../core/report.js"></script>
+<script src="../core/groups.js"></script>
 <script src="gradebook.js"></script>
 </body>
 </html>

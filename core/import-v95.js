@@ -557,6 +557,20 @@
     if (overKept) notes.push(`${plural(overKept, 'report card mark you set was', 'report card marks you set were')} on a line of several standards, so ${overKept === 1 ? 'it has' : 'they have'} no single standard to go on. ${overKept === 1 ? 'It stays' : 'They stay'} in the kept v95 data.`);
     if (overGone) heldBack.push({ what: plural(overGone, 'report card mark you set', 'report card marks you set'), why: 'for a child no longer in the class list, a quarter that is gone, or not 1 to 4' });
 
+    // Children moved by hand into skill groups: v95 keeps them per "subject|standard" (or "|__all").
+    let pinGone = 0;
+    for (const [key, m] of Object.entries(gb.groupPins && typeof gb.groupPins === 'object' ? gb.groupPins : {})) {
+      const [subject, sel] = key.split('|');
+      if (!['Math', 'ELA', 'All'].includes(subject) || !(sel === '__all' || STD.test(String(sel))) || !m || typeof m !== 'object') { pinGone += Object.keys(m || {}).length; continue; }
+      for (const [sidRaw, g] of Object.entries(m)) {
+        const sid = stuId.get(String(sidRaw)), group = Number(g);
+        if (!sid || !Number.isInteger(group) || group < -1 || group > 5) { pinGone++; continue; }
+        const standard = sel === '__all' ? null : sel;
+        records.push(rec(`pin_${subject}_${standard ? stdKey(standard) : 'all'}_${sid}`, 'groupPin', { subject, standard, studentId: sid, group }));
+      }
+    }
+    if (pinGone) heldBack.push({ what: plural(pinGone, 'skill group move', 'skill group moves'), why: 'for a child no longer in the class list, or not a group' });
+
     // ---- Report ----
     const counts = {};
     for (const r of records) counts[r.type] = (counts[r.type] || 0) + 1;

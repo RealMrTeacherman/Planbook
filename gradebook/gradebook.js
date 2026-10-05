@@ -51,7 +51,7 @@
       marks: by('mark'), missing: by('missingWork'),
       settings: by('gradebookSettings')[0] || DEFAULTS(),
       subjects: by('subject'), lessons: by('lessonPlan'), blocks: by('block'),
-      checks: by('orfCheck'), overrides: by('markOverride'), periods: by('gradingPeriod').sort((a, b) => a.start < b.start ? -1 : 1),
+      checks: by('orfCheck'), overrides: by('markOverride'), pins: by('groupPin'), periods: by('gradingPeriod').sort((a, b) => a.start < b.start ? -1 : 1),
       days: Object.fromEntries(by('schoolDay').map(r => [r.date, r])),
       year: by('schoolYear').sort((a, b) => a.firstDay < b.firstDay ? 1 : -1)[0] || null
     };
@@ -67,7 +67,7 @@
   // ---------- what is on screen ----------
   const UI = { view: 'enter', subject: null, std: '', date: todayIso(), what: '', lesson: null, follow: true, unit: null,
     multi: null, open: null, pending: {}, undo: [] };
-  const route = () => /^#settings/.test(location.hash) ? 'settings' : /^#synergy/.test(location.hash) ? 'synergy' : 'enter';
+  const route = () => /^#settings/.test(location.hash) ? 'settings' : /^#synergy/.test(location.hash) ? 'synergy' : /^#groups/.test(location.hash) ? 'groups' : 'enter';
   const dayContext = () => ({ date: UI.date, subjects: X.subjects, lessons: X.lessons, blocks: X.blocks, days: X.days, year: X.year });
   const lessonRowShown = () => !!mathSubject() && UI.subject !== 'ELA';
   const dayStep = () => lessonRowShown() ? G.dayLesson(P, dayContext()) : null;
@@ -104,13 +104,16 @@
     $('tabEnter').setAttribute('aria-selected', String(UI.view === 'enter'));
     $('tabSettings').setAttribute('aria-selected', String(UI.view === 'settings'));
     $('tabSynergy').setAttribute('aria-selected', String(UI.view === 'synergy'));
+    $('tabGroups').setAttribute('aria-selected', String(UI.view === 'groups'));
     const none = !X.kids.length;
     $('empty').hidden = !(none && UI.view !== 'settings');
     $('enterView').hidden = UI.view !== 'enter' || none;
     $('settingsView').hidden = UI.view !== 'settings';
     $('synergyView').hidden = UI.view !== 'synergy' || none;
+    $('groupsView').hidden = UI.view !== 'groups' || none;
     if (UI.view === 'settings') renderSettings();
     else if (UI.view === 'synergy') { if (!none) renderSynergy(); }
+    else if (UI.view === 'groups') { if (!none) renderGroups(); }
     else if (!none) renderEnter();
     renderChip();
   }
@@ -335,6 +338,7 @@
     if (d.view) { location.hash = '#' + d.view; return; }
     if (UI.view === 'settings') { await settingsClick(b); return; }
     if (UI.view === 'synergy') { await synergyClick(b); return; }
+    if (UI.view === 'groups') { await groupsClick(b); return; }
     if (d.v && d.sid) await tapMark(d.sid, d.std, Number(d.v));
     else if (d.v && d.all) await tapAll(d.all, Number(d.v));
     else if (d.miss) {
@@ -392,6 +396,7 @@
     if (!document.querySelector('main').contains(el)) return;
     if (UI.view === 'settings') { await settingsChange(el); return; }
     if (UI.view === 'synergy') { await synergyChange(el); return; }
+    if (UI.view === 'groups') { await groupsChange(el); return; }
     if (el.dataset.note) { await saveNote(el.dataset.note, el.value); return; }
     if (el.id === 'e-subject') { UI.subject = el.value; UI.multi = null; UI.follow = true; await saveSettings({ subject: el.value }); }
     else if (el.id === 'e-std') { UI.std = el.value; UI.multi = null; }
@@ -520,6 +525,128 @@
     el.blur();
     render();
   }
+
+  // ---------- Groups & patterns (design C): everything from core/groups.js, v95's logic ----------
+  const GR = SuiteGroups;
+  Object.assign(UI, { gStd: null, gK: 4, gEv: 'both', gDays: '0', gMove: null });
+  function groupsOpt() {
+    return { students: X.kids, all: GR.allMarks(R, X.marks, X.checks, X.settings), codes: codesFor(UI.subject), days: UI.gDays, ev: UI.gEv, now: new Date() };
+  }
+  const selKey = sel => sel === '__all' ? null : sel;
+  const pinsFor = sel => Object.fromEntries(X.pins.filter(p => p.subject === UI.subject && p.standard === selKey(sel)).map(p => [p.studentId, p.group]));
+  const pinId = (sel, sid) => `pin_${UI.subject}_${sel === '__all' ? 'all' : sel.replace(/\./g, '-')}_${sid}`;
+  function currentSel(o) {
+    const ok = GR.groupable(o);
+    if (UI.gStd === '__all' || (UI.gStd && ok.includes(UI.gStd))) return UI.gStd;
+    UI.gStd = GR.defaultSel(o);
+    return UI.gStd;
+  }
+  const selLabel = sel => sel === '__all' ? `All ${UI.subject === 'All' ? '' : UI.subject + ' '}standards together` : `${dispCode(sel)} · ${label(sel)}`;
+  const markChip = v => v == null ? '' : `<span class="gmk m${R.roundMark(v)}">${R.roundMark(v)}</span>`;
+  function chipHTML(r, gi) {
+    const k = r.st, dec = r.v == null ? '–' : r.v.toFixed(1);
+    const title = r.n ? `${r.n} mark${r.n === 1 ? '' : 's'}${r.last ? ', most recent ' + md(r.last.date) : ''}` : 'No marks on this in the chosen time';
+    return `<button class="gchipk${r.pinned ? ' moved' : ''}" draggable="true" data-gkid="${esc(k.id)}" data-gfrom="${gi}" title="${esc(title)}"
+      aria-label="${esc(fullName(k))}, ${dec}${r.pinned ? ', moved by you' : ''}. Move">
+      <span class="gk-n">${esc(fullName(k))}${k.eld ? ' <span class="eld">ELD</span>' : ''}</span><span class="gk-v">${dec}</span>${markChip(r.v)}</button>`;
+  }
+  function renderGroups() {
+    const el = $('groupsView'), o = groupsOpt(), sel = currentSel(o);
+    const res = GR.buildSkillGroups(o, sel, UI.gK, pinsFor(sel)), ok = GR.groupable(o);
+    const seg = (id, val, opts) => `<div class="seg" role="group">${opts.map(([v, l]) => `<button class="compact" data-${id}="${v}" aria-pressed="${v === val}">${l}</button>`).join('')}</div>`;
+    let h = `<div class="g-top"><h2>Groups &amp; patterns</h2>${seg('gsubj', UI.subject, [['Math', 'Math'], ['ELA', 'ELA'], ['All', 'All']])}
+      <label class="sf inline"><span>Marks from</span><select id="g-ev"><option value="both"${UI.gEv === 'both' ? ' selected' : ''}>Classwork and iReady</option><option value="classroom"${UI.gEv === 'classroom' ? ' selected' : ''}>Classwork only</option><option value="iready"${UI.gEv === 'iready' ? ' selected' : ''}>iReady only</option></select></label>
+      <label class="sf inline"><span>Looking back</span><select id="g-days"><option value="0"${UI.gDays === '0' ? ' selected' : ''}>All year</option><option value="45"${UI.gDays === '45' ? ' selected' : ''}>Last 45 days</option><option value="21"${UI.gDays === '21' ? ' selected' : ''}>Last 3 weeks</option></select></label></div>
+      <div class="g-cols"><section class="side g-skill"><div class="g-head"><h3>Skill groups</h3>
+        <select id="g-std" aria-label="Group on"><option value="__all"${sel === '__all' ? ' selected' : ''}>${esc(selLabel('__all'))}</option>${ok.map(c => `<option value="${esc(c)}"${c === sel ? ' selected' : ''}>${esc(selLabel(c))}</option>`).join('')}</select>
+        <select id="g-k" aria-label="How many groups">${[2, 3, 4, 5, 6].map(n => `<option value="${n}"${n === Number(UI.gK) ? ' selected' : ''}>${n} groups</option>`).join('')}</select>
+        ${res.moved ? `<button class="compact quiet" data-gclear="1">Undo my moves (${res.moved})</button>` : ''}<button class="compact quiet" data-gprint="1">Print these groups</button></div>`;
+    if (!ok.length) h += '<p class="small">No marks yet. Enter a few scores and the groups build themselves.</p>';
+    else {
+      h += `<p class="small">Every mark counts, the newest most. Groups are as even as the class allows, from most support to least. ${wide() ? 'Drag a child, or click them,' : 'Tap a child'} to move them; they stay there as marks come in.</p><div class="g-grid">` +
+        res.groups.map((g, i) => { const vals = g.filter(r => r.v != null).map(r => r.v);
+          const range = vals.length ? Math.min(...vals).toFixed(1) + (vals.length > 1 ? '–' + Math.max(...vals).toFixed(1) : '') : 'no marks';
+          return `<div class="g-box" data-gdrop="${i}"><div class="g-bh"><b>Group ${i + 1}</b><span class="small">${esc(range)} · ${g.length} ${g.length === 1 ? 'child' : 'children'}</span></div><div class="g-kids">${g.length ? g.map(r => chipHTML(r, i)).join('') : '<span class="small">Empty: move someone here.</span>'}</div></div>`; }).join('') + '</div>';
+      if (res.out.length) h += `<div class="g-out" data-gdrop="-1"><b>Not placed</b><span class="small">Nothing recorded on this yet, so no guess. Move them in if you know where they belong.</span><div class="g-kids">${res.out.map(r => chipHTML(r, -1)).join('')}</div></div>`;
+    }
+    h += '</section><div class="g-rail">';
+    // Worth a look.
+    const flags = GR.flags(o);
+    h += `<section class="side"><h3>Worth a look</h3>${flags.length ? flags.slice(0, 30).map(f => { const k = X.students.find(x => x.id === f.sid);
+      return `<div class="g-flag"><span class="tagk ${f.t}">${f.t === 'down' ? 'Slipping' : 'Thin data'}</span> <b>${esc(fullName(k))}</b><div class="small">${f.t === 'down' ? `${esc(label(f.code))} dropped from ${f.from} to ${f.to}` : `only ${f.n} mark${f.n === 1 ? '' : 's'} recorded so far`}</div></div>`; }).join('') : '<p class="small">Nothing flagged. Come back after a few more entries.</p>'}</section>`;
+    // Shared needs and ready to extend.
+    const need = GR.buildNeedGroups(o, true), ext = GR.buildNeedGroups(o, false);
+    const kidsOf = g => g.kids.map(id => fullName(X.students.find(x => x.id === id))).sort().join(', ');
+    const mix = g => { const x = GR.evidenceMix(o, g), b = []; if (x.both) b.push(x.both + ' backed by both'); if (x.classroom) b.push(x.classroom + ' from classwork only'); if (x.iready) b.push(x.iready + ' from iReady only'); return b.length ? `<div class="small">Evidence: ${b.join(' · ')}</div>` : ''; };
+    h += `<section class="side"><h3>Shared needs</h3>${need.length ? need.map(g => `<div class="g-need"><span class="tagk ${g.reteach ? 'reteach' : 'practice'}">${g.reteach ? 'Reteach' : 'More practice'}</span> <b>${esc(g.stds.map(label).join(' · '))}</b><div>${esc(kidsOf(g))}</div>${mix(g)}</div>`).join('')
+      : '<p class="small">Once two or more children have a 1 or 2 on the same standard, groups appear here.</p>'}
+      ${ext.slice(0, 4).map(g => `<div class="g-need ext"><span class="tagk extend">Extend</span> <b>${esc(g.stds.map(label).join(' · '))}</b><div>${esc(kidsOf(g))}</div></div>`).join('')}</section></div></div>`;
+    // Class at a glance.
+    const gl = GR.glance(o);
+    if (gl.codes.length) h += `<section class="side g-glance"><h3>Class at a glance</h3><p class="small">Each child's latest mark on each standard with marks, and the average of those.</p><div class="syn-wrap"><table class="syn"><thead><tr><th class="kid-h">Student</th>${gl.codes.map(c => `<th class="std-h" title="${esc(label(c))}"><span><code>${esc(dispCode(c))}</code></span></th>`).join('')}<th>Avg</th></tr></thead><tbody>` +
+      gl.rows.map(r => { const k = X.students.find(x => x.id === r.sid); return `<tr><th class="kid-n" scope="row">${esc(fullName(k))}${k.eld ? ' <span class="eld">ELD</span>' : ''}</th>${r.cells.map(m => `<td><span class="cell${m ? ' m' + m.value : ''}" title="${m ? esc(md(m.date) + (m.source === 'iready' ? ', from iReady' : m.source === 'orf' ? ', from an ORF reading' : '')) : ''}">${m ? m.value + (m.source === 'iready' ? '<small>i</small>' : '') : '–'}</span></td>`).join('')}<td><b>${r.avg ? r.avg.toFixed(1) : '–'}</b></td></tr>`; }).join('') + '</tbody></table></div></section>';
+    // Moving one child.
+    if (UI.gMove) {
+      const k = X.students.find(x => x.id === UI.gMove), pin = pinsFor(sel)[UI.gMove];
+      if (k) h += `<div class="g-sheet" role="dialog" aria-label="Move ${esc(fullName(k))}"><div class="g-bh"><b>Move ${esc(fullName(k))}</b><button class="compact quiet" data-gclose="1">Close</button></div>
+        <span class="g-to-l">To group</span><div class="g-to">${res.groups.map((g, i) => `<button data-gto="${i}" aria-pressed="${pin === i}" aria-label="Group ${i + 1}">${i + 1}</button>`).join('')}</div>
+        <div class="g-to two"><button class="dash" data-gto="-1" aria-pressed="${pin === -1}">Not placed</button><button class="quiet" data-gunpin="1"${pin == null ? ' disabled' : ''}>Let the marks place ${esc(k.firstName)}</button></div></div>`;
+    }
+    el.innerHTML = h;
+  }
+  async function movePin(sid, group) {
+    const o = groupsOpt(), sel = currentSel(o), id = pinId(sel, sid), before = RECS.get(id) || null;
+    let after;
+    if (group === null) { if (!before || before.deletedAt) return; after = Object.assign({}, before, { deletedAt: nowIso() }); }
+    else after = { id, type: 'groupPin', deletedAt: null, subject: UI.subject, standard: selKey(sel), studentId: sid, group };
+    const body = r => Object.fromEntries(Object.entries(r).filter(([k2]) => k2 !== 'updatedAt' && k2 !== 'device'));
+    await act({ writes: [after], undo: [{ id, before, after: body(after) }] }, `${kidName(sid)}'s move`);
+  }
+  async function clearPins() {
+    const o = groupsOpt(), sel = currentSel(o), now = nowIso();
+    const live = X.pins.filter(p => p.subject === UI.subject && p.standard === selKey(sel));
+    const body = r => Object.fromEntries(Object.entries(r).filter(([k2]) => k2 !== 'updatedAt' && k2 !== 'device'));
+    const writes = live.map(p => Object.assign({}, p, { deletedAt: now }));
+    if (await act({ writes, undo: writes.map((w, i) => ({ id: w.id, before: live[i], after: body(w) })) }, 'undoing your moves')) toast('Back to the groups the marks make.');
+  }
+  function printGroups() {
+    const o = groupsOpt(), sel = currentSel(o), res = GR.buildSkillGroups(o, sel, UI.gK, pinsFor(sel));
+    $('printSheet').innerHTML = `<h2>${esc(selLabel(sel))}</h2><p>${esc(UI.subject)} skill groups, printed ${esc(longDate(todayIso()))}. Newer marks count more.</p><table><thead><tr><th>Group</th><th>Children</th></tr></thead><tbody>` +
+      res.groups.map((g, i) => `<tr><td><b>${i + 1}</b></td><td>${g.length ? g.map(r => esc(fullName(r.st)) + (r.v == null ? '' : ' <span>' + r.v.toFixed(1) + '</span>')).join(' · ') : '—'}</td></tr>`).join('') +
+      (res.out.length ? `<tr><td>Not placed</td><td>${res.out.map(r => esc(fullName(r.st))).join(' · ')}</td></tr>` : '') + '</tbody></table>';
+    window.print();
+  }
+  async function groupsClick(b) {
+    const d = b.dataset;
+    if (d.gsubj) { UI.subject = d.gsubj; UI.gStd = null; UI.gMove = null; await saveSettings({ subject: d.gsubj }); }
+    else if (d.gkid) UI.gMove = UI.gMove === d.gkid ? null : d.gkid;
+    else if (d.gclose) UI.gMove = null;
+    else if (d.gto != null) { await movePin(UI.gMove, Number(d.gto)); UI.gMove = null; }
+    else if (d.gunpin) { await movePin(UI.gMove, null); UI.gMove = null; }
+    else if (d.gclear) await clearPins();
+    else if (d.gprint) { printGroups(); return; }
+    else return;
+    render();
+  }
+  async function groupsChange(el) {
+    if (el.id === 'g-std') { UI.gStd = el.value; UI.gMove = null; }
+    else if (el.id === 'g-k') UI.gK = Number(el.value);
+    else if (el.id === 'g-ev') { UI.gEv = el.value; UI.gStd = null; }
+    else if (el.id === 'g-days') UI.gDays = el.value;
+    else return;
+    el.blur();
+    render();
+  }
+  // Dragging a child to another group on the MacBook.
+  document.addEventListener('dragstart', e => { const c = e.target.closest && e.target.closest('[data-gkid]'); if (c) { e.dataTransfer.setData('text/plain', c.dataset.gkid); e.dataTransfer.effectAllowed = 'move'; } });
+  document.addEventListener('dragover', e => { if (e.target.closest && e.target.closest('[data-gdrop]')) e.preventDefault(); });
+  document.addEventListener('drop', async e => {
+    const box = e.target.closest && e.target.closest('[data-gdrop]');
+    if (!box) return;
+    e.preventDefault();
+    const sid = e.dataTransfer.getData('text/plain');
+    if (sid) { await movePin(sid, Number(box.dataset.gdrop)); render(); }
+  });
 
   // ---------- Settings: the class list and the standards ----------
   async function saveSettings(change) {

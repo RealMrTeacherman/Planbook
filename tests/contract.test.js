@@ -64,6 +64,8 @@ function sample() {
       env('gbset_main', 'gradebookSettings', { on: ['2.NBT.B.5', '2.RF.4'], rule: 'weighted', codes: 'oregon', subject: 'Math',
         carryForward: true, ireadyInReport: false, orfAuto: true, orfStandard: '2.RF.4', orfCut4: 75, orfCut3: 50, orfCut2: 25,
         orfAgainst: 'eoy', orfSeasons: { fall: '08-01', winter: '12-01', spring: '03-01' }, orfLeftOut: ['orf_r1'] }),
+      env('pin_Math_2-NBT-B-5_stu_a1b2c3d4e5', 'groupPin', { subject: 'Math', standard: '2.NBT.B.5', studentId: 'stu_a1b2c3d4e5', group: 0 }),
+      env('pin_ELA_all_stu_f6g7h8i9j0', 'groupPin', { subject: 'ELA', standard: null, studentId: 'stu_f6g7h8i9j0', group: -1 }),
       env('ovr_gp_t1xyz_stu_a1b2c3d4e5_2-NBT-B-5', 'markOverride', { periodId: 'gp_t1xyz', studentId: 'stu_a1b2c3d4e5', standard: '2.NBT.B.5', value: 3 })
     ]
   };
@@ -141,6 +143,13 @@ test('a mark set by hand is one per quarter, child and standard, 1 to 4', () => 
   expectFail(g, 'must be ovr_gp_t1xyz_stu_a1b2c3d4e5_2-NBT-B-6');
   const h = sample(); find(h, id).periodId = 'gp_nowhere';
   expectFail(h, 'gp_nowhere is not in the file');
+});
+
+test('a skill-group move is one per subject, standard and child, in a group or Not placed', () => {
+  const f = sample(); find(f, 'pin_Math_2-NBT-B-5_stu_a1b2c3d4e5').group = 6;
+  expectFail(f, 'above 5');
+  const g = sample(); find(g, 'pin_ELA_all_stu_f6g7h8i9j0').standard = '2.RL.1';
+  expectFail(g, 'must be pin_ELA_2-RL-1_stu_f6g7h8i9j0');
 });
 
 test('ORF season lines must be MM-DD', () => {

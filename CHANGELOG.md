@@ -1,5 +1,32 @@
 # Changelog
 
+## Step 6c — Groups & patterns
+
+A new **Groups** tab in the Gradebook, in the design you chose (C, "One dashboard"), with all of v95's Groups & Patterns.
+- **Skill groups** (left): pick Math, ELA or All, the standard to group on (the one with the newest mark, unless you choose; or all of them together), and 2–6 groups. Each child shows their worked-out score and its mark.
+- **Moving a child:** drag them on the MacBook, or click or tap them for the Move sheet (a group, Not placed, or "Let the marks place them"). A child you move stays there as marks come in, and has a heavy border. **Undo my moves** puts everyone back where the marks place them. **Print these groups** prints just the table.
+- **Worth a look** (a child who slipped on a standard, or has only one or two marks), **Shared needs** (Reteach / More practice, with where the evidence comes from) and **Ready to extend** sit alongside; **Class at a glance** underneath.
+- Across the tab: which marks count (classwork and iReady, classwork only, iReady only) and how far back to look (all year, 45 days, 3 weeks).
+- On the iPhone it stacks, and the Gradebook's four tabs sit two by two.
+
+**v95's logic, exactly:** each older mark counts 0.62 of the one after it; across standards each counts once; groups as even as the class allows, the lowest smallest; ties broken by the broader picture, then the latest mark, then the name; needs gathered from latest 1s and 2s (or 4s to extend), merged when they share at least half their children, up to seven.
+
+**Contract version 9:** `groupPin`, one per child per subject and standard grouped on; private. Your v95 moves come across on import; a move for a child no longer on the class list is held back and reported.
+
+**The gate.** v95's gradebook runs in Chrome on a year of invented marks with children moved by hand (into a group, to Not placed, on all standards together, past the group count) and a child who joined late. For every subject, standard and all together, 2–6 groups, each evidence choice and each look-back, v95 and Planbook give the same groups (each child's weighted score too), the same Not placed, the same shared-need and extend groups and the same default standard; v95's drawn Worth a look and Class at a glance rows match Planbook's. Zero differences.
+
+**Differences from v95, on purpose.**
+- Only children in the class are grouped and flagged; v95 grouped everyone on its list, including a child who had left.
+- Left out by your choice: the iReady-only parts (domain groups, placement mismatches, growth flags; the iReady rows stay in the kept v95 data) and the planning analysis (Planning tab). The link to the Small Groups board waits until Small Groups is rebuilt.
+
+**Mistakes of mine caught before release.**
+- Four of my new deliberate breaks were not caught at first: the tests never had needs with no children in common, a child with a 3, a mark that rose, or moves to import. Those cases are now tested and all 14 breaks are caught.
+- On the iPhone, four tabs no longer fit and the page scrolled sideways; the skill-groups card was clipped; every button in the Move sheet looked selected. Fixed and covered by the browser test.
+- Test mistakes: changing two menus back to back (under load one change was lost), and adding marks after the page had chosen its standard without reloading it.
+- **A false alarm I raised:** I reported the sync page's "order 2" check failing about one run in five and said I could not rule 6c out. The cause was mine: a full test suite left running in the background after a command hit the time limit, so two suites ran at once and that check's 30-second wait ran out. On `main` and on 6c it passed every run (8 and 22 in a row) with nothing else running, and both full suites passed back to back. HANDOFF now warns about this.
+
+**Tests.** 348 tests: 347 pass with v95 present (1 skipped, the private names file); 337 without it, as on GitHub (11 skipped). Deliberate breaks: 131, the 14 new ones all caught.
+
 ## Step 6b — marks for Synergy (the export comes later)
 
 Grading itself happens in Synergy, so this step works out each child's mark for each Oregon standard in a quarter, ready to go there. **The Synergy file is not built yet:** it will match your Grade Book Import template exactly once you can send it, when the grading window opens.

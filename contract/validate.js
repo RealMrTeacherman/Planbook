@@ -103,6 +103,8 @@ function expectedId(rec, typeSpec) {
     case 'miss_<studentId>_<standard>_<date>':
       return rec.standard ? `miss_${rec.studentId}_${rec.standard.replace(/\./g, '-')}_${rec.date}` : null;
     case 'gbset_main': return 'gbset_main';
+    case 'pin_<subject>_<standard|all>_<studentId>':
+      return rec.subject ? `pin_${rec.subject}_${rec.standard ? rec.standard.replace(/\./g, '-') : 'all'}_${rec.studentId}` : null;
     case 'ovr_<periodId>_<studentId>_<standard>':
       return rec.standard ? `ovr_${rec.periodId}_${rec.studentId}_${rec.standard.replace(/\./g, '-')}` : null;
     case 'fam_<key>': return rec.key ? 'fam_' + String(rec.key).replace(/[:|]/g, '-') : null;
