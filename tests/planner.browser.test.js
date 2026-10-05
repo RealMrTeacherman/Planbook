@@ -562,8 +562,14 @@ test('the planner: Day and Week on MacBook and iPhone', { skip, timeout: 240000 
       await open(phone, '#day/2026-09-14');
       assert.equal(await phone.evaluate(() => document.documentElement.classList.contains('look-agenda')), false, 'the iPhone keeps its own look');
       assert.ok(await mac.$$eval('.agenda .arow', r => r.length) >= 4);
+      // A subject shown inside another keeps its place in time: Writing (11:40) shown inside WIN (12:05) comes first.
+      await mac.evaluate(async () => { const w = (await window.__store.all()).find(r => r.id === 'subj_v95-writing'); await window.__store.write([Object.assign({}, w, { within: 'subj_v95-win' })], 'a test'); });
+      await mac.waitForFunction(() => { const r = [...document.querySelectorAll('.agenda .arow')].map(x => x.dataset.arow); return r.includes('subj_v95-writing') && r.includes('subj_v95-win') && document.querySelector('[data-arow="subj_v95-writing"]').closest('.agenda'); });
+      await settled(mac);
       const order = await mac.$$eval('.agenda .arow', r => r.map(x => x.dataset.arow));
-      assert.ok(order.indexOf('subj_v95-phonics') < order.indexOf('subj_v95-reading'), 'Phonics (8:15) before Reading (8:30)');
+      assert.ok(order.indexOf('subj_v95-writing') >= 0 && order.indexOf('subj_v95-writing') < order.indexOf('subj_v95-win'), `Writing (11:40) before WIN (12:05): ${order}`);
+      await mac.evaluate(async () => { const w = (await window.__store.all()).find(r => r.id === 'subj_v95-writing'); const c = Object.assign({}, w); delete c.within; await window.__store.write([c], 'a test'); });
+      await settled(mac);
       assert.ok(await mac.$('.apane [data-card]'), 'a lesson open beside the list');
       await mac.click('[data-sel="subj_v95-math"]');
       await mac.waitForFunction(() => document.querySelector('.apane [data-card]').dataset.card === 'subj_v95-math');

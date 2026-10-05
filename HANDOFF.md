@@ -91,6 +91,7 @@ The rebuild of the v95 suite as two tools on one written data contract: Gradeboo
 - **A new folder must be added to `copyProject` in `tests/mutations.js`.** The runner now checks an unbroken copy passes first (it once did not, and every break looked caught).
 - **Never run two full test suites at once** (or a suite beside the break check): the machine slows enough that browser checks with fixed 30 s waits (the sync page's "order 2") time out. A long command that hits the 5-minute tool limit can leave its background job running; check `ps` before judging a failure.
 - A page keeps choices made as it opened (the Groups standard, as v95 does); a test that adds data afterwards must reload, and navigating to the same address with only a new hash does not reload.
+- **A check that compares positions must first require both are there**: `indexOf` gives -1 for a missing row, and "-1 is before" always passes (the Agenda order check once did, after the Phonics fold).
 - In browser tests, wait for the page to stop redrawing (`settled`) before reading or tapping, change one menu at a time, and read an element in one `evaluate`, not `$eval` (a redraw can land between finding and reading).
 
 ## Where the build stands, and what is next

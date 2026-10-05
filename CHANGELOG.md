@@ -1,5 +1,9 @@
 # Changelog
 
+## Fix: GitHub's break check after the Phonics fold
+
+GitHub's run for the fold (a6ed46d) passed every test but failed the deliberate-break check: **"Agenda rows out of time order" was not caught.** My mistake: the check compared Phonics's row with Reading's, and Phonics has no row now, so it compared "not there" (-1) with Reading and always passed. When I updated the planner tests for the fold I missed it. The check now shows Writing (11:40) inside WIN (12:05) in the Agenda look and requires Writing's row first, which only the sort gives. The full break check was run here, as GitHub runs it: all 142 caught. Only a test changed.
+
 ## Phonics folded into Reading; a notes bar on every day
 
 **Phonics is part of Reading.** It follows Reading's unit, week and day, so it is no longer a subject of its own.
