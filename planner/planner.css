@@ -312,3 +312,15 @@ a.button.compact { min-height: 44px; padding: 0 14px; }
   .subblk { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .subblk > b { grid-column: 1 / -1; }
 }
+
+/* ---------- The day's notes bar (Day view top; under each day in the Week view) ---------- */
+.daynote-bar { margin: 0 0 12px; }
+.daynote-bar textarea { display: block; width: 100%; box-sizing: border-box; min-height: 48px; resize: vertical; overflow: hidden;
+  padding: 12px 14px; border: 1.5px solid var(--line); border-radius: var(--radius-sm); background: var(--panel);
+  font: 500 1rem/1.4 var(--sans); color: var(--ink); }
+.daynote-bar textarea::placeholder { color: var(--ink-soft); }
+.daynote-bar.compact { margin: 4px 0 8px; }
+.daynote-bar.compact textarea { min-height: 44px; padding: 8px 10px; font-size: .88rem; }
+.week-grid .wnotes td { vertical-align: top; }
+.week-grid .wnotes .daynote-bar { margin: 0; }
+.look-agenda .daynote-bar textarea { font-family: 'Barlow', var(--sans); border-radius: 8px; }

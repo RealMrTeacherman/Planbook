@@ -571,6 +571,18 @@
     }
     if (pinGone) heldBack.push({ what: plural(pinGone, 'skill group move', 'skill group moves'), why: 'for a child no longer in the class list, or not a group' });
 
+    // Phonics follows Reading's unit, week and day: folded in (core/fold.js), so no separate Phonics box comes back.
+    {
+      const F = typeof SuiteFold !== 'undefined' ? SuiteFold : require('./fold.js');   // pages load core/fold.js first
+      const f = F.foldPhonics(records, T);
+      if (f.writes.length) {
+        const w = new Map(f.writes.map(r => [r.id, r]));
+        for (let i = 0; i < records.length; i++) if (w.has(records[i].id)) { records[i] = w.get(records[i].id); w.delete(records[i].id); }
+        records.push(...w.values());
+        notes.push('Phonics now follows Reading: its blocks are Reading\'s and it has no box of its own' + (f.moved ? `; ${plural(f.moved, 'Phonics note', 'Phonics notes')} moved to Reading or the day's notes.` : '.'));
+      }
+    }
+
     // ---- Report ----
     const counts = {};
     for (const r of records) counts[r.type] = (counts[r.type] || 0) + 1;

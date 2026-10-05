@@ -43,3 +43,13 @@ test('v95\'s printouts are copied exactly from its source (when v95 is here)', {
     assert.ok(src.includes(mine.slice(b, Math.min(...ends)).trim()), f);
   }
 });
+
+test('Phonics folded into Reading: its block shows Reading\'s position; the lesson\'s targets print with the next Reading block', () => {
+  const h = SUB.make(out.records).full('2026-09-14');
+  const blk = t => { const i = h.indexOf('<div class="t">' + t); return h.slice(i, h.indexOf('<div class="blk">', i + 10)); };
+  const ph = blk('8:15'), rd = blk('8:30');
+  assert.match(ph, /<b>Benchmark<\/b> &middot; Unit 1 · Week 1 · Day 1/);
+  assert.doesNotMatch(ph, /Learning targets|Materials/);
+  assert.match(rd, /Learning targets:/);
+  assert.match(rd, /Materials:/);
+});

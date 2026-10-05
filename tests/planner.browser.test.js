@@ -102,7 +102,7 @@ test('the planner: Day and Week on MacBook and iPhone', { skip, timeout: 240000 
       const l = Object.fromEntries((await labels(mac)).map(([k, v, tt]) => [k, [v, tt]]));
       assert.deepEqual(l['subj_v95-math'], ['U1 · L1', 'true']);
       assert.deepEqual(l['subj_v95-reading'], ['U1 · W1 · D3', 'true']);
-      assert.deepEqual(l['subj_v95-phonics'], ['U1 · W1 · D2', 'false'], 'not planned in v95: suggested after Monday');
+      assert.equal(l['subj_v95-phonics'], undefined, 'Phonics is part of Reading: no card or position of its own');
       await mac.screenshot({ path: path.join(SHOTS, '9-planner-day-mac.png'), fullPage: true });
       await phone.screenshot({ path: path.join(SHOTS, '10-planner-day-phone.png'), fullPage: true });
     });
@@ -132,31 +132,54 @@ test('the planner: Day and Week on MacBook and iPhone', { skip, timeout: 240000 
       assert.ok(!times.includes('8:50') && !times.includes('9:10'), 'no rows for the later reading blocks');
     });
 
-    await t.test('Phonics sits inside the Reading card, first, still tracked on its own', async () => {
+    await t.test('Phonics is part of Reading: one card from 8:15, its section first; no Phonics card or row', async () => {
       await open(mac, '#day/2026-09-14');
-      // One evaluate, not $eval: finding the card and reading it in two steps let a redraw slip between them.
       const r = await mac.evaluate(() => { const c = document.querySelector('[data-card="subj_v95-reading"]'); return ({
-        nested: !!c.querySelector(':scope > .subsec[data-card="subj_v95-phonics"]'),
-        firstChild: c.children[1].dataset.card,
-        phonicsTaught: c.querySelector('[data-card="subj_v95-phonics"] .taught').getAttribute('aria-pressed') }); });
-      assert.deepEqual(r, { nested: true, firstChild: 'subj_v95-phonics', phonicsTaught: 'true' });
-      assert.equal(await mac.$$eval('#dayMain > .rows > [data-card="subj_v95-phonics"]', e => e.length), 0, 'no Phonics card of its own');
+        phonicsCard: !!document.querySelector('[data-card="subj_v95-phonics"]'),
+        time: c.querySelector('.subj-chip, .time, .chip-time') ? c.querySelector('.subj-chip, .time, .chip-time').innerText : c.innerText.slice(0, 20),
+        first: c.querySelector('.cur summary').textContent }); });
+      assert.equal(r.phonicsCard, false);
+      assert.match(r.time, /8:15/);
+      assert.equal(r.first, 'Phonics and word study');
+      assert.match(await mac.$eval('[data-card="subj_v95-reading"] .cur details', e => e.innerText), /Primary Skill: short vowels/);
+      await open(mac, '#week/2026-09-14');
+      assert.equal(await mac.$$eval('.week-grid tr .subj-chip', e => e.filter(x => /Phonics/.test(x.textContent)).length), 0, 'no Phonics row in the week');
+    });
+
+    await t.test('records from before the fold (an older device or file) are folded when the planner opens', async () => {
+      // Written from the Gradebook page, where nothing folds; then the planner opens.
+      await mac.goto(mac.url().replace(/planner\/.*$/, 'gradebook/'), { waitUntil: 'domcontentloaded' });
+      await mac.waitForFunction('window.__ready === true', { timeout: 15000 });
+      await mac.evaluate(async () => {
+        const all = await window.__store.all(), get = id => all.find(r => r.id === id);
+        await window.__store.write([
+          Object.assign({}, get('subj_v95-phonics'), { on: true, within: 'subj_v95-reading' }),
+          Object.assign({}, get('blk_d2-815'), { subjectId: 'subj_v95-phonics' }),
+          { id: 'les_2026-09-29_subj_v95-phonics', type: 'lessonPlan', deletedAt: null, date: '2026-09-29', subjectId: 'subj_v95-phonics', pos: { unit: 1, week: 1, day: 1 }, taught: true, note: 'Sound wall' }
+        ], 'an older device');
+      });
+      await open(mac, '#day/2026-09-29');
+      await waitRec(mac, async () => { const all = await window.__store.all(), g = id => all.find(r => r.id === id) || {};
+        return g('subj_v95-phonics').on === false && g('blk_d2-815').subjectId === 'subj_v95-reading' && !!g('les_2026-09-29_subj_v95-phonics').deletedAt
+          && /Phonics: Sound wall/.test((g('dayp_2026-09-29').notes || '') + (g('les_2026-09-29_subj_v95-reading').note || '')); });
+      assert.equal(await mac.$('[data-card="subj_v95-phonics"]'), null);
+    });
+
+    await t.test('Show inside is still a setting: WIN inside Reading\'s card, then on its own again', async () => {
+      await open(mac, '#settings/2026-09-14');
+      await mac.select('[data-rec="subj_v95-win"][data-f="within"]', 'subj_v95-reading');
+      await waitRec(mac, async () => (await window.__store.all()).find(x => x.id === 'subj_v95-win').within === 'subj_v95-reading');
+      await open(mac, '#day/2026-09-14');
+      await mac.waitForFunction(() => !!document.querySelector('[data-card="subj_v95-reading"] > .subsec[data-card="subj_v95-win"]'));
+      assert.equal(await mac.$$eval('#dayMain > .rows > [data-card="subj_v95-win"]', e => e.length), 0, 'no WIN card of its own');
       const lefts = await mac.$$eval('[data-card="subj_v95-reading"] .pos .label', ls => ls.map(l => Math.round(l.getBoundingClientRect().left - l.closest('.pos').getBoundingClientRect().left)));
       assert.ok(lefts.every(x => x <= 2), `positions sit at the left of their row, not centered: ${lefts}`);
-      await mac.click('[data-card="subj_v95-phonics"] [data-taught]');
-      await waitRec(mac, async () => (await window.__store.all()).find(x => x.id === 'les_2026-09-14_subj_v95-phonics').taught === false);
-      await settled(mac);   // the first tap's save redraws the day; tap again only once that has finished
-      assert.equal(await mac.$eval('[data-card="subj_v95-reading"] > .tile-foot .taught', e => e.getAttribute('aria-pressed')), 'true', 'Reading untouched');
-      await mac.click('[data-card="subj_v95-phonics"] [data-taught]');
-      // ...and it is a setting: Phonics back on its own card, then inside Reading again.
+      const win = await mac.evaluate(async () => (await window.__store.all()).find(x => x.id === 'subj_v95-win'));
+      assert.deepEqual([win.on, win.within], [true, 'subj_v95-reading'], 'only Phonics is folded; WIN stays its own subject');
       await open(mac, '#settings/2026-09-14');
-      await mac.select('[data-rec="subj_v95-phonics"][data-f="within"]', '');
+      await mac.select('[data-rec="subj_v95-win"][data-f="within"]', '');
       await open(mac, '#day/2026-09-14');
-      await mac.waitForFunction(() => !!document.querySelector('#dayMain > .rows > [data-card="subj_v95-phonics"]'));
-      await open(mac, '#settings/2026-09-14');
-      await mac.select('[data-rec="subj_v95-phonics"][data-f="within"]', 'subj_v95-reading');
-      await open(mac, '#day/2026-09-14');
-      await mac.waitForFunction(() => !!document.querySelector('[data-card="subj_v95-reading"] > .subsec[data-card="subj_v95-phonics"]'));
+      await mac.waitForFunction(() => !!document.querySelector('#dayMain > .rows > [data-card="subj_v95-win"]'));
     });
 
     await t.test('a day off from the district calendar shows on both devices', async () => {
@@ -198,20 +221,52 @@ test('the planner: Day and Week on MacBook and iPhone', { skip, timeout: 240000 
       await waitRec(mac, () => { const i = document.querySelector('[data-free="subj_v95-science"]'); return i && i.value === 'Seeds sprouting'; });
     });
 
+    await t.test('the notes bar: type, leave, and the day\'s note is saved and reaches the iPhone; it shows in the Week view too', async () => {
+      await open(mac, '#day/2026-09-22'); await open(phone, '#day/2026-09-22');
+      await mac.click('#dayMain [data-daynote]');
+      await mac.type('#dayMain [data-daynote]', 'Library books due');
+      await mac.keyboard.press('Tab');
+      await waitRec(mac, async () => ((await window.__store.all()).find(x => x.id === 'dayp_2026-09-22') || {}).notes === 'Library books due');
+      await phone.waitForFunction(() => { const t = document.querySelector('#dayMain [data-daynote]'); return t && t.value === 'Library books due'; }, { timeout: 15000 });
+      await open(mac, '#week/2026-09-21');
+      assert.equal(await mac.$eval('.week-grid [data-daynote="2026-09-22"]', e => e.value), 'Library books due');
+      // Writing in the Week view's box saves that day.
+      await mac.click('.week-grid [data-daynote="2026-09-23"]');
+      await mac.type('.week-grid [data-daynote="2026-09-23"]', 'Early pickup list');
+      await mac.keyboard.press('Tab');
+      await waitRec(mac, async () => ((await window.__store.all()).find(x => x.id === 'dayp_2026-09-23') || {}).notes === 'Early pickup list');
+    });
+
+    await t.test('a change arriving while the notes bar is being typed in never wipes it', async () => {
+      await open(mac, '#day/2026-09-24');
+      await mac.click('#dayMain [data-daynote]');
+      await mac.type('#dayMain [data-daynote]', 'Half a note');
+      const before = await mac.evaluate(() => window.__renders);
+      await phone.evaluate(async () => { const b = (await window.__store.all()).find(r => r.id === 'blk_d1-1100'); await window.__store.write([Object.assign({}, b, { name: 'Lunch!' })], 'a test change'); });
+      await mac.waitForFunction(b => window.__renders > b, { timeout: 15000 }, before);
+      await new Promise(r => setTimeout(r, 300));
+      assert.equal(await mac.$eval('#dayMain [data-daynote]', e => e.value), 'Half a note');
+      assert.ok(await mac.$eval('#dayMain [data-daynote]', e => e === document.activeElement), 'still typing');
+      await mac.$eval('#dayMain [data-daynote]', e => { e.value = ''; });
+      await mac.keyboard.press('Tab');
+      await open(mac, '#day/2026-09-21'); await open(phone, '#day/2026-09-21');   // where the checks after this expect them
+    });
+
     await t.test('a note that names a child asks first: Edit keeps the editor open and saves nothing', async () => {
-      await mac.click('#dayNoteBtn');
-      await mac.type('#dayNoteHost textarea', 'Theo to the nurse at 1');
-      await mac.click('#dayNoteHost [data-act="save"]');
+      await settled(mac);
+      await mac.click('#dayMain [data-daynote]');
+      await mac.type('#dayMain [data-daynote]', 'Theo to the nurse at 1');
+      await mac.keyboard.press('Tab');   // leaving the notes bar saves it
       await mac.waitForFunction(() => document.getElementById('nameDialog').open);
       assert.match(await mac.$eval('#nameText', e => e.textContent), /"Theo" is a name on your class list/);
       await mac.click('#nameDialog button[value="edit"]');
       await settle();
-      assert.ok(await mac.$('#dayNoteHost textarea'));
+      assert.equal(await mac.$eval('#dayMain [data-daynote]', e => e.value), 'Theo to the nurse at 1', 'the text stays to reword');
       assert.equal((await rec(mac, 'dayp_2026-09-21')).notes, undefined);
     });
 
     await t.test('Keep it private: the note shows on the MacBook, never reaches the server or the iPhone', async () => {
-      await mac.click('#dayNoteHost [data-act="save"]');
+      await mac.$eval('#dayMain [data-daynote]', e => { e.focus(); e.value = e.value + ' '; e.dispatchEvent(new Event('change', { bubbles: true })); });
       await mac.waitForFunction(() => document.getElementById('nameDialog').open);
       await mac.click('#nameDialog button[value="private"]');
       await mac.waitForFunction(() => /PRIVATE · DRIVE ONLY\s*Theo to the nurse/i.test(document.getElementById('daySide').innerText));

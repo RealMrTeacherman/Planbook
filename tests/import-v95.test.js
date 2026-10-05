@@ -401,10 +401,14 @@ test('STEAM, Health/SEL and Assembly / Enrichments / Other become subjects, link
   assert.equal(byId(o, 'subj_flex').color, '#3D4FB0');
 });
 
-test('Phonics comes in shown inside Reading, still its own subject', () => {
+test('Phonics comes in folded into Reading: no box of its own, its blocks Reading\'s, its plans gone', () => {
   const o = out();
-  assert.equal(byId(o, 'subj_v95-phonics').within, 'subj_v95-reading');
-  assert.equal(byId(o, 'subj_v95-reading').within, undefined);
+  const ph = byId(o, 'subj_v95-phonics');
+  assert.deepEqual([ph.on, ph.within], [false, undefined], 'kept, switched off, not shown inside Reading');
+  assert.equal(byId(o, 'blk_d1-815').subjectId, 'subj_v95-reading');
+  assert.equal(byId(o, 'blk_d1-815').name, 'Phonics', 'the block keeps its name and time');
+  assert.ok(byId(o, 'les_2026-09-14_subj_v95-phonics').deletedAt, 'its plan is gone; Reading\'s position stands');
+  assert.match(o.notes.join(' '), /Phonics now follows Reading/);
 });
 
 test('the sub notes come across: standing notes, specials, block details on every day the block runs, leftovers', () => {

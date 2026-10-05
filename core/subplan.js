@@ -45,13 +45,17 @@
       return tpl.map((b, i) => {
         const x = subBlk[b.id] || {};
         const pstand = priv.filter(n => n.about === 'standing' && n.blockId === b.id).map(n => n.text);
-        return { start: b.start, end: tpl[i + 1] ? tpl[i + 1].start : '', title: b.name, subject: b.subjectId || '',
+        // Phonics folded into Reading (core/fold.js): its block opens Reading with Reading's position, but the
+        // lesson's targets, materials and note print with the first Reading block after it, as v95 printed them.
+        const opener = b.subjectId && subj[b.subjectId] && subj[b.subjectId].benchmark === true && /phonics/i.test(b.name || '');
+        return { start: b.start, end: tpl[i + 1] ? tpl[i + 1].start : '', title: b.name, subject: opener ? 'opens:' + b.subjectId : (b.subjectId || ''),
           standing: join(b.note, ...pstand), detail: x.detail || '', emergency: x.emergency || '', key: b.id };
       });
     }
     // As v95's lessonFor: the lesson set for that day, named from the curriculum where it can be.
     function lessonFor(iso, subjectId) {
       if (!subjectId) return null;
+      if (/^opens:/.test(subjectId)) { const l = lessonFor(iso, subjectId.slice(6)); return l && Object.assign({}, l, { targets: [], materials: [], note: '' }); }
       const sb = subj[subjectId];
       // Nothing set for the day: the planner's suggestion, as v95 printed from the planner's day.
       const e = lesson[iso + '|' + subjectId] || (sb && sb.on ? { pos: P.suggest(sb, lessons, iso), note: '' } : null);

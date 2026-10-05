@@ -1,5 +1,20 @@
 # Changelog
 
+## Phonics folded into Reading; a notes bar on every day
+
+**Phonics is part of Reading.** It follows Reading's unit, week and day, so it is no longer a subject of its own.
+- No Phonics box inside Reading's card, and no Phonics row in the Week view. Reading's card starts when Phonics did (8:15 on the sample Monday) and runs through Reading's blocks.
+- Reading's card leads with **Phonics and word study**, open: the phonics skill and spiral review, phonemic awareness and high-frequency words for Reading's unit, week and day. On the iPhone that section and the texts open; Skills now starts folded to keep the card short. On the MacBook every section shows, as before.
+- **Your data:** the Phonics subject is switched off, not deleted. Its blocks become Reading's, keeping their time, name ("Phonics") and notes. A Phonics day note moves to that day's Reading note as "Phonics: …", or to the day's notes if Reading's is full; a note that fits nowhere is left where it is, never cut. Phonics's own positions and "taught" go; Reading's stand. This is one rule (`core/fold.js`), used by the importer, so bringing in v95 again never brings the box back, and by the planner as it opens and as records arrive, so an older file or device cannot either. Running it again changes nothing.
+- **Sub plans:** the Phonics block now shows Reading's position. Reading's targets and materials still print with the first Reading block after it (8:30), where v95 put them, not during phonics. The gate against v95 allows exactly this and nothing else. The family email is unchanged.
+- The **Show inside** setting stays, for any other subject; its tests now use WIN inside Reading.
+
+**A notes bar at the top of every day:** in the Day view (both looks, and on a day off) and under each day in the Week view (the MacBook grid and the iPhone list). It saves when you leave it, through the same name check as every note (a note that names a child offers "Keep it private"), and grows to fit. The day's existing notes show in it; the side panel's "Add notes" button is gone. Typing in it is never wiped by a change arriving from the other device.
+
+**Bugs in my first version, caught before release:** on the iPhone the Week view's note boxes would have been zero height; pressing Tab into another day's box kept the page from moving to a new day; after "Keep it private" the bar kept the cursor, so the page did not redraw. And one deliberate break (the planner not folding older records) was not caught at first, because only the importer's fold was tested; a check now writes unfolded records where nothing folds and opens the planner.
+
+**Tests.** 359 tests: 358 pass with v95 present (1 skipped, the private names file); 348 without it, as on GitHub (11 skipped). Deliberate breaks: 142, the 11 new ones all caught, and the older "Show inside" breaks still caught.
+
 ## Step 6c — Groups & patterns
 
 A new **Groups** tab in the Gradebook, in the design you chose (C, "One dashboard"), with all of v95's Groups & Patterns.

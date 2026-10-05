@@ -149,7 +149,19 @@ const M = [
   ['core/import-v95.js', 'skill-group moves are not brought in', '        records.push(rec(`pin_${subject}_${standard ? stdKey(standard) : \'all\'}_${sid}`, \'groupPin\', { subject, standard, studentId: sid, group }));\n', '', false],
   ['gradebook/gradebook.js', 'Undo my moves leaves the moves', 'const writes = live.map(p => Object.assign({}, p, { deletedAt: now }));', 'const writes = live.map(p => Object.assign({}, p));', 'tests/groups.browser.test.js'],
   ['gradebook/gradebook.js', 'a dragged child does not move', '    if (sid) { await movePin(sid, Number(box.dataset.gdrop)); render(); }\n', '', 'tests/groups.browser.test.js'],
-  ['gradebook/gradebook.css', 'the groups card wider than the iPhone', '.g-cols > *, .g-rail { min-width: 0; }', '.g-cols > *, .g-rail { min-width: 420px; }', 'tests/groups.browser.test.js']
+  ['gradebook/gradebook.css', 'the groups card wider than the iPhone', '.g-cols > *, .g-rail { min-width: 0; }', '.g-cols > *, .g-rail { min-width: 420px; }', 'tests/groups.browser.test.js'],
+  // Phonics folded into Reading; the notes bar
+  ['core/fold.js', 'Phonics blocks stay Phonics\'s', 'live.filter(r => r.type === \'block\' && ids.has(r.subjectId)).forEach(b => put(Object.assign({}, b, { subjectId: reading.id })));', '', false],
+  ['core/fold.js', 'a Phonics note is dropped, not moved', '      if (text) {\n', '      if (false) {\n', false],
+  ['core/fold.js', 'a note that fits nowhere is cut away', '        } else return;   // fits nowhere: leave this plan as it is\n', '        }\n', false],
+  ['core/fold.js', 'any subject shown inside Reading is folded', '&& s.within === reading.id && /phonics/i.test(s.name || \'\');', '&& s.within === reading.id;', false],
+  ['core/import-v95.js', 'the importer brings the Phonics box back', '      const f = F.foldPhonics(records, T);', '      const f = { writes: [], moved: 0 };', false],
+  ['core/subplan.js', 'the sub plan prints Reading\'s targets during phonics', 'const opener = b.subjectId && subj[b.subjectId] && subj[b.subjectId].benchmark === true && /phonics/i.test(b.name || \'\');', 'const opener = false;', false],
+  ['planner/planner.js', 'the planner does not fold older records', '    await foldPhonics();\n  } catch (e) { problem(\'The planner could not open: \' + e.message); return; }', '  } catch (e) { problem(\'The planner could not open: \' + e.message); return; }', 'tests/planner.browser.test.js'],
+  ['planner/planner.js', 'a change wipes the notes bar being typed in', '    if (a && a.dataset && a.dataset.daynote) { renderLater = true; return; }   // never redraw under the notes bar being typed in\n', '', 'tests/planner.browser.test.js'],
+  ['planner/planner.js', 'the notes bar is not saved when left', '      if (await saveText({ live: Object.assign({}, plan, { saved: true }), field: \'notes\', text: ta.value, about: \'day\', where: { date } })) { ta.blur(); render(); }', '      if (false) { ta.blur(); render(); }', 'tests/planner.browser.test.js'],
+  ['planner/planner.js', 'moving to another day from a note box shows the old day', 'addEventListener(\'hashchange\', () => { const a = document.activeElement; if (a && a.dataset && a.dataset.daynote) a.blur(); render(); });', 'addEventListener(\'hashchange\', () => render());', 'tests/planner.browser.test.js'],
+  ['planner/planner.js', 'Keep it private leaves the note in the bar', '{ ta.blur(); render(); }\n      else ta.focus();', '{ render(); }\n      else ta.focus();', 'tests/planner.browser.test.js']
 ];
 
 // node tests/mutations.js [name filter]   or   node tests/mutations.js --from=N --to=M (by position)

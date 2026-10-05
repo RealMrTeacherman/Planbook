@@ -71,10 +71,19 @@ test('both sub plan printouts match v95\'s, block for block', { skip, timeout: 1
   const imp = require(path.join(ROOT, 'core', 'import-v95.js'));
   const out = imp.convert(Object.assign({}, file, { keys: Object.assign({}, file.keys, stored) }), { names: require(path.join(ROOT, 'core', 'names.js')), extraSubjects: read('data/planner-defaults.json').extraSubjects });
   const SP = require(path.join(ROOT, 'core', 'subplan.js')).make(out.records);
+  // On purpose since Oct 2026: Phonics follows Reading's unit, week and day (core/fold.js). v95 printed Phonics's
+  // own ECRI position; the expected text takes v95's own Reading position from the same printout instead.
+  const followReading = html => {
+    const bold = html.match(/<b>Benchmark<\/b>[^<]*/), plain = html.match(/>Benchmark · [^<]*/);
+    if (bold) html = html.replace(/<b>ECRI<\/b>[^<]*/g, bold[0]);          // the full plan
+    if (plain) html = html.replace(/>ECRI · [^<]*/g, plain[0]);              // at a glance
+    return html;
+  };
+  assert.ok(DAYS.some(d => /<b>ECRI<\/b>/.test(theirs[d].full)), 'v95 still prints a Phonics position of its own (else drop followReading)');
   for (const day of DAYS) {
     assert.match(theirs[day].full, /The day, block by block/, `v95 printed ${day}`);
     for (const kind of ['full', 'glance']) {
-      const mine = tidy(SP[kind](day)), v95 = tidy(theirs[day][kind]);
+      const mine = tidy(SP[kind](day)), v95 = tidy(followReading(theirs[day][kind]));
       let i = 0; while (i < mine.length && mine[i] === v95[i]) i++;
       assert.ok(mine === v95, `${kind}, ${day}: first difference at ${i}\n  new: …${mine.slice(Math.max(0, i - 120), i + 160)}\n  v95: …${v95.slice(Math.max(0, i - 120), i + 160)}`);
     }

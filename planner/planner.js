@@ -28,6 +28,7 @@
     await t.start();
     live.start();
     await applyCalendar(cal);
+    await foldPhonics();
   } catch (e) { problem('The planner could not open: ' + e.message); return; }
 
   // The district calendar, as data. Its records carry an early date, so anything you change wins.
@@ -221,12 +222,13 @@
       ...d.anchor.map(a => [a.kind, a.t]), ...d.practice.map(t => ['Practice', t])].filter(x => x[1]);
     const P2 = d.parts;
     const words = [...(d.words.ga || []), ...(d.words.ds || [])];
+    // Phonics follows Reading's unit, week and day, and comes first in the block: its section leads, open.
     return `<div class="cur">
+      ${(P2.wordStudy || []).length ? sec('Phonics and word study', ul(P2.wordStudy.map(x => `<li><span class="k">${esc(x.kind)}:</span> ${esc(x.t)} ${(x.codes || []).map(code).join(' ')}</li>`)), true) : ''}
       ${sec('Texts this week', ul(texts.map(([k, t]) => `<li><span class="k">${esc(k)}:</span> <b>${esc(t)}</b></li>`)), true)}
-      ${sec('Skills', ul((P2.reading || []).map(x => `<li>${x.kind === 'Comprehension' ? '' : `<span class="k">${esc(x.kind)}:</span> `}${esc(x.t)} ${(x.codes || []).map(code).join(' ')}</li>`)), true)}
+      ${sec('Skills', ul((P2.reading || []).map(x => `<li>${x.kind === 'Comprehension' ? '' : `<span class="k">${esc(x.kind)}:</span> `}${esc(x.t)} ${(x.codes || []).map(code).join(' ')}</li>`)), false)}
       ${words.length ? sec('Words to teach', `<div class="words">${words.map(w => `<span>${esc(w)}</span>`).join('')}</div>`, false) : ''}
       ${d.meta.length ? sec('Strategies', ul(d.meta.map(t => `<li>${esc(t.replace(/^Metacognitive: /, ''))}</li>`)), false) : ''}
-      ${(P2.wordStudy || []).length ? sec('Word study', ul(P2.wordStudy.map(x => `<li><span class="k">${esc(x.kind)}:</span> ${esc(x.t)} ${(x.codes || []).map(code).join(' ')}</li>`)), false) : ''}
       ${(P2.writing || []).length ? sec('Writing and grammar', ul(P2.writing.map(item)), false) : ''}
     </div>`;
   }
@@ -293,6 +295,12 @@
       <button class="linkbtn addnote" data-bnote="${esc(b.id)}">${bn ? 'Edit today’s note' : 'Note for today'}</button>
       <span class="bnote" data-bnote-host="${esc(b.id)}"></span></div>`;
   }
+  // The day's notes, always there at the top: saved when left, through the same name check as every note.
+  function noteBar(date, compact) {
+    const plan = X.dayPlan[date];
+    return `<div class="daynote-bar${compact ? ' compact' : ''}"><textarea data-daynote="${esc(date)}" rows="${compact ? 2 : 1}" maxlength="2000"
+      aria-label="Notes for ${esc(longDate(date))}" placeholder="${compact ? 'Notes' : 'Notes for the day'}">${esc((plan && plan.notes) || '')}</textarea></div>`;
+  }
   function renderDay(date) {
     const st = P.dayStatus(date, { year: X.year, days: X.days, plan: X.dayPlan[date] });
     const plan = X.dayPlan[date];
@@ -302,14 +310,12 @@
     $('daySide').innerHTML = `<section class="side">
         <div class="side-head"><h2>The day</h2>${tagline ? `<span class="tagline">${esc(tagline)}</span>` : ''}</div>
         <div class="flags" role="group" aria-label="Flags for the day">${FLAGS.map(f => `<button aria-pressed="${flags.has(f)}" data-flag="${esc(f)}">${esc(f)}</button>`).join('')}</div>
-        ${plan && plan.notes ? `<p class="daynotes">${esc(plan.notes)}</p>` : (goneNotes(date).length ? '' : '<p class="small">No notes for this day.</p>')}
         ${goneNotes(date).map(n => `<p class="daynotes"><b>${esc(n.name)}${n.start ? ` (${esc(n.start)})` : ''}:</b> ${esc(n.text)}</p>`).join('')}
         ${privateList(dayPriv, 'the day')}
-        <div id="dayNoteHost"><button class="quiet compact" id="dayNoteBtn">${plan && plan.notes ? 'Edit notes' : 'Add notes'}</button></div>
         <p style="margin:12px 0 0"><a class="button quiet compact subbtn" href="#sub/${date}">Sub plan for this day</a></p>
       </section>`;
     const main = $('dayMain');
-    if (!st.school) { main.innerHTML = `<div class="side"><h2>${esc(st.label)}</h2><p class="small">${st.outside ? 'Outside the school year.' : 'No school this day.'} Use ‹ and › to move to a school day.</p></div>`; return; }
+    if (!st.school) { main.innerHTML = noteBar(date) + `<div class="side"><h2>${esc(st.label)}</h2><p class="small">${st.outside ? 'Outside the school year.' : 'No school this day.'} Use ‹ and › to move to a school day.</p></div>`; return; }
     const rows = P.dayLayout(X.blocks, X.subjects, P.weekday(date));
     if (!rows.length) { main.innerHTML = `<div class="side"><p class="small">There is no schedule for ${DAY[P.weekday(date)]}days yet. The schedule editor arrives in the next release.</p></div>`; return; }
     // A subject's later blocks live inside its card, so they get no row of their own.
@@ -328,9 +334,9 @@
       else ordered.push(p);
     });
     const sched = ordered, un = rows.filter(r => r.unscheduled && !inside(r));
-    if (LOOK() === 'agenda') { renderAgenda(date, sched, un); $('daySide').insertAdjacentHTML('beforeend', miniWeek(date)); return; }
+    if (LOOK() === 'agenda') { renderAgenda(date, sched, un); main.insertAdjacentHTML('afterbegin', noteBar(date)); $('daySide').insertAdjacentHTML('beforeend', miniWeek(date)); return; }
     // Lessons for subjects with no block today stay out of the way until asked for.
-    main.innerHTML = `<div class="rows">${sched.map(r => r.kind === 'lesson' ? lessonCard(r, date) : plainRow(r, date, r.kind === 'continued')).join('')}</div>
+    main.innerHTML = noteBar(date) + `<div class="rows">${sched.map(r => r.kind === 'lesson' ? lessonCard(r, date) : plainRow(r, date, r.kind === 'continued')).join('')}</div>
       ${un.length ? `<details class="unsched"><summary><span class="unsched-title">Not on ${DAY[P.weekday(date)]}'s schedule</span>
         <span class="unsched-names">${un.map(r => esc(r.subject.name)).join(' · ')}</span></summary><div class="rows">${un.map(r => lessonCard(r, date)).join('')}</div></details>` : ''}`;
     $('daySide').insertAdjacentHTML('beforeend', miniWeek(date));
@@ -378,10 +384,11 @@
     const head = d => `${DAY[P.weekday(d)]} ${P.parse(d).getMonth() + 1}/${P.parse(d).getDate()}`;
     const grid = `<div class="week-grid"><table><thead><tr><th class="subj"><span class="muted">Subject</span></th>
       ${dates.map(d => `<th${d === today ? ' class="today"' : ''}><a href="#day/${d}">${esc(head(d))}</a>${st[d].school ? (st[d].early ? '<span class="small muted"> · early</span>' : '') : ''}</th>`).join('')}</tr></thead><tbody>
+      <tr class="wnotes"><th class="subj"><span class="muted">Notes</span></th>${dates.map(d => `<td>${noteBar(d, true)}</td>`).join('')}</tr>
       ${on.map(sb => `<tr style="${colorVars(sb)}"><th class="subj"><span class="subj-chip" style="padding:4px 12px">${esc(sb.name)}</span></th>${dates.map(d => st[d].school
         ? `<td><a class="cell" href="#day/${d}">${cell(sb, d)}</a></td>` : `<td class="off">${esc(st[d].label)}</td>`).join('')}</tr>`).join('')}
       </tbody></table></div>`;
-    const list = `<div class="week-days">${dates.map(d => `<section class="wday"><h2><a href="#day/${d}">${esc(longDate(d))}</a></h2>
+    const list = `<div class="week-days">${dates.map(d => `<section class="wday"><h2><a href="#day/${d}">${esc(longDate(d))}</a></h2>${noteBar(d, true)}
       ${st[d].school ? on.map(sb => `<div class="wline" style="${colorVars(sb)}"><span class="s">${esc(sb.name)}</span><span>${cell(sb, d)}</span></div>`).join('') : `<p class="muted">${esc(st[d].label)}</p>`}
       </section>`).join('')}</div>`;
     $('weekView').innerHTML = `<div class="week-actions"><button data-famopen="${esc(FAM.defaultWeek(date, todayIso()))}">Family email</button>
@@ -527,6 +534,25 @@
     catch (e) { problem('Not saved: ' + e.message); render(); }
   }
   document.addEventListener('change', e => { if ($('settingsView').contains(e.target) && e.target.dataset.rec) settingsChange(e.target); });
+  // The notes bar: saved when left. If the name check is cancelled, the text stays to reword.
+  document.addEventListener('change', async e => {
+    const ta = e.target;
+    if (!ta.dataset || !ta.dataset.daynote) return;
+    const date = ta.dataset.daynote;
+    const plan = X.dayPlan[date] || { id: 'dayp_' + date, type: 'dayPlan', deletedAt: null, date, saved: true };
+    if ((plan.notes || '') === ta.value.trim()) return;
+    try {
+      problem('');
+      // Saved: let go of the box (the name dialog hands focus back to it), so the page redraws; else stay to reword.
+      if (await saveText({ live: Object.assign({}, plan, { saved: true }), field: 'notes', text: ta.value, about: 'day', where: { date } })) { ta.blur(); render(); }
+      else ta.focus();
+    } catch (err) { problem('Not saved: ' + err.message); }
+  });
+  // Grow the box as you type, so a long note is all there.
+  // Only a box on screen can be measured; a hidden one (the Week list on the MacBook) keeps its natural size.
+  const grow = ta => { if (!ta.offsetParent) { ta.style.height = ''; return; } ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; };
+  document.addEventListener('input', e => { if (e.target.dataset && e.target.dataset.daynote) grow(e.target); });
+  document.addEventListener('focusout', e => { if (e.target.dataset && e.target.dataset.daynote) setTimeout(() => { if (renderLater) render(); }, 0); });
   // The "What helps" list and the specials live inside the one subPlan record.
   async function subPlanEdit(change) {
     const cur = (await store.all()).find(r => r.id === 'subplan_main') || { id: 'subplan_main', type: 'subPlan', deletedAt: null };
@@ -738,12 +764,24 @@
   }
 
   let renderLater = false;
+  // Phonics follows Reading (core/fold.js): fold any separate Phonics records, from before or from another device.
+  var folding = false;   // var: the fold first runs during start-up, before this line
+  async function foldPhonics() {
+    if (folding) return false;
+    const f = SuiteFold.foldPhonics(await store.all(), new Date().toISOString());
+    if (!f.writes.length) return false;
+    folding = true;
+    try { await store.write(f.writes, 'Phonics folded into Reading'); } catch (e) { problem('Phonics could not be folded into Reading: ' + e.message); }
+    finally { folding = false; }
+    return true;
+  }
   async function render() {
     window.__renders = (window.__renders || 0) + 1;   // counted for the browser tests
     if (editing) return;
     // Never redraw Settings under a field being typed in; redraw when it is left.
     const a = document.activeElement;
     if (route().view === 'settings' && a && $('settingsView').contains(a) && a.matches('input, select, textarea')) { renderLater = true; return; }
+    if (a && a.dataset && a.dataset.daynote) { renderLater = true; return; }   // never redraw under the notes bar being typed in
     renderLater = false;
     await index();
     const r = route();
@@ -771,6 +809,7 @@
     if (isFam) { if (!nothing) renderFamily(r.date); renderChip(); return; }
     if (isSet) renderSettings(r.date);
     else if (!nothing) isWeek ? renderWeek(r.date) : renderDay(r.date);
+    document.querySelectorAll('[data-daynote]').forEach(grow);   // each notes box tall enough for its text
     renderChip();
   }
   function renderChip() {
@@ -780,9 +819,10 @@
     c.textContent = text; c.className = 'chip ' + cls;
   }
   const soon = () => { if (queued) return; queued = true; setTimeout(() => { queued = false; render(); }, 50); };
-  store.onChange(soon);
+  store.onChange(() => { foldPhonics(); soon(); });
   live.onStatus(() => { renderChip(); });
-  addEventListener('hashchange', () => render());
+  // Going to another day or view: leave a note box first (that saves it), so the new view is drawn.
+  addEventListener('hashchange', () => { const a = document.activeElement; if (a && a.dataset && a.dataset.daynote) a.blur(); render(); });
 
   // ---------- actions ----------
   const lessonRec = (sid, date) => X.lesson[date + '|' + sid] || null;
@@ -816,9 +856,6 @@
       } else if (d.delpnote) {
         const n = X.pnotes.find(x => x.id === d.delpnote);
         if (n && confirm('Delete this private note?')) await store.write([Object.assign({}, n, { deletedAt: new Date().toISOString() })], 'a private note deleted');
-      } else if (el.id === 'dayNoteBtn') {
-        const plan = X.dayPlan[date] || { id: 'dayp_' + date, type: 'dayPlan', deletedAt: null, date, saved: true };
-        editor($('dayNoteHost'), plan.notes || '', text => saveText({ live: Object.assign({}, plan, { saved: true }), field: 'notes', text, about: 'day', where: { date } }), 'Notes for the day');
       } else if (d.lnote) {
         const sid = d.lnote, sb = X.subj[sid];
         const rec = lessonRec(sid, date) || { id: `les_${date}_${sid}`, type: 'lessonPlan', deletedAt: null, date, subjectId: sid, pos: P.suggest(sb, X.lessons, date), taught: false };
