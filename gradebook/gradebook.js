@@ -20,8 +20,9 @@
   let store, live, CATALOG, byCode;
   try {
     const get = u => fetch(u).then(r => { if (!r.ok) throw new Error(`${u} did not load`); return r.json(); });
-    const [contract, reveal, bench, stds] = await Promise.all([get('../contract/contract.json'), get('../data/reveal-grade2.json'),
-      get('../data/benchmark-grade2.json'), get('../data/standards-grade2.json')]);
+    const [contract, reveal, bench, stds, norms] = await Promise.all([get('../contract/contract.json'), get('../data/reveal-grade2.json'),
+      get('../data/benchmark-grade2.json'), get('../data/standards-grade2.json'), get('../data/orf-norms.json')]);
+    SuiteReport.useNorms(norms);
     P.useCurriculum(JSON.parse(JSON.stringify(reveal)), bench);
     G.useGuide(reveal);
     CATALOG = stds.standards; byCode = Object.fromEntries(CATALOG.map(s => [s.code, s]));
@@ -50,6 +51,7 @@
       marks: by('mark'), missing: by('missingWork'),
       settings: by('gradebookSettings')[0] || DEFAULTS(),
       subjects: by('subject'), lessons: by('lessonPlan'), blocks: by('block'),
+      checks: by('orfCheck'), overrides: by('markOverride'), periods: by('gradingPeriod').sort((a, b) => a.start < b.start ? -1 : 1),
       days: Object.fromEntries(by('schoolDay').map(r => [r.date, r])),
       year: by('schoolYear').sort((a, b) => a.firstDay < b.firstDay ? 1 : -1)[0] || null
     };
@@ -65,7 +67,7 @@
   // ---------- what is on screen ----------
   const UI = { view: 'enter', subject: null, std: '', date: todayIso(), what: '', lesson: null, follow: true, unit: null,
     multi: null, open: null, pending: {}, undo: [] };
-  const route = () => /^#settings/.test(location.hash) ? 'settings' : 'enter';
+  const route = () => /^#settings/.test(location.hash) ? 'settings' : /^#synergy/.test(location.hash) ? 'synergy' : 'enter';
   const dayContext = () => ({ date: UI.date, subjects: X.subjects, lessons: X.lessons, blocks: X.blocks, days: X.days, year: X.year });
   const lessonRowShown = () => !!mathSubject() && UI.subject !== 'ELA';
   const dayStep = () => lessonRowShown() ? G.dayLesson(P, dayContext()) : null;
@@ -101,11 +103,14 @@
     UI.view = route();
     $('tabEnter').setAttribute('aria-selected', String(UI.view === 'enter'));
     $('tabSettings').setAttribute('aria-selected', String(UI.view === 'settings'));
+    $('tabSynergy').setAttribute('aria-selected', String(UI.view === 'synergy'));
     const none = !X.kids.length;
-    $('empty').hidden = !(none && UI.view === 'enter');
+    $('empty').hidden = !(none && UI.view !== 'settings');
     $('enterView').hidden = UI.view !== 'enter' || none;
     $('settingsView').hidden = UI.view !== 'settings';
+    $('synergyView').hidden = UI.view !== 'synergy' || none;
     if (UI.view === 'settings') renderSettings();
+    else if (UI.view === 'synergy') { if (!none) renderSynergy(); }
     else if (!none) renderEnter();
     renderChip();
   }
@@ -327,8 +332,9 @@
     const b = e.target.closest('button, [data-view]');
     if (!b || !document.querySelector('main').contains(b)) return;
     const d = b.dataset;
-    if (d.view) { location.hash = d.view === 'settings' ? '#settings' : '#enter'; return; }
+    if (d.view) { location.hash = '#' + d.view; return; }
     if (UI.view === 'settings') { await settingsClick(b); return; }
+    if (UI.view === 'synergy') { await synergyClick(b); return; }
     if (d.v && d.sid) await tapMark(d.sid, d.std, Number(d.v));
     else if (d.v && d.all) await tapAll(d.all, Number(d.v));
     else if (d.miss) {
@@ -385,6 +391,7 @@
     const el = e.target;
     if (!document.querySelector('main').contains(el)) return;
     if (UI.view === 'settings') { await settingsChange(el); return; }
+    if (UI.view === 'synergy') { await synergyChange(el); return; }
     if (el.dataset.note) { await saveNote(el.dataset.note, el.value); return; }
     if (el.id === 'e-subject') { UI.subject = el.value; UI.multi = null; UI.follow = true; await saveSettings({ subject: el.value }); }
     else if (el.id === 'e-std') { UI.std = el.value; UI.multi = null; }
@@ -399,6 +406,120 @@
     el.blur();
     render();
   });
+
+  // ---------- For Synergy: each child's mark for each standard in a quarter ----------
+  // Every number comes from core/report.js (v95's calculation, checked against v95 cell by cell).
+  const R = SuiteReport;
+  const wide = () => matchMedia('(min-width: 900px)').matches;
+  function synergyContext() {
+    return R.context({ marks: X.marks, checks: X.checks, settings: X.settings, terms: X.periods, overrides: X.overrides });
+  }
+  function currentPeriod() {
+    const today = todayIso(), p = X.periods;
+    if (!p.length) return null;
+    if (UI.period && p.some(t => t.id === UI.period)) return p.find(t => t.id === UI.period);
+    return p.find(t => t.start <= today && today <= t.end) || p.filter(t => t.end < today).pop() || p[0];
+  }
+  const fmtMark = f => f.v ? String(f.v) : '–';
+  function cellNote(f) { return f.over ? 'set by you' : f.carried ? (f.carried === 'earlier work' ? 'carried from earlier work' : 'carried from ' + f.carried) : f.n ? 'from ' + f.n + (f.n === 1 ? ' mark' : ' marks') : 'nothing to go on'; }
+  function renderSynergy() {
+    const el = $('synergyView'), term = currentPeriod();
+    if (!term) { el.innerHTML = '<section class="side"><h2>No quarters yet</h2><p class="small">Add the grading periods in <a href="../planner/#settings">Planner Settings</a>, beside the calendar.</p></section>'; return; }
+    UI.period = term.id;
+    const c = synergyContext(), st = R.settings(X.settings);
+    const codes = codesFor(UI.subject);
+    const grid = new Map();   // code -> child id -> finalMark
+    codes.forEach(code => { const row = new Map(); X.kids.forEach(k => row.set(k.id, R.finalMark(c, k.id, code, term))); grid.set(code, row); });
+    const shown = codes.filter(code => [...grid.get(code).values()].some(f => f.v));
+    const hasIready = X.marks.some(m => m.source === 'iready');
+    let h = `<div class="syn-bar side">
+      <div class="seg" role="group" aria-label="Quarter">${X.periods.map(t => `<button class="compact" data-period="${esc(t.id)}" aria-pressed="${t.id === term.id}">${esc(t.name)}</button>`).join('')}</div>
+      <label class="sf inline"><span>Subject</span><select id="y-subject">${['Math', 'ELA', 'All'].map(x => `<option${x === UI.subject ? ' selected' : ''}>${x}</option>`).join('')}</select></label>
+      <label class="sf inline"><span>Marks from</span><select id="y-rule">${[['weighted', 'Recent work counts more'], ['mean', 'Straight average'], ['latest', 'Most recent mark only']].map(([v, l]) => `<option value="${v}"${st.rule === v ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
+      <label class="check"><input type="checkbox" id="y-carry"${st.carryForward ? ' checked' : ''}> Carry forward a standard with no marks this quarter</label>
+      ${hasIready ? `<label class="check"><input type="checkbox" id="y-iready"${st.ireadyInReport ? ' checked' : ''}> Count iReady marks</label>` : ''}
+    </div>
+    <p class="small">${esc(term.name)}, ${esc(longDate(term.start))} to ${esc(longDate(term.end))}. Each mark is worked out from that quarter's marks${st.carryForward ? ', or carried from an earlier quarter when there are none' : ''}. ${wide() ? 'Click a mark to see the marks behind it or set your own.' : 'Tap a standard to see the marks behind it or set your own.'}</p>`;
+    if (!shown.length) h += `<section class="side"><p>No ${UI.subject === 'All' ? '' : esc(UI.subject) + ' '}marks to go on in ${esc(term.name)} yet.</p></section>`;
+    else if (wide()) {
+      h += `<div class="syn-wrap side"><table class="syn"><thead><tr><th class="kid-h">Last-name order, as in Synergy</th>${shown.map(code => `<th class="std-h" title="${esc(label(code))}"><span><code>${esc(dispCode(code))}</code> ${esc(label(code))}</span></th>`).join('')}</tr></thead><tbody>` +
+        X.kids.map(k => `<tr><th class="kid-n" scope="row">${esc(k.lastName ? k.lastName + ', ' + k.firstName : k.firstName)}</th>` + shown.map(code => {
+          const f = grid.get(code).get(k.id), open = UI.cell === k.id + '|' + code;
+          return `<td><button class="cell${f.v ? ' m' + f.v : ''}${f.over ? ' over' : ''}${f.carried ? ' carried' : ''}" data-cell="${esc(k.id + '|' + code)}" aria-expanded="${open}" aria-label="${esc(fullName(k))}, ${esc(dispCode(code))}: ${fmtMark(f)}, ${cellNote(f)}">${fmtMark(f)}</button></td>`;
+        }).join('') + '</tr>').join('') + '</tbody></table></div>';
+    } else {
+      const kid = X.kids.find(k => k.id === UI.synKid) || X.kids[0];
+      UI.synKid = kid.id;
+      h += `<div class="syn-kid"><button class="gnav" data-synkid="-1" aria-label="Previous student">‹</button>
+        <select id="y-kid" aria-label="Student">${X.kids.map(k => `<option value="${esc(k.id)}"${k.id === kid.id ? ' selected' : ''}>${esc(fullName(k))}</option>`).join('')}</select>
+        <button class="gnav" data-synkid="1" aria-label="Next student">›</button></div>
+        <div class="syn-list">` + shown.map(code => {
+          const f = grid.get(code).get(kid.id);
+          return `<button class="syn-row${f.carried || !f.v ? ' warn' : ''}" data-cell="${esc(kid.id + '|' + code)}" aria-expanded="${UI.cell === kid.id + '|' + code}">
+            <span class="syn-l"><span class="syn-n"><code>${esc(dispCode(code))}</code> ${esc(label(code))}</span><span class="small">${cellNote(f)}</span></span>
+            <span class="cell${f.v ? ' m' + f.v : ''}${f.over ? ' over' : ''}${f.carried ? ' carried' : ''}">${fmtMark(f)}</span></button>`;
+        }).join('') + '</div>';
+    }
+    if (UI.cell) h += cellDetail(c, term);
+    // Gaps before you submit.
+    const gaps = [];
+    const outNow = X.missing.filter(m => !m.received && !m.excused && m.date >= term.start && m.date <= term.end);
+    if (outNow.length) gaps.push(`${outNow.length} piece${outNow.length === 1 ? '' : 's'} of work still not turned in from ${term.name}`);
+    shown.forEach(code => {
+      const fs = [...grid.get(code).values()], blank = fs.filter(f => !f.v).length, carried = fs.filter(f => f.carried).length;
+      if (blank) gaps.push(`${dispCode(code)} ${label(code)}: ${blank} student${blank === 1 ? '' : 's'} with nothing to go on`);
+      else if (carried) gaps.push(`${dispCode(code)} ${label(code)}: ${carried} student${carried === 1 ? '' : 's'} carried from an earlier quarter`);
+    });
+    if (gaps.length) h += `<section class="side"><h2>Gaps before you submit</h2><ul class="gaps">${gaps.map(g => `<li>${esc(g)}</li>`).join('')}</ul></section>`;
+    el.innerHTML = h;
+  }
+  // The marks behind one cell, and setting your own.
+  function cellDetail(c, term) {
+    const [sid, code] = UI.cell.split('|');
+    const k = X.students.find(s => s.id === sid);
+    if (!k) return '';
+    const f = R.finalMark(c, sid, code, term), st = R.settings(X.settings);
+    const inQ = c.counted.filter(m => m.studentId === sid && m.standard === code && m.date >= term.start && m.date <= term.end).sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+    const worked = Object.assign({}, c, { overrides: new Map() });
+    const auto = R.finalMark(worked, sid, code, term);
+    return `<section class="side syn-detail" aria-label="Marks behind this one">
+      <div class="side-head"><h2>${esc(fullName(k))} · <code>${esc(dispCode(code))}</code> ${esc(label(code))}</h2><button class="quiet compact" data-cellclose="1">Close</button></div>
+      <p class="small">${esc(term.name)}. ${inQ.length ? `Worked out ${st.rule === 'weighted' ? 'with recent work counting more' : st.rule === 'mean' ? 'as a straight average' : 'from the most recent mark'}: ${auto.raw != null ? auto.raw + ', so ' : ''}${fmtMark(auto)}.` : auto.carried ? `No marks this quarter; ${fmtMark(auto)} is carried from ${esc(auto.carried)}.` : 'No marks this quarter.'}</p>
+      ${inQ.length ? `<div class="ev">${inQ.map(m => `<span class="evm m${m.value}" title="${esc((m.what || '') + (m.note ? ' · ' + m.note : ''))}"><b>${m.value}</b><span>${esc(md(m.date))}${m.source ? ' · ' + (m.source === 'orf' ? 'ORF' : 'iReady') : ''}</span></span>`).join('')}</div>` : ''}
+      <div class="marks four syn-set">${[1, 2, 3, 4].map(v => `<button class="mk m${v}" data-over="${v}" aria-pressed="${f.over && f.v === v}" aria-label="Set ${v} for Synergy">${v}</button>`).join('')}</div>
+      ${f.over ? `<button class="linkbtn" data-over="0">Go back to the worked-out ${fmtMark(auto)}</button>` : '<p class="small">Pick a number to set it yourself. It stays put however the marks change.</p>'}
+    </section>`;
+  }
+  async function setOverride(v) {
+    const [sid, code] = UI.cell.split('|'), term = currentPeriod();
+    const id = R.overrideId(term.id, sid, code), before = RECS.get(id) || null;
+    let after;
+    if (v) after = { id, type: 'markOverride', deletedAt: null, periodId: term.id, studentId: sid, standard: code, value: v };
+    else if (before && !before.deletedAt) after = Object.assign({}, before, { deletedAt: nowIso() });
+    else return;
+    const body = r => Object.fromEntries(Object.entries(r).filter(([k2]) => k2 !== 'updatedAt' && k2 !== 'device'));
+    await act({ writes: [after], undo: [{ id, before, after: body(after) }] }, v ? `${kidName(sid)}'s ${v} for Synergy` : `${kidName(sid)}'s mark set by you`);
+  }
+  async function synergyClick(b) {
+    const d = b.dataset;
+    if (d.period) { UI.period = d.period; UI.cell = null; }
+    else if (d.cell) UI.cell = UI.cell === d.cell ? null : d.cell;
+    else if (d.cellclose) UI.cell = null;
+    else if (d.over != null) await setOverride(Number(d.over));
+    else if (d.synkid) { const i = X.kids.findIndex(k => k.id === UI.synKid); UI.synKid = X.kids[(i + Number(d.synkid) + X.kids.length) % X.kids.length].id; UI.cell = null; }
+    else return;
+    render();
+  }
+  async function synergyChange(el) {
+    if (el.id === 'y-subject') { UI.subject = el.value; UI.cell = null; await saveSettings({ subject: el.value }); }
+    else if (el.id === 'y-rule') await saveSettings({ rule: el.value });
+    else if (el.id === 'y-carry') await saveSettings({ carryForward: el.checked });
+    else if (el.id === 'y-iready') await saveSettings({ ireadyInReport: el.checked });
+    else if (el.id === 'y-kid') { UI.synKid = el.value; UI.cell = null; }
+    else return;
+    el.blur();
+    render();
+  }
 
   // ---------- Settings: the class list and the standards ----------
   async function saveSettings(change) {
@@ -426,7 +547,26 @@
       <section class="side"><div class="side-head"><h2>Standards</h2><span class="small">${X.settings.on.length} switched on</span></div>
       <label class="sf"><span>Math codes shown as</span><select id="s-codes"><option value="oregon"${X.settings.codes !== 'ccss' ? ' selected' : ''}>Oregon 2021 (Synergy)</option><option value="ccss"${X.settings.codes === 'ccss' ? ' selected' : ''}>CCSS (Reveal)</option></select></label>
       <p class="small">Marks are always kept under the Oregon code.</p>
-      <div class="stds">${stds}</div></section>`;
+      <div class="stds">${stds}</div></section>` + orfSettingsHTML();
+  }
+  // ORF readings as marks for Synergy (fluency only): v95's settings, and which readings count.
+  function orfSettingsHTML() {
+    const st = R.settings(X.settings), left = st.orfLeftOut || [];
+    const fs = CATALOG.filter(x => x.subject === 'ELA' && /Foundational/.test(x.domain));
+    const checks = X.checks.slice().sort((a, b) => a.date < b.date ? 1 : -1);
+    const stu = id => X.students.find(x => x.id === id);
+    return `<section class="side" id="orfSettings"><div class="side-head"><h2>ORF readings as marks</h2></div>
+      <p class="small">Each reading becomes a fluency mark (words correct per minute; comprehension does not count), graded against Hasbrouck &amp; Tindal 2017.</p>
+      <label class="check"><input type="checkbox" id="o-auto"${st.orfAuto ? ' checked' : ''}> Turn readings into marks</label>
+      <div class="sgrid">
+        <label class="sf"><span>Marks go on</span><select id="o-std">${fs.map(x => `<option value="${esc(x.code)}"${x.code === st.orfStandard ? ' selected' : ''}>${esc(x.code + ' — ' + x.label)}</option>`).join('')}</select></label>
+        <label class="sf"><span>Graded against</span><select id="o-against"><option value="eoy"${st.orfAgainst !== 'season' ? ' selected' : ''}>End-of-year norms (a 3 is the spring 50th)</option><option value="season"${st.orfAgainst === 'season' ? ' selected' : ''}>The norms for the season it was read</option></select></label>
+        ${[4, 3, 2].map(k => `<label class="sf"><span>A ${k} from the</span><select id="o-cut${k}">${[90, 75, 50, 25, 10].map(p => `<option value="${p}"${st['orfCut' + k] === p ? ' selected' : ''}>${p}th percentile</option>`).join('')}</select></label>`).join('')}
+      </div>
+      ${checks.length ? `<h3>Readings</h3><div class="orf-list">${checks.map(ch => `<label class="check orf-r"><input type="checkbox" data-orfcount="${esc(ch.id)}"${left.includes(ch.id) ? '' : ' checked'}>
+        <span>${esc(fullName(stu(ch.studentId)))} · ${esc(md(ch.date))} · ${esc(ch.passageTitle)} · ${ch.wcpm} WCPM</span></label>`).join('')}</div>
+        <p class="small">Untick a reading to leave it out of the marks (a practice read, say).</p>` : '<p class="small">No readings yet.</p>'}
+    </section>`;
   }
   async function writeStudent(next) {
     if (!next.firstName) { problem('A child needs a first name.'); render(); return; }
@@ -448,6 +588,15 @@
       if (el.checked) on.push(d.stdOn);
       await saveSettings({ on: CATALOG.map(s => s.code).filter(c => on.includes(c)) });
     } else if (el.id === 's-codes') await saveSettings({ codes: el.value === 'ccss' ? 'ccss' : 'oregon' });
+    else if (el.id === 'o-auto') await saveSettings({ orfAuto: el.checked });
+    else if (el.id === 'o-std') await saveSettings({ orfStandard: el.value });
+    else if (el.id === 'o-against') await saveSettings({ orfAgainst: el.value === 'season' ? 'season' : 'eoy' });
+    else if (/^o-cut[234]$/.test(el.id)) await saveSettings({ ['orfCut' + el.id.slice(-1)]: Number(el.value) });
+    else if (d.orfcount) {
+      const left = (R.settings(X.settings).orfLeftOut || []).filter(id => id !== d.orfcount);
+      if (!el.checked) left.push(d.orfcount);
+      await saveSettings({ orfLeftOut: left });
+    }
   }
   async function settingsClick(b) {
     if (!b.dataset.addkid) return;

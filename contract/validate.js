@@ -103,6 +103,8 @@ function expectedId(rec, typeSpec) {
     case 'miss_<studentId>_<standard>_<date>':
       return rec.standard ? `miss_${rec.studentId}_${rec.standard.replace(/\./g, '-')}_${rec.date}` : null;
     case 'gbset_main': return 'gbset_main';
+    case 'ovr_<periodId>_<studentId>_<standard>':
+      return rec.standard ? `ovr_${rec.periodId}_${rec.studentId}_${rec.standard.replace(/\./g, '-')}` : null;
     case 'fam_<key>': return rec.key ? 'fam_' + String(rec.key).replace(/[:|]/g, '-') : null;
     case 'plc_<groupKind>_<unitId>_<studentId> for reading, plc_<groupKind>_<studentId> otherwise':
       return rec.groupKind === 'reading' ? `plc_reading_${rec.unitId}_${rec.studentId}` : `plc_${rec.groupKind}_${rec.studentId}`;

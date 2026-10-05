@@ -238,6 +238,39 @@ test('the tracked standards and settings come in; a turned-off standard stays of
   assert.deepEqual([s.rule, s.codes, s.subject], ['weighted', 'oregon', 'Math']);
 });
 
+// ---------- step 6b: marks for Synergy ----------
+test('the Synergy-mark settings come in; a reading set not to count stays out', () => {
+  const s = byId(out(), 'gbset_main');
+  assert.deepEqual([s.orfCut4, s.orfCut3, s.orfCut2], [75, 50, 25]);
+  assert.deepEqual(s.orfLeftOut, ['orf_r_moved']);
+  assert.equal('carryForward' in s, false, 'never saved by v95: left out, so the default (true) applies');
+});
+
+test('settings v95 did save come in as they are', () => {
+  const f = sample(), g = JSON.parse(f.keys.gb2_standards_v1);
+  Object.assign(g.settings, { carryForward: false, ireadyInReport: true, orfAutoScore: false, orfStandard: '2.RF.3', orfAgainst: 'season',
+    orfSeason: { fall: '08-15', winter: '12-01', spring: '03-01' }, orfCuts: { 4: 80, 3: 50, 2: 20 } });
+  f.keys.gb2_standards_v1 = JSON.stringify(g);
+  const s = byId(imp.convert(f), 'gbset_main');
+  assert.deepEqual([s.carryForward, s.ireadyInReport, s.orfAuto, s.orfStandard, s.orfAgainst, s.orfSeasons.fall, s.orfCut4, s.orfCut2],
+    [false, true, false, '2.RF.3', 'season', '08-15', 80, 20]);
+});
+
+test('a mark set by hand on a line of one standard becomes that standard\'s; on a line of several it stays kept', () => {
+  const f = sample(), g = JSON.parse(f.keys.gb2_standards_v1);
+  g.rc = [{ id: 'solo', s: 'Math', n: 'Fluently adds and subtracts within 20', std: ['2.OA.B.2'] }, { id: 'many', s: 'Math', n: 'Place value', std: ['2.NBT.A.1', '2.NBT.A.3'] }];
+  g.overrides = { 't1|k3j9x2a|solo': 4, 't1|p8q7r6s|many': 2, 't1|gone99|solo': 3, 't9|k3j9x2a|solo': 2 };
+  f.keys.gb2_standards_v1 = JSON.stringify(g);
+  const o = imp.convert(f);
+  const ov = o.records.filter(r => r.type === 'markOverride');
+  assert.deepEqual(ov.map(r => [r.id, r.periodId, r.studentId, r.standard, r.value]),
+    [['ovr_gp_term_t1_stu_k3j9x2a_2-OA-B-2', 'gp_term_t1', 'stu_k3j9x2a', '2.OA.B.2', 4]]);
+  assert.match(o.notes.join(' '), /1 report card mark you set was on a line of several standards/);
+  assert.ok(o.heldBack.some(h => h.what === '2 report card marks you set'), 'a gone child and a gone quarter');
+  const file = { contract: 'classroom-suite', version: contract.version, exportedAt: '2026-10-01T22:04:05.000Z', device: 'v95', records: o.records };
+  assert.deepEqual(validateFile(file, contract).errors, []);
+});
+
 test('the imported gradebook passes the contract', () => {
   const o = out();
   const file = { contract: 'classroom-suite', version: contract.version, exportedAt: '2026-10-01T22:04:05.000Z', device: 'v95', records: o.records };

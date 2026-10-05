@@ -518,15 +518,44 @@
     if (missGone) heldBack.push({ what: plural(missGone, 'not-turned-in entry', 'not-turned-in entries'), why: 'for a child no longer in the class list' });
 
     // Settings. With no list of standards in the file, the gradebook starts from the defaults.
+    // The Synergy-mark settings come too; one v95 never saved is left out, which means v95's default.
     if (gb.active && typeof gb.active === 'object') {
       const st = gb.settings || {};
-      records.push(rec('gbset_main', 'gradebookSettings', {
+      const f = {
         on: Object.keys(gb.active).filter(c => gb.active[c] && STD.test(c)).slice(0, 200),
         rule: ['latest', 'mean', 'weighted'].includes(st.rule) ? st.rule : 'weighted',
         codes: st.mathCodes === 'ccss' ? 'ccss' : 'oregon',
         subject: ['Math', 'ELA', 'All'].includes(st.subject) ? st.subject : 'Math'
-      }));
+      };
+      if (typeof st.carryForward === 'boolean') f.carryForward = st.carryForward;
+      if (typeof st.ireadyInReport === 'boolean') f.ireadyInReport = st.ireadyInReport;
+      if (typeof st.orfAutoScore === 'boolean') f.orfAuto = st.orfAutoScore;
+      if (STD.test(String(st.orfStandard))) f.orfStandard = st.orfStandard;
+      const cuts = st.orfCuts || {};
+      for (const k of [4, 3, 2]) { const v = Number(cuts[k]); if (Number.isInteger(v) && v >= 0 && v <= 90) f['orfCut' + k] = v; }
+      if (st.orfAgainst === 'season' || st.orfAgainst === 'eoy') f.orfAgainst = st.orfAgainst;
+      const se = st.orfSeason, MD = /^[01][0-9]-[0-3][0-9]$/;
+      if (se && MD.test(se.fall) && MD.test(se.winter) && MD.test(se.spring)) f.orfSeasons = { fall: se.fall, winter: se.winter, spring: se.spring };
+      // ORF checks set not to count: their gradebook copies say so.
+      const leftOut = [...copies.values()].filter(c => c.exclude).map(c => 'orf_' + safe(c.srcId)).filter(id => records.some(r => r.id === id));
+      if (leftOut.length) f.orfLeftOut = leftOut;
+      records.push(rec('gbset_main', 'gradebookSettings', f));
     }
+
+    // Marks set by hand. v95 keeps them per report-card line; a line of one standard becomes that standard's.
+    const lines = new Map((Array.isArray(gb.rc) ? gb.rc : []).filter(l => l && Array.isArray(l.std)).map(l => [String(l.id), l.std]));
+    const periods = new Set((Array.isArray(gb.terms) ? gb.terms : []).filter(t => t && isDate(t.start) && isDate(t.end)).map(t => String(t.id)));
+    let overKept = 0, overGone = 0;
+    for (const [k, v] of Object.entries(gb.overrides && typeof gb.overrides === 'object' ? gb.overrides : {})) {
+      const [term, sidRaw, line] = k.split('|');
+      const val = Number(v), sid = stuId.get(String(sidRaw)), std = lines.get(String(line));
+      if (!sid || !periods.has(String(term)) || !Number.isInteger(val) || val < 1 || val > 4) { overGone++; continue; }
+      if (!std || std.length !== 1 || !STD.test(String(std[0]))) { overKept++; continue; }
+      const periodId = 'gp_term_' + safe(term, 1);
+      records.push(rec(`ovr_${periodId}_${sid}_${stdKey(std[0])}`, 'markOverride', { periodId, studentId: sid, standard: std[0], value: val }));
+    }
+    if (overKept) notes.push(`${plural(overKept, 'report card mark you set was', 'report card marks you set were')} on a line of several standards, so ${overKept === 1 ? 'it has' : 'they have'} no single standard to go on. ${overKept === 1 ? 'It stays' : 'They stay'} in the kept v95 data.`);
+    if (overGone) heldBack.push({ what: plural(overGone, 'report card mark you set', 'report card marks you set'), why: 'for a child no longer in the class list, a quarter that is gone, or not 1 to 4' });
 
     // ---- Report ----
     const counts = {};

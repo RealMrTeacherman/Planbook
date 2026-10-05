@@ -61,7 +61,10 @@ function sample() {
       env('mark_stu_a1b2c3d4e5_2-NBT-B-5_2026-10-05', 'mark', { studentId: 'stu_a1b2c3d4e5', standard: '2.NBT.B.5', date: '2026-10-05', value: 3, what: 'Lesson 2-3', note: 'Used a number line', source: null }),
       env('mark_orf_stu_a1b2c3d4e5_2-RF-4_2026-09-20', 'mark', { studentId: 'stu_a1b2c3d4e5', standard: '2.RF.4', date: '2026-09-20', value: 2, what: 'ORF check', note: '54 WCPM', source: 'orf' }),
       env('miss_stu_f6g7h8i9j0_2-NBT-B-5_2026-10-05', 'missingWork', { studentId: 'stu_f6g7h8i9j0', standard: '2.NBT.B.5', date: '2026-10-05', what: 'Lesson 2-3', received: null, excused: false }),
-      env('gbset_main', 'gradebookSettings', { on: ['2.NBT.B.5', '2.RF.4'], rule: 'weighted', codes: 'oregon', subject: 'Math' })
+      env('gbset_main', 'gradebookSettings', { on: ['2.NBT.B.5', '2.RF.4'], rule: 'weighted', codes: 'oregon', subject: 'Math',
+        carryForward: true, ireadyInReport: false, orfAuto: true, orfStandard: '2.RF.4', orfCut4: 75, orfCut3: 50, orfCut2: 25,
+        orfAgainst: 'eoy', orfSeasons: { fall: '08-01', winter: '12-01', spring: '03-01' }, orfLeftOut: ['orf_r1'] }),
+      env('ovr_gp_t1xyz_stu_a1b2c3d4e5_2-NBT-B-5', 'markOverride', { periodId: 'gp_t1xyz', studentId: 'stu_a1b2c3d4e5', standard: '2.NBT.B.5', value: 3 })
     ]
   };
 }
@@ -128,6 +131,21 @@ test('a mark is 1 to 4, under a real standard code, for a child in the file', ()
   expectFail(g, 'bad format');
   const h = sample(); h.records = h.records.filter(r => r.id !== 'stu_f6g7h8i9j0');
   expectFail(h, 'stu_f6g7h8i9j0 is not in the file');
+});
+
+test('a mark set by hand is one per quarter, child and standard, 1 to 4', () => {
+  const id = 'ovr_gp_t1xyz_stu_a1b2c3d4e5_2-NBT-B-5';
+  const f = sample(); find(f, id).value = 0;
+  expectFail(f, 'below 1');
+  const g = sample(); find(g, id).standard = '2.NBT.B.6';
+  expectFail(g, 'must be ovr_gp_t1xyz_stu_a1b2c3d4e5_2-NBT-B-6');
+  const h = sample(); find(h, id).periodId = 'gp_nowhere';
+  expectFail(h, 'gp_nowhere is not in the file');
+});
+
+test('ORF season lines must be MM-DD', () => {
+  const f = sample(); find(f, 'gbset_main').orfSeasons.winter = 'Dec 1';
+  expectFail(f, 'bad format');
 });
 
 test('impossible dates and local times are refused', () => {

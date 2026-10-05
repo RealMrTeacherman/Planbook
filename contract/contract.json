@@ -1,6 +1,6 @@
 {
   "contract": "classroom-suite",
-  "version": 7,
+  "version": 8,
   "notes": [
     "Every record in every tool carries the envelope. Only the owner tool writes a type; readers never write it.",
     "Space: 'live' types can never name a child and may sync through Firebase on the teacher's personal account. 'private' types can name a child and travel only through the district Drive folder. A live type may not point at a private one. Text fields marked nameCheck are checked against the class list before a live record is saved.",
@@ -14,7 +14,8 @@
     "Version 4 adds familyWeek: the reading goal chosen for the family email and the week's spelling list, kept per Benchmark week (key bm:<unit>|<week>) or per calendar week (wk:<Monday>). No version 3 record changes.",
     "Version 5 adds within to a subject: shown inside another subject's card on the Day view (Phonics inside Reading), while still tracked on its own. No version 4 record changes.",
     "Version 6 adds the sub plan's private records: subPlan (the standing notes, one record) and subBlock (a schedule block's What to do and If you cannot find it). Both name children, so both are private. No version 5 record changes.",
-    "Version 7 adds the gradebook's marks (mark), work not turned in (missingWork) and its settings (gradebookSettings). All private. A mark's id is built from child, standard and date, so two devices marking the same child the same day make one record. No version 6 record changes."
+    "Version 7 adds the gradebook's marks (mark), work not turned in (missingWork) and its settings (gradebookSettings). All private. A mark's id is built from child, standard and date, so two devices marking the same child the same day make one record. No version 6 record changes.",
+    "Version 8 adds markOverride (a mark for Synergy set by hand, per quarter, child and standard) and optional gradebookSettings fields for the Synergy marks: carryForward, ireadyInReport and the ORF settings. All private. No version 7 record changes; a missing setting means v95's default."
   ],
   "file": {
     "fields": {
@@ -1228,6 +1229,118 @@
             "ELA",
             "All"
           ]
+        },
+        "carryForward": {
+          "type": "bool",
+          "note": "A standard with no marks this quarter takes the latest earlier quarter's. Default true (v95)."
+        },
+        "ireadyInReport": {
+          "type": "bool",
+          "note": "Count iReady marks. Default false (v95)."
+        },
+        "orfAuto": {
+          "type": "bool",
+          "note": "Turn ORF readings into marks. Default true (v95 orfAutoScore)."
+        },
+        "orfStandard": {
+          "type": "string",
+          "required": false,
+          "max": 20,
+          "pattern": "^[0-9]\\.[A-Z]{1,3}(\\.[A-Z])?\\.[0-9]{1,2}$",
+          "note": "The standard ORF readings are marks on. Default 2.RF.4 (fluency)."
+        },
+        "orfCut4": {
+          "type": "int",
+          "min": 0,
+          "max": 90,
+          "note": "Percentile floor for a 4. Default 75."
+        },
+        "orfCut3": {
+          "type": "int",
+          "min": 0,
+          "max": 90,
+          "note": "Default 50."
+        },
+        "orfCut2": {
+          "type": "int",
+          "min": 0,
+          "max": 90,
+          "note": "Default 25."
+        },
+        "orfAgainst": {
+          "type": "enum",
+          "values": [
+            "eoy",
+            "season"
+          ],
+          "note": "Readings are graded against end-of-year norms (eoy, default) or their own season's."
+        },
+        "orfSeasons": {
+          "type": "object",
+          "nullable": true,
+          "note": "Where each season starts, MM-DD. Null: v95's 08-01, 12-01, 03-01.",
+          "fields": {
+            "fall": {
+              "type": "string",
+              "required": true,
+              "max": 5,
+              "pattern": "^[01][0-9]-[0-3][0-9]$"
+            },
+            "winter": {
+              "type": "string",
+              "required": true,
+              "max": 5,
+              "pattern": "^[01][0-9]-[0-3][0-9]$"
+            },
+            "spring": {
+              "type": "string",
+              "required": true,
+              "max": 5,
+              "pattern": "^[01][0-9]-[0-3][0-9]$"
+            }
+          }
+        },
+        "orfLeftOut": {
+          "type": "array",
+          "max": 5000,
+          "of": {
+            "type": "string",
+            "max": 105
+          },
+          "note": "ORF checks (ids) set not to count toward marks."
+        }
+      }
+    },
+    "markOverride": {
+      "owner": "gradebook",
+      "space": "private",
+      "readers": [],
+      "idPrefix": "ovr",
+      "idRule": "ovr_<periodId>_<studentId>_<standard>",
+      "note": "A mark for Synergy set by the teacher for one child, standard and quarter. It replaces the worked-out mark and stays put.",
+      "fromV95": "gb2_standards_v1.overrides, \"<term>|<sid>|<line>\": only lines of one standard can become one",
+      "fields": {
+        "periodId": {
+          "type": "ref",
+          "required": true,
+          "to": "gradingPeriod"
+        },
+        "studentId": {
+          "type": "ref",
+          "required": true,
+          "to": "student"
+        },
+        "standard": {
+          "type": "string",
+          "required": true,
+          "max": 20,
+          "pattern": "^[0-9]\\.[A-Z]{1,3}(\\.[A-Z])?\\.[0-9]{1,2}$"
+        },
+        "value": {
+          "type": "int",
+          "required": true,
+          "min": 1,
+          "max": 4
         }
       }
     }

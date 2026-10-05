@@ -116,7 +116,25 @@ const M = [
   ['gradebook/gradebook.js', 'All marks only one standard', 'else if (d.v && d.all) await tapAll(d.all, Number(d.v));', 'else if (d.v && d.all) await tapMark(d.all, UI.std, Number(d.v));', 'tests/gradebook.browser.test.js'],
   ['gradebook/gradebook.css', 'a marked 2 too light to read', '--m2: #7F5A14;', '--m2: #A87621;', 'tests/gradebook.browser.test.js'],
   ['gradebook/gradebook.css', 'the note under the marks on the MacBook', '.kid:not(:has(.mrow)) { display: grid;', '.kid:not(:has(.mrow)) { display: flex;', 'tests/gradebook.browser.test.js'],
-  ['core/colors.js', 'subject colors not deepened for white text', 'for (let i = 0; i < 40 &&', 'for (let i = 0; i < 0 &&', 'tests/planner.browser.test.js']
+  ['core/colors.js', 'subject colors not deepened for white text', 'for (let i = 0; i < 40 &&', 'for (let i = 0; i < 0 &&', 'tests/planner.browser.test.js'],
+  // step 6b: marks for Synergy
+  ['core/report.js', 'recent work does not count more', 'vals.forEach((v, i) => { const w = i + 1; num += v * w; den += w; });', 'vals.forEach((v, i) => { const w = 1; num += v * w; den += w; });', false],
+  ['core/report.js', 'halves round down', 'const roundMark = x => x == null ? null : Math.max(1, Math.min(4, Math.round(x)));', 'const roundMark = x => x == null ? null : Math.max(1, Math.min(4, Math.floor(x + 0.4)));', false],
+  ['core/report.js', 'marks from outside the quarter count', 'm => m.date >= term.start && m.date <= term.end).map(m => m.value);', 'm => m.date <= term.end).map(m => m.value);', false],
+  ['core/report.js', 'carried from the first earlier quarter, not the latest', 'const earlier = terms.filter(t => t.end < term.start).sort((a, b) => (b.end < a.end ? -1 : b.end > a.end ? 1 : 0));', 'const earlier = terms.filter(t => t.end < term.start).sort((a, b) => (a.end < b.end ? -1 : a.end > b.end ? 1 : 0));', false],
+  ['core/report.js', 'carry forward ignores its setting', 'if (r.n === 0 && st.carryForward) {', 'if (r.n === 0) {', false],
+  ['core/report.js', 'a mark set by hand does not win', 'if (o && !o.deletedAt && o.value) return { v: o.value, over: true, n: r.n };', '', false],
+  ['core/report.js', 'iReady marks always count', '.concat(st.ireadyInReport ? live.filter(m => m.source === \'iready\') : [])', '.concat(live.filter(m => m.source === \'iready\'))', false],
+  ['core/report.js', 'readings graded against their own season', 'st.orfAgainst === \'season\' ? seasonIndex(date, st.orfSeasons) : 2', 'seasonIndex(date, st.orfSeasons)', false],
+  ['core/report.js', 'a reading set not to count still counts', 'checks.filter(c => !c.deletedAt && !out.includes(c.id))', 'checks.filter(c => !c.deletedAt)', false],
+  ['core/report.js', 'the stored v95 ORF marks count beside the readings', 'return live.filter(m => !m.source)', 'return live.filter(m => m.source !== \'iready\')', false],
+  ['core/import-v95.js', 'an override on a line of several standards is guessed', 'if (!std || std.length !== 1 || !STD.test(String(std[0]))) { overKept++; continue; }', 'if (!std || !STD.test(String(std[0]))) { overKept++; continue; }', false],
+  ['core/import-v95.js', 'readings set not to count come in counting', 'if (leftOut.length) f.orfLeftOut = leftOut;', '', false],
+  ['contract/validate.js', 'an override\'s id is not checked', 'case \'ovr_<periodId>_<studentId>_<standard>\':', 'case \'override rule switched off\':', false],
+  ['gradebook/gradebook.js', 'the grid shows a standard with no marks', 'const shown = codes.filter(code => [...grid.get(code).values()].some(f => f.v));', 'const shown = codes.slice();', 'tests/synergy.browser.test.js'],
+  ['gradebook/gradebook.js', 'carried marks look like this quarter\'s', '${f.carried ? \' carried\' : \'\'}" data-cell=', '" data-cell=', 'tests/synergy.browser.test.js'],
+  ['gradebook/gradebook.js', 'Go back does not remove a mark you set', 'else if (before && !before.deletedAt) after = Object.assign({}, before, { deletedAt: nowIso() });', 'else if (before && !before.deletedAt) after = Object.assign({}, before);', 'tests/synergy.browser.test.js'],
+  ['gradebook/gradebook.js', 'a reading ticked off still counts', '      if (!el.checked) left.push(d.orfcount);\n', '', 'tests/synergy.browser.test.js']
 ];
 
 // node tests/mutations.js [name filter]   or   node tests/mutations.js --from=N --to=M (by position)

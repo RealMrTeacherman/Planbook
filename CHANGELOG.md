@@ -1,5 +1,37 @@
 # Changelog
 
+## Step 6b — marks for Synergy (the export comes later)
+
+Grading itself happens in Synergy, so this step works out each child's mark for each Oregon standard in a quarter, ready to go there. **The Synergy file is not built yet:** it will match your Grade Book Import template exactly once you can send it, when the grading window opens.
+
+**For Synergy** (a new Gradebook tab).
+- On the MacBook: pick the quarter. A grid of children, in last-name order as in Synergy, × the standards that have marks. Click a mark to see the marks behind it and how it was worked out, set your own 1–4 (it stays put however the marks change), or go back to the worked-out one. A carried mark has a dashed border, one you set a heavy one.
+- **Gaps before you submit:** standards with nothing to go on, marks carried from an earlier quarter, and work still not turned in this quarter.
+- On the iPhone: one child at a time; tap a standard to see or fix its mark.
+- On the same screen: how marks are figured (recent work counts more, the default; straight average; most recent only), carry forward (on), and whether iReady marks count (off).
+
+**The calculation is v95's, exactly:** its `computeMark`, `roundMark`, `lineMark`, `carriedMark` and `finalMark`, called with one standard. A quarter's marks give the mark; with none, the latest earlier quarter that has some is carried, else earlier work.
+
+**ORF readings as marks** (Gradebook Settings): each reading becomes a fluency mark on 2.RF.4, graded against end-of-year Hasbrouck & Tindal 2017 norms with v95's cuts (75th → 4, 50th → 3, 25th → 2). Comprehension does not count. You can change the standard, the norms (end of year or the reading's own season) and the cuts, and untick any reading to leave it out. The readings v95 had set not to count came across that way. The norms are copied out of v95's `suite-orf.js` by `tools/extract-orf-norms.js`.
+
+**Import:** v95's settings for all of this, the readings set not to count, and your overrides. v95 kept overrides per report-card line, so one on a line of a single standard becomes that standard's; one on a line of several standards has no single standard to go on and stays in the kept v95 data (the import says how many).
+
+**Contract version 8:** `markOverride` (one per quarter, child and standard) and optional settings fields, all private. A setting v95 never saved is left out and means v95's default. The Firebase rules change only in their header; pasting them is optional.
+
+**The gate.** v95's gradebook runs in Chrome on a year of invented marks: several quarters, marks from before the year, averages landing on .5, iReady marks, overrides on lines of one and several standards, and ORF readings including one set not to count. For every child × standard × quarter, under all three rules, with carry forward on and off and iReady in and out (over 10,000 comparisons), v95 and Planbook give the same mark, the same "set by you", the same count and the same "carried from". Zero differences. The page's own cells are checked against the same calculation in a browser test.
+
+**Differences from v95, on purpose.**
+- A reading whose word counts do not add up was held back at import in step 1, so it gives no mark; v95's gradebook copy still counted it. The gate leaves it out of v95's side and checks v95 still counts it.
+- A reading keeps the Oregon date it was taken. v95's gradebook moved an evening reading to the next day, which could only matter on a quarter's last evening.
+- The ORF marks stored by the v95 import are not used; the readings are, as v95 rebuilt them on every load.
+- Dropped by your choice: report-card lines and their editor, and the printed entry sheet.
+
+**Small fixes:** the three Gradebook tabs fit on one line on the iPhone.
+
+**Mistakes of mine caught before release:** a test of the rules I first wrote with a wrong value and a confused message; two browser-test expectations that forgot the sample's own marks. All were in the tests, not the app.
+
+**Tests.** 321 tests: 320 pass with v95 present (1 skipped, the private names file). Deliberate breaks: 117, the 17 new ones all caught.
+
 ## Step 6a — the gradebook: Enter scores
 
 **A Gradebook page** (Planbook home → Gradebook), with Enter scores and Settings. Phone first, in the design you chose: A, "Roster list", with a note line under each child's marks on the iPhone and beside them on the MacBook.
