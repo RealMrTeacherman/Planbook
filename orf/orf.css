@@ -54,6 +54,8 @@ button.solid { background: var(--ink); color: #fff; border-color: var(--ink); wi
 .passage .tag.e { color: var(--err); border-color: var(--err); }
 .passage .tag.s { color: var(--sc); border-color: var(--sc); }
 .passage .tag.empty { opacity: .8; }
+/* Small to keep the line clear, but a 44 px tap area around it. */
+.passage .tag::before { content: ''; position: absolute; left: -8px; right: -8px; top: -8px; bottom: -8px; }
 .tagbox { position: absolute; left: 0; top: 100%; z-index: 4; min-width: 230px; background: var(--panel); border-radius: 14px; box-shadow: 0 8px 30px rgba(22,24,29,.2);
   padding: 10px; display: flex; flex-direction: column; gap: 8px; font: 500 .9rem var(--sans); color: var(--ink); line-height: 1.3; }
 .tagbox input { min-height: 44px; border: 1.5px solid var(--line); border-radius: 10px; padding: 0 10px; font: 500 1rem var(--sans); width: 100%; box-sizing: border-box; margin-top: 4px; }
