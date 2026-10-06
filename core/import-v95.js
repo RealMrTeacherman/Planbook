@@ -154,6 +154,14 @@
     const comp = (parseKey(keys, 'suite:orfcomp:v1') || {}).records || {};
     const orfNotes = (parseKey(keys, 'suite:orfnotes:v1') || {}).records || {};
     let demoSkipped = 0, excluded = 0;
+    // The passage library: each passage, so a reading can point at the one it was.
+    const passageId = new Map();
+    for (const p of Array.isArray(rr.passages) ? rr.passages : []) {
+      if (!p || p.id == null || !cut(p.title, 80) || typeof p.text !== 'string' || !p.text.trim()) continue;
+      const id = 'pas_' + safe(p.id);
+      passageId.set(String(p.id), id);
+      records.push(rec(id, 'orfPassage', { title: cut(p.title, 80), text: p.text.slice(0, 20000) }));
+    }
     for (const r of Array.isArray(rr.records) ? rr.records : []) {
       if (!r || r.id == null) continue;
       if (r.demo || demo.has(String(r.studentId))) { demoSkipped++; continue; }
@@ -184,12 +192,12 @@
       const marked = [];
       missed.forEach((w, n) => {
         const nt = noteFor('e', n), m = { kind: 'error', word: cut(w, 40) || '?', teacherTold: !!nt.told };
-        if (cut(nt.said, 40)) m.said = cut(nt.said, 40);
+        if (cut(nt.said, 60)) m.said = cut(nt.said, 60);
         marked.push(m);
       });
       selfCorr.forEach((w, n) => {
         const nt = noteFor('s', n), m = { kind: 'selfCorrection', word: cut(w, 40) || '?', teacherTold: !!nt.told };
-        if (cut(nt.said, 40)) m.said = cut(nt.said, 40);
+        if (cut(nt.said, 60)) m.said = cut(nt.said, 60);
         marked.push(m);
       });
 
@@ -204,6 +212,7 @@
       if (!isNaN(Date.parse(r.date)) && /T/.test(String(r.date))) f.takenAt = new Date(r.date).toISOString();
       if (Number.isInteger(r.passageWords) && r.passageWords >= 0) f.passageWords = r.passageWords;
       if (Number(nrec.paused) > 0) f.pausedSeconds = Number(nrec.paused);
+      if (r.passageId != null && passageId.has(String(r.passageId))) f.passageId = passageId.get(String(r.passageId));
       if (marked.length) f.marked = marked;
       const c = comp[r.id];
       f.comprehension = (c === 0 || c === 1 || c === 2 || c === 3 || /^[0-3]$/.test(String(c))) ? { asked: 3, correct: Number(c) } : null;

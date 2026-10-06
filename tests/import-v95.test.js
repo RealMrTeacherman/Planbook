@@ -31,7 +31,7 @@ test('every kind of record comes in, in the expected numbers', () => {
     student: 5, schoolYear: 1, gradingPeriod: 4, schoolDay: 1, orfCheck: 4, orfGoal: 2,
     station: 4, group: 8, placement: 6, visitor: 1, unit: 2,
     subject: 9, block: 95, dayPlan: 5, lessonPlan: 12, blockNote: 3, privateNote: 3, familyWeek: 2, subBlock: 5, subPlan: 1,
-    mark: 8, missingWork: 3, gradebookSettings: 1
+    mark: 8, missingWork: 3, gradebookSettings: 1, orfPassage: 1
   });
 });
 
