@@ -171,7 +171,7 @@ const only = range ? null : arg;
 // A throwaway copy of the project.
 function copyProject() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mut-'));
-  for (const d of ['contract', 'core', 'import', 'sync', 'planner', 'gradebook', 'data', 'icons', 'settings', 'tools', 'tests']) fs.cpSync(path.join(ROOT, d), path.join(dir, d), { recursive: true });
+  for (const d of ['contract', 'core', 'import', 'sync', 'planner', 'gradebook', 'orf', 'data', 'icons', 'settings', 'tools', 'tests']) fs.cpSync(path.join(ROOT, d), path.join(dir, d), { recursive: true });
   for (const f of ['index.html', 'sw.js', 'manifest.webmanifest', 'package.json', 'firestore.rules']) fs.copyFileSync(path.join(ROOT, f), path.join(dir, f));
   if (fs.existsSync(path.join(ROOT, 'node_modules'))) fs.symlinkSync(path.join(ROOT, 'node_modules'), path.join(dir, 'node_modules'));
   return dir;
