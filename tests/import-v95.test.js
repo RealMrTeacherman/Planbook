@@ -31,7 +31,7 @@ test('every kind of record comes in, in the expected numbers', () => {
     student: 5, schoolYear: 1, gradingPeriod: 4, schoolDay: 1, orfCheck: 4, orfGoal: 2,
     station: 4, group: 8, placement: 6, visitor: 1, unit: 2,
     subject: 9, block: 95, dayPlan: 5, lessonPlan: 12, blockNote: 3, privateNote: 3, familyWeek: 2, subBlock: 5, subPlan: 1,
-    mark: 8, missingWork: 3, gradebookSettings: 1
+    mark: 8, missingWork: 3, gradebookSettings: 1, orfPassage: 1
   });
 });
 
@@ -281,6 +281,15 @@ test('children moved into skill groups come in, per subject and standard', () =>
     ['pin_Math_2-NBT-B-5_stu_ab-2e9', 'Math', '2.NBT.B.5', 'stu_ab-2e9', -1],
     ['pin_ELA_all_stu_z1y2x3w', 'ELA', null, 'stu_z1y2x3w', 2]]);
   assert.ok(o.heldBack.some(h => h.what === '2 skill group moves'), 'a gone child and an unknown subject');
+});
+
+test('what they said comes in up to 60 characters, as v95 kept it', () => {
+  const f = sample();
+  const said = 'went on for a long while about the kite and the wind first';   // 58 characters
+  const notes = { records: { r_evening: { notes: [{ w: 'kite', kind: 'e', n: 0, said }] } } };
+  f.keys['suite:orfnotes:v1'] = JSON.stringify(notes);
+  const r = byId(imp.convert(f), 'orf_r_evening');
+  assert.equal((r.marked || []).find(m => m.kind === 'error').said, said);
 });
 
 test('the imported gradebook passes the contract', () => {

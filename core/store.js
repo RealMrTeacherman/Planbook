@@ -29,7 +29,9 @@
     // 8: markOverride and optional Synergy-mark settings; no version 7 record changes.
     8: records => records,
     // 9: groupPin; no version 8 record changes.
-    9: records => records
+    9: records => records,
+    // 10: orfPassage, orfCheck.passageId, longer "said"; no version 9 record changes.
+    10: records => records
   };
 
   const req = r => new Promise((ok, no) => { r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); });

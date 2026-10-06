@@ -24,7 +24,8 @@ function sample() {
       env('year_2026', 'schoolYear', { firstDay: '2026-09-02', lastDay: '2027-06-10', earlyReleaseWeekday: 'wed' }),
       env('sday_2026-11-11', 'schoolDay', { date: '2026-11-11', kind: 'noSchool', label: 'Veterans Day' }),
       env('gp_t1xyz', 'gradingPeriod', { name: 'Trimester 1', start: '2026-09-02', end: '2026-11-26' }),
-      env('orf_q1w2e3r4', 'orfCheck', {
+      env('pas_lostkite1', 'orfPassage', { title: 'The Lost Kite', text: 'Mia had a red kite.\n\nThe wind took it.' }),
+      env('orf_q1w2e3r4', 'orfCheck', { passageId: 'pas_lostkite1',
         studentId: 'stu_a1b2c3d4e5', date: '2026-09-20', takenAt: '2026-09-21T00:30:00Z', passageTitle: 'The Lost Kite', passageWords: 120,
         seconds: 60, passes: 1, wordsRead: 58, errors: 4, selfCorrections: 1, wcpm: 54, pausedSeconds: 0,
         marked: [{ kind: 'error', word: 'string', said: 'sting', teacherTold: false },
@@ -150,6 +151,11 @@ test('a skill-group move is one per subject, standard and child, in a group or N
   expectFail(f, 'above 5');
   const g = sample(); find(g, 'pin_ELA_all_stu_f6g7h8i9j0').standard = '2.RL.1';
   expectFail(g, 'must be pin_ELA_2-RL-1_stu_f6g7h8i9j0');
+});
+
+test('a reading may point at its passage, which must be in the file', () => {
+  const f = sample(); f.records = f.records.filter(r => r.id !== 'pas_lostkite1');
+  expectFail(f, 'pas_lostkite1 is not in the file');
 });
 
 test('ORF season lines must be MM-DD', () => {

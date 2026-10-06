@@ -1,5 +1,29 @@
 # Changelog
 
+## Step 7, part 1 — Reading fluency: Assess
+
+A **Reading fluency** page (Planbook home → Reading fluency), in the design you chose (A, "v95's screen, tidied"). It works for anyone: a colleague opens the same address, pastes their class list, and everything stays private in their own browser (and their Drive folder, if they use one). With your Gradebook, it uses your class list, and readings feed 2.RF.4 in For Synergy as before.
+
+**Assess**, as v95's running-records page with its two add-ons:
+- Pick the child, the passage and the read time (1 minute, 90 seconds, 2 minutes). A dark timer bar holds the clock, progress, and the counts of errors, self-corrections and passes.
+- Tap a word once for an error, twice for a self-correction, a third time to clear. **Started over** begins a new pass (errors from earlier passes still count); **Undo restart**; **Stop timer**; at time it beeps (and buzzes on a phone) and asks for the last word read; **Stopped at the end** if they finished a pass exactly; **Change last word**; edit any pass's marks afterwards.
+- **Pause / Resume** for an interruption: the clock holds, taps still work, only reading time is counted, and how long it was paused is saved with the check (the norms assume one unbroken minute), as v95's fluency-assess.js did.
+- **What they said:** a small tag above each marked word. Tap it to type what the child said, or mark that you told them the word ("T"), as on a paper running record. Kept with the reading.
+- Results: words correct per minute, accuracy and its level (Independent, Instructional, Hard — instructional edge, Frustration level), words read, errors, self-corrections, passes.
+
+**Passages:** the library (your v95 passages come in on import, and readings point at the one they were), and adding a passage by hand. The PDF import comes with the later parts of step 7.
+**Students:** your Gradebook's class list; or, for someone using the tool on its own, a pasted list ("First Last" or "Last, First", one per line).
+
+**Contract version 10:** `orfPassage`, `orfCheck.passageId`, and "what they said" up to 60 characters, as v95 kept it (it had been 40, so the importer was cutting longer notes). The ORF tool may add children when there is no gradebook. All private; the Firebase rules change only in their header.
+
+**On purpose, not as planned:** passages are private (Drive path) rather than live. A live record must pass the name check, and a story's character can easily share a child's name.
+
+**The gate.** v95's page (with fluency-assess.js) and Planbook's run in Chrome on the same test clock, and the same taps are made on both, in four scenes: errors, a self-correction, a pause, what they said and teacher told; two passes with time running out and a mark added on the first pass afterwards; started over then stopped at the end; a restart taken back, the last word changed, and a mark past it. Both pages show the same WCPM and accuracy, and v95's saved reading, brought in by the importer, equals Planbook's field for field.
+
+**Caught before release:** a tag was 28 px tall (it now has a 44 px tap area around it); a line in the new logic that nothing depended on (removed); two of my deliberate breaks could not be seen by any test (a test now imports a long "said" note, and the browser test now pauses), and two could not happen through the page at all (dropped).
+
+**Tests.** 384 tests: 383 pass with v95 present (1 skipped, the private names file); without it, as on GitHub, 368 pass and 12 are skipped. Deliberate breaks: 153, the 11 new ones all caught.
+
 ## Fix: GitHub's break check after the Phonics fold
 
 GitHub's run for the fold (a6ed46d) passed every test but failed the deliberate-break check: **"Agenda rows out of time order" was not caught.** My mistake: the check compared Phonics's row with Reading's, and Phonics has no row now, so it compared "not there" (-1) with Reading and always passed. When I updated the planner tests for the fold I missed it. The check now shows Writing (11:40) inside WIN (12:05) in the Agenda look and requires Writing's row first, which only the sort gives. The full break check was run here, as GitHub runs it: all 142 caught. Only a test changed.

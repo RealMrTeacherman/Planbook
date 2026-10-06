@@ -1,6 +1,6 @@
 {
   "contract": "classroom-suite",
-  "version": 9,
+  "version": 10,
   "notes": [
     "Every record in every tool carries the envelope. Only the owner tool writes a type; readers never write it.",
     "Space: 'live' types can never name a child and may sync through Firebase on the teacher's personal account. 'private' types can name a child and travel only through the district Drive folder. A live type may not point at a private one. Text fields marked nameCheck are checked against the class list before a live record is saved.",
@@ -16,7 +16,8 @@
     "Version 6 adds the sub plan's private records: subPlan (the standing notes, one record) and subBlock (a schedule block's What to do and If you cannot find it). Both name children, so both are private. No version 5 record changes.",
     "Version 7 adds the gradebook's marks (mark), work not turned in (missingWork) and its settings (gradebookSettings). All private. A mark's id is built from child, standard and date, so two devices marking the same child the same day make one record. No version 6 record changes.",
     "Version 8 adds markOverride (a mark for Synergy set by hand, per quarter, child and standard) and optional gradebookSettings fields for the Synergy marks: carryForward, ireadyInReport and the ORF settings. All private. No version 7 record changes; a missing setting means v95's default.",
-    "Version 9 adds groupPin: a child moved by hand into a skill group, per subject and standard grouped on. Private. No version 8 record changes."
+    "Version 9 adds groupPin: a child moved by hand into a skill group, per subject and standard grouped on. Private. No version 8 record changes.",
+    "Version 10 adds orfPassage (the ORF tool's passage library, private), orfCheck.passageId, and lets \"what they said\" run to 60 characters as v95 kept it. The ORF tool may add children when there is no gradebook. No version 9 record changes."
   ],
   "file": {
     "fields": {
@@ -126,7 +127,8 @@
           "nullable": true
         }
       },
-      "fromV95": "gb2_standards_v1.students {id, first, last, sid, eld, aka}"
+      "fromV95": "gb2_standards_v1.students {id, first, last, sid, eld, aka}",
+      "note": "The gradebook keeps the class list; with no gradebook (a colleague using only the ORF tool), the ORF tool adds the children itself."
     },
     "schoolDay": {
       "owner": "planner",
@@ -317,7 +319,7 @@
               },
               "said": {
                 "type": "string",
-                "max": 40
+                "max": 60
               },
               "teacherTold": {
                 "type": "bool",
@@ -344,6 +346,12 @@
               "max": 20
             }
           }
+        },
+        "passageId": {
+          "type": "ref",
+          "to": "orfPassage",
+          "nullable": true,
+          "note": "The passage read, when it is in the library."
         }
       },
       "fromV95": "running-records-v1.records + suite:orfcomp:v1 + suite:orfnotes:v1; student via gb2_standards_v1.orfLink"
@@ -1381,6 +1389,27 @@
           "min": -1,
           "max": 5,
           "note": "0 is Group 1, the group needing most support; -1 is Not placed."
+        }
+      }
+    },
+    "orfPassage": {
+      "owner": "orf",
+      "space": "private",
+      "readers": [],
+      "idPrefix": "pas",
+      "note": "A passage in the ORF tool's library. Private like the readings: a story's characters may share a child's name, which live records refuse.",
+      "fromV95": "running-records-v1.passages {id, title, text}",
+      "fields": {
+        "title": {
+          "type": "string",
+          "required": true,
+          "max": 80
+        },
+        "text": {
+          "type": "string",
+          "required": true,
+          "max": 20000,
+          "note": "Blank lines split paragraphs."
         }
       }
     }

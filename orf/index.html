@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reading fluency · Planbook</title>
+<link rel="stylesheet" href="../core/look.css">
+<link rel="stylesheet" href="orf.css">
+<link rel="manifest" href="../manifest.webmanifest">
+<meta name="theme-color" content="#10655C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Planbook">
+<link rel="apple-touch-icon" href="../icons/icon-180.png">
+<script src="../core/boot.js"></script>
+</head>
+<body class="wide">
+<main>
+  <header class="top">
+    <div class="top-row"><a href="../" class="home">Planbook</a></div>
+    <div class="top-row">
+      <h1>Reading fluency</h1>
+      <nav class="tabs" role="tablist" aria-label="View">
+        <button role="tab" id="tabAssess" data-view="assess">Assess</button>
+        <button role="tab" id="tabPassages" data-view="passages">Passages</button>
+        <button role="tab" id="tabStudents" data-view="students">Students</button>
+      </nav>
+    </div>
+  </header>
+  <section class="panel warn" id="problem" hidden role="alert"><p id="problemText"></p></section>
+  <p class="toast" id="toast" role="status" aria-live="polite"></p>
+  <section id="assessView" hidden></section>
+  <section id="passagesView" hidden></section>
+  <section id="studentsView" hidden></section>
+</main>
+<script src="../contract/validate.js"></script>
+<script src="../core/merge.js"></script>
+<script src="../core/store.js"></script>
+<script src="../core/transport.js"></script>
+<script src="../core/plan.js"></script>
+<script src="../core/orf.js"></script>
+<script src="orf.js"></script>
+</body>
+</html>
