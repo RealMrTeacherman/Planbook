@@ -83,7 +83,6 @@
     const k = pass + ':' + i, kind = (S.laps[pass] || {}).marks && S.laps[pass].marks[i];
     if (!kind) return;
     const nt = Object.assign({ said: '', told: false }, S.notes[k], change);
-    if (kind !== 'e') nt.told = false;   // only an error can be a word the teacher told
     S.notes[k] = nt;
   }
   // The marked words as v95 saved them: every error (each pass in turn, by position), then every

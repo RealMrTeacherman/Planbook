@@ -161,7 +161,19 @@ const M = [
   ['planner/planner.js', 'a change wipes the notes bar being typed in', '    if (a && a.dataset && a.dataset.daynote) { renderLater = true; return; }   // never redraw under the notes bar being typed in\n', '', 'tests/planner.browser.test.js'],
   ['planner/planner.js', 'the notes bar is not saved when left', '      if (await saveText({ live: Object.assign({}, plan, { saved: true }), field: \'notes\', text: ta.value, about: \'day\', where: { date } })) { ta.blur(); render(); }', '      if (false) { ta.blur(); render(); }', 'tests/planner.browser.test.js'],
   ['planner/planner.js', 'moving to another day from a note box shows the old day', 'addEventListener(\'hashchange\', () => { const a = document.activeElement; if (a && a.dataset && a.dataset.daynote) a.blur(); render(); });', 'addEventListener(\'hashchange\', () => render());', 'tests/planner.browser.test.js'],
-  ['planner/planner.js', 'Keep it private leaves the note in the bar', '{ ta.blur(); render(); }\n      else ta.focus();', '{ render(); }\n      else ta.focus();', 'tests/planner.browser.test.js']
+  ['planner/planner.js', 'Keep it private leaves the note in the bar', '{ ta.blur(); render(); }\n      else ta.focus();', '{ render(); }\n      else ta.focus();', 'tests/planner.browser.test.js'],
+  // step 7 part 1: ORF Assess
+  ['core/orf.js', 'a third tap does not clear the mark', '    else { delete L.marks[i]; delete S.notes[S.editLap + \':\' + i]; }', '    else L.marks[i] = \'e\';', false],
+  ['core/orf.js', 'marks after the last word are counted', '      if (L.stopTok != null && (+k) > L.stopTok) return;\n      if (L.marks[k] === \'e\') e++;', '      if (L.marks[k] === \'e\') e++;', false],
+  ['core/orf.js', 'an earlier pass counts only to where it stopped', 'const w = L.stopTok != null ? S.tokens[L.stopTok].wi + 1 : isLast ? 0 : N;', 'const w = L.stopTok != null && isLast ? S.tokens[L.stopTok].wi + 1 : isLast ? 0 : N - 1;', false],
+  ['core/orf.js', 'errors are not taken from the words read', 'const correct = Math.max(0, wordsRead - e);', 'const correct = wordsRead;', false],
+  ['core/orf.js', '95% is not instructional', 'acc >= 95 ? \'Instructional\'', 'acc > 95 ? \'Instructional\'', false],
+  ['core/orf.js', 'marked words saved in position order, not errors first', '    [\'e\', \'s\'].forEach(want => S.laps.forEach((L, p) => {', '    [null].forEach(want => S.laps.forEach((L, p) => {', false],
+  ['core/import-v95.js', 'the passage library is not brought in', '      records.push(rec(id, \'orfPassage\', { title: cut(p.title, 80), text: p.text.slice(0, 20000) }));\n', '', false],
+  ['core/import-v95.js', 'what they said is cut to 40 characters', '        if (cut(nt.said, 60)) m.said = cut(nt.said, 60);\n        marked.push(m);\n      });\n      selfCorr', '        if (cut(nt.said, 40)) m.said = cut(nt.said, 40);\n        marked.push(m);\n      });\n      selfCorr', false],
+  ['orf/orf.js', 'paused time counts as reading time', '  const readSeconds = () => (now() - UI.startTs - pausedNow()) / 1000;', '  const readSeconds = () => (now() - UI.startTs) / 1000;', 'tests/orf.browser.test.js'],
+  ['orf/orf.js', 'the timer never ends on its own', '      if (left <= 0) endRead(UI.dur);\n', '', 'tests/orf.browser.test.js'],
+  ['orf/orf.css', 'a tag\'s tap area is too small', '.passage .tag::before { content: \'\'; position: absolute; left: -8px; right: -8px; top: -8px; bottom: -8px; }', '.passage .tag::before { content: \'\'; }', 'tests/orf.browser.test.js']
 ];
 
 // node tests/mutations.js [name filter]   or   node tests/mutations.js --from=N --to=M (by position)

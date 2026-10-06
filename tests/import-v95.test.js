@@ -283,6 +283,15 @@ test('children moved into skill groups come in, per subject and standard', () =>
   assert.ok(o.heldBack.some(h => h.what === '2 skill group moves'), 'a gone child and an unknown subject');
 });
 
+test('what they said comes in up to 60 characters, as v95 kept it', () => {
+  const f = sample();
+  const said = 'went on for a long while about the kite and the wind first';   // 58 characters
+  const notes = { records: { r_evening: { notes: [{ w: 'kite', kind: 'e', n: 0, said }] } } };
+  f.keys['suite:orfnotes:v1'] = JSON.stringify(notes);
+  const r = byId(imp.convert(f), 'orf_r_evening');
+  assert.equal((r.marked || []).find(m => m.kind === 'error').said, said);
+});
+
 test('the imported gradebook passes the contract', () => {
   const o = out();
   const file = { contract: 'classroom-suite', version: contract.version, exportedAt: '2026-10-01T22:04:05.000Z', device: 'v95', records: o.records };

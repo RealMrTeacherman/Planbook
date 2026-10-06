@@ -67,7 +67,7 @@ test('what they said and teacher told: kept with each marked word, errors first,
   O.tap(S, 1); O.tap(S, 1);                           // 'small' self-correction
   O.tap(S, 3);                                        // 'fox' error
   O.setNote(S, 0, 3, { said: 'fix', told: true });
-  O.setNote(S, 0, 1, { said: 'smell', told: true });  // teacher told only applies to an error
+  O.setNote(S, 0, 1, { said: 'smell', told: true });  // teacher told only counts on an error
   O.setLastWord(S, 9);
   assert.deepEqual(O.marked(S), [
     { kind: 'error', word: 'fox', teacherTold: true, said: 'fix' },

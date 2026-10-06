@@ -34,6 +34,9 @@ test('the ORF tool: alone, and beside a gradebook', { skip, timeout: 240000 }, a
     await page.select('#a-sid', kid); await wait(150);
     await tap(page, '[data-a="start"]');
     await tap(page, '.passage .w[data-i="3"]');
+    await tap(page, '[data-a="pause"]');                  // an interruption: 20 s that are not reading
+    await page.evaluate(() => { window.__t += 20000; });
+    await tap(page, '[data-a="pause"]');
     await page.evaluate(() => { window.__t += 30000; });
     await tap(page, '[data-a="stop"]');
     await tap(page, '.passage .w[data-i="13"]');
@@ -68,7 +71,8 @@ test('the ORF tool: alone, and beside a gradebook', { skip, timeout: 240000 }, a
       await read(colleague, kid);
       const c = await checks(colleague);
       assert.equal(c.length, 1);
-      assert.deepEqual([c[0].wordsRead, c[0].errors, c[0].wcpm, c[0].seconds, c[0].passageTitle], [13, 1, 24, 30, 'The Garden Fox'], '12 correct in 30 s is 24 a minute');
+      assert.deepEqual([c[0].wordsRead, c[0].errors, c[0].wcpm, c[0].seconds, c[0].passageTitle], [13, 1, 24, 30, 'The Garden Fox'], '12 correct in 30 s of reading is 24 a minute');
+      assert.equal(c[0].pausedSeconds, 20, 'the pause is kept, and not counted as reading');
       assert.match(await colleague.$eval('#toast', e => e.textContent), /Saved — .*, 24 WCPM/);
     });
 
